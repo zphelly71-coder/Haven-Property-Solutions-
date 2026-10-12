@@ -1,0 +1,327 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haven Property Solutions | Admin</title>
+<style>
+:root{font-family:Arial,sans-serif;color:#18332c;background:#f3f6f4}
+*{box-sizing:border-box}
+body{margin:0}
+header{background:#123e32;color:white;padding:20px}
+main{max-width:900px;margin:24px auto;padding:16px}
+.card{background:white;padding:20px;margin-bottom:18px;border-radius:12px;box-shadow:0 2px 9px #0001}
+h1,h2{margin-top:0}
+label{display:block;font-weight:bold;margin:12px 0 5px}
+input,textarea,select{width:100%;padding:12px;border:1px solid #bbc9c2;border-radius:7px;font:inherit}
+textarea{min-height:90px}
+button{padding:11px 15px;border:0;border-radius:7px;background:#17664e;color:white;font-weight:bold;cursor:pointer;margin:6px 5px 6px 0}
+button.secondary{background:#56665f}
+button.danger{background:#a62929}
+button:disabled{opacity:.5}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.property{border:1px solid #dbe3de;padding:14px;border-radius:8px;margin:12px 0;overflow-wrap:anywhere}
+.muted{color:#61716a;font-size:.92rem}
+#message{white-space:pre-wrap;margin:12px 0}
+@media(max-width:560px){.row{grid-template-columns:1fr}main{padding:10px}.card{padding:15px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Haven Property Solutions</h1>
+  <p>Property Administration</p>
+</header>
+<main>
+  <div id="message" role="status" aria-live="polite"></div>
+
+  <section class="card" id="loginPanel">
+    <h2>Admin login</h2>
+    <p class="muted">Sign in with the admin password configured in Render.</p>
+    <form id="loginForm">
+      <label for="password">Admin password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button type="submit">Sign in</button>
+    </form>
+  </section>
+
+  <section id="dashboard" hidden>
+    <div class="card">
+      <h2 id="formHeading">Add a property</h2>
+      <form id="propertyForm">
+        <input type="hidden" id="propertyId">
+        <label for="title">Property title</label>
+        <input id="title" maxlength="150" required>
+        <label for="description">Description</label>
+        <textarea id="description" maxlength="5000" required></textarea>
+        <label for="location">Location</label>
+        <input id="location" maxlength="200" required>
+        <div class="row">
+          <div>
+            <label for="price">Price (KES)</label>
+            <input id="price" type="number" min="0" step="0.01" required>
+          </div>
+          <div>
+            <label for="pricePeriod">Price period</label>
+            <select id="pricePeriod">
+              <option value="month">Per month</option>
+              <option value="week">Per week</option>
+              <option value="day">Per day</option>
+              <option value="night">Per night</option>
+              <option value="once">One-time price</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="propertyType">Property type</label>
+            <input id="propertyType" placeholder="Apartment, house, land...">
+          </div>
+          <div>
+            <label for="status">Listing status</label>
+            <select id="status">
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="bedrooms">Bedrooms</label>
+            <input id="bedrooms" type="number" min="0" max="100" step="1" value="0">
+          </div>
+          <div>
+            <label for="bathrooms">Bathrooms</label>
+            <input id="bathrooms" type="number" min="0" max="100" step="1" value="0">
+          </div>
+        </div>
+        <label for="images">Image URLs (one per line, optional)</label>
+        <textarea id="images" placeholder="https://example.com/property.jpg"></textarea>
+        <button type="submit" id="saveButton">Save property</button>
+        <button type="button" class="secondary" id="cancelEdit" hidden>Cancel edit</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Manage properties</h2>
+      <button type="button" id="refreshButton">Refresh listings</button>
+      <button type="button" class="secondary" id="logoutButton">Log out</button>
+      <div id="propertyList"></div>
+    </div>
+  </section>
+</main>
+<script>
+"use strict";
+
+const API = "https://haven-property-solutions-api.onrender.com";
+const TOKEN_KEY = "haven_admin_token";
+let editingId = "";
+
+const $ = id => document.getElementById(id);
+const message = text => { $("message").textContent = text; };
+
+async function api(path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  if (token) headers.Authorization = "Bearer " + token;
+  if (options.body) headers["Content-Type"] = "application/json";
+
+  const response = await fetch(API + path, { ...options, headers });
+  const data = await response.json().catch(() => ({}));
+
+  if (response.status === 401) {
+    logout(false);
+    throw new Error(data.message || "Session expired. Please sign in again.");
+  }
+  if (!response.ok) throw new Error(data.message || "Request failed.");
+  return data;
+}
+
+function showDashboard() {
+  $("loginPanel").hidden = true;
+  $("dashboard").hidden = false;
+}
+
+function logout(showMessage = true) {
+  sessionStorage.removeItem(TOKEN_KEY);
+  $("dashboard").hidden = true;
+  $("loginPanel").hidden = false;
+  resetForm();
+  if (showMessage) message("You have logged out.");
+}
+
+function resetForm() {
+  editingId = "";
+  $("propertyForm").reset();
+  $("propertyId").value = "";
+  $("formHeading").textContent = "Add a property";
+  $("saveButton").textContent = "Save property";
+  $("cancelEdit").hidden = true;
+  $("bedrooms").value = 0;
+  $("bathrooms").value = 0;
+}
+
+$("loginForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const button = $("loginForm").querySelector("button");
+  button.disabled = true;
+  message("Signing in...");
+  try {
+    const result = await api("/api/admin/login", {
+      method: "POST",
+      body: JSON.stringify({ password: $("password").value })
+    });
+    sessionStorage.setItem(TOKEN_KEY, result.token);
+    $("password").value = "";
+    showDashboard();
+    message("Login successful.");
+    await loadProperties();
+  } catch (error) {
+    message(error.message);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+async function loadProperties() {
+  $("propertyList").textContent = "Loading listings...";
+  try {
+    const result = await api("/api/admin/properties");
+    const list = $("propertyList");
+    list.replaceChildren();
+
+    if (!result.properties || result.properties.length === 0) {
+      list.textContent = "No properties found.";
+      return;
+    }
+
+    for (const property of result.properties) {
+      const card = document.createElement("article");
+      card.className = "property";
+
+      const heading = document.createElement("h3");
+      heading.textContent = property.title || "Untitled property";
+
+      const details = document.createElement("p");
+      details.textContent =
+        (property.location || "No location") + " · KES " +
+        Number(property.price || 0).toLocaleString("en-KE") + " · " +
+        (property.pricePeriod || "once");
+
+      const status = document.createElement("p");
+      status.className = "muted";
+      status.textContent = "Status: " + (property.status || "unknown");
+
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.textContent = "Edit";
+      edit.addEventListener("click", () => beginEdit(property));
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "danger";
+      remove.textContent = "Delete";
+      remove.addEventListener("click", async () => {
+        if (!confirm("Delete this property permanently?")) return;
+        remove.disabled = true;
+        try {
+          await api("/api/properties/" + encodeURIComponent(property._id), {
+            method: "DELETE"
+          });
+          message("Property deleted.");
+          if (editingId === property._id) resetForm();
+          await loadProperties();
+        } catch (error) {
+          message(error.message);
+          remove.disabled = false;
+        }
+      });
+
+      card.append(heading, details, status, edit, remove);
+      list.append(card);
+    }
+  } catch (error) {
+    $("propertyList").textContent = "Could not load listings.";
+    message(error.message);
+  }
+}
+
+function beginEdit(property) {
+  editingId = property._id;
+  $("propertyId").value = editingId;
+  $("formHeading").textContent = "Edit property";
+  $("saveButton").textContent = "Update property";
+  $("cancelEdit").hidden = false;
+
+  for (const field of [
+    "title", "description", "location", "price",
+    "pricePeriod", "propertyType", "status", "bedrooms", "bathrooms"
+  ]) {
+    $(field).value = property[field] ?? (
+      field === "pricePeriod" ? "month" :
+      field === "status" ? "published" :
+      ["price", "bedrooms", "bathrooms"].includes(field) ? 0 : ""
+    );
+  }
+
+  $("images").value = Array.isArray(property.images)
+    ? property.images.join("\n") : "";
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  message("Editing " + (property.title || "property") + ".");
+}
+
+$("propertyForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const button = $("saveButton");
+  button.disabled = true;
+
+  const property = {
+    title: $("title").value.trim(),
+    description: $("description").value.trim(),
+    location: $("location").value.trim(),
+    price: Number($("price").value),
+    pricePeriod: $("pricePeriod").value,
+    propertyType: $("propertyType").value.trim(),
+    status: $("status").value,
+    bedrooms: Number($("bedrooms").value),
+    bathrooms: Number($("bathrooms").value),
+    images: $("images").value.split("\n").map(s => s.trim()).filter(Boolean)
+  };
+
+  try {
+    if (editingId) {
+      await api("/api/properties/" + encodeURIComponent(editingId), {
+        method: "PATCH",
+        body: JSON.stringify(property)
+      });
+      message("Property updated successfully.");
+    } else {
+      await api("/api/properties", {
+        method: "POST",
+        body: JSON.stringify(property)
+      });
+      message("Property added successfully.");
+    }
+
+    resetForm();
+    await loadProperties();
+  } catch (error) {
+    message(error.message);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("cancelEdit").addEventListener("click", resetForm);
+$("refreshButton").addEventListener("click", loadProperties);
+$("logoutButton").addEventListener("click", () => logout());
+
+if (sessionStorage.getItem(TOKEN_KEY)) {
+  showDashboard();
+  loadProperties().catch(() => logout());
+}
+</script>
+</body>
+</html>
