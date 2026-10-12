@@ -11,7 +11,7 @@ const MONGODB_URI = process.env.MONGODB_URI;
 const DB_NAME =
   process.env.MONGODB_DB || "haven_property_solutions";
 
-app.use(cors));
+app.use(cors());
 app.use(express.json());
 
 let db;
