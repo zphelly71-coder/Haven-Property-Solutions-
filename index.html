@@ -108,27 +108,62 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
       <li>To contribute to the growth and development of our community.</li>
     </ul>
 
-    <h2>Featured Properties</h2>
-    <div class="properties">
-      <div class="property">
-        <img src="Images (1).jpeg" alt="Property 1">
-        <h3>Property 1</h3>
-        <p>Location: Nairobi</p>
-        <p>Price: $1,000/month</p>
-      </div>
-      <div class="property">
-        <img src="Images (2).jpeg" alt="Property 2">
-        <h3>Property 2</h3>
-        <p>Location: Mombasa</p>
-        <p>Price: $800/month</p>
-      </div>
-      <div class="property">
-        <img src="Images (3).jpeg" alt="Property 3">
-        <h3>Property 3</h3>
-        <p>Location: Kisumu</p>
-        <p>Price: $1,200/month</p>
-      </div>
-    </div>
+    
+<h2>Featured Properties</h2>
+<p id="properties-status">Loading properties...</p>
+<div class="properties" id="properties-list"></div>
+
+<script>
+async function loadProperties() {
+  const status = document.getElementById("properties-status");
+  const list = document.getElementById("properties-list");
+
+  try {
+    const response = await fetch(
+      "https://haven-property-solutions-api.onrender.com/api/properties"
+    );
+
+    if (!response.ok) throw new Error("Could not load properties");
+
+    const data = await response.json();
+    list.replaceChildren();
+
+    if (!data.properties || data.properties.length === 0) {
+      status.textContent = "No published properties available yet.";
+      return;
+    }
+
+    data.properties.forEach(property => {
+      const card = document.createElement("div");
+      card.className = "property";
+
+      const title = document.createElement("h3");
+      title.textContent = property.title || "Property listing";
+
+      const location = document.createElement("p");
+      location.textContent = "Location: " + (property.location || "Not specified");
+
+      const price = document.createElement("p");
+      price.textContent = property.price != null
+        ? "Price: KSh " + Number(property.price).toLocaleString("en-KE") +
+          (property.pricePeriod ? "/" + property.pricePeriod : "")
+        : "Price: Contact us";
+
+      const description = document.createElement("p");
+      description.textContent = property.description || "";
+
+      card.append(title, location, price, description);
+      list.appendChild(card);
+    });
+
+    status.textContent = "Showing " + data.properties.length + " properties";
+  } catch (error) {
+    status.textContent = "Unable to load properties. Please try again later.";
+  }
+}
+
+loadProperties();
+</script>
 
     <h2>Find Us</h2>
 <iframe width="100%" height="300" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" 
