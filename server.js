@@ -2,6 +2,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const cors = require("cors");
 const { MongoClient } = require("mongodb");
 
 const app = express();
@@ -10,6 +11,7 @@ const MONGODB_URI = process.env.MONGODB_URI;
 const DB_NAME =
   process.env.MONGODB_DB || "haven_property_solutions";
 
+app.use(cors));
 app.use(express.json());
 
 let db;
