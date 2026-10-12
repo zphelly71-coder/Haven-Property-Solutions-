@@ -30,6 +30,51 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+app.get("/api/properties", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Database not connected"
+      });
+    }
+
+    const properties = await db.collection("properties")
+      .find(
+        { status: "published" },
+        {
+          projection: {
+            title: 1,
+            description: 1,
+            location: 1,
+            price: 1,
+            pricePeriod: 1,
+            propertyType: 1,
+            bedrooms: 1,
+            bathrooms: 1,
+            images: 1,
+            createdAt: 1
+          }
+        }
+      )
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.json({
+      status: "ok",
+      count: properties.length,
+      properties
+    });
+  } catch (error) {
+    console.error("Failed to load properties:", error.message);
+    res.status(500).json({
+      status: "error",
+      message: "Unable to load properties"
+    });
+  }
+});
+
+
 async function startServer() {
   if (!MONGODB_URI) {
     throw new Error("MONGODB_URI environment variable is missing.");
