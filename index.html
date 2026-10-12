@@ -63,6 +63,27 @@
 <body>
   <div class="container">
     <h1>Welcome to Haven Property Solutions</h1>
+    <p id="api-status">Checking system connection...</p>
+
+<script>
+fetch("https://haven-property-solutions-api.onrender.com/api/health")
+  .then(response => {
+    if (!response.ok) throw new Error("API unavailable");
+    return response.json();
+  })
+  .then(data => {
+    const status = document.getElementById("api-status");
+
+    status.textContent =
+      data.status === "ok" && data.database === "connected"
+        ? "System connection: Active"
+        : "System connection: Check required";
+  })
+  .catch(() => {
+    document.getElementById("api-status").textContent =
+      "System connection: Unavailable";
+  });
+</script>
     <p>We specialize in managing properties for individuals and businesses.</p>
 
     <h2>Search Properties</h2>
