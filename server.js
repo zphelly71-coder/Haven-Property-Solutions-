@@ -256,6 +256,27 @@ function cleanProperty(data) {
   return result;
 }
 
+app.get("/api/admin/properties", requireAdmin, async (req, res) => {
+  try {
+    const properties = await db.collection("properties")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.json({
+      status: "ok",
+      count: properties.length,
+      properties
+    });
+  } catch (error) {
+    console.error("Admin property list failed:", error.message);
+    res.status(500).json({
+      status: "error",
+      message: "Unable to load admin properties"
+    });
+  }
+});
+
 app.post("/api/properties", requireAdmin, async (req, res) => {
   try {
     const error = validateProperty(req.body);
