@@ -2,7 +2,45 @@
 <html>
 <head>
   <title>Haven Property Solutions</title>
-  <style>
+ <style>
+  /* Premium Haven navigation */
+.site-nav {
+  background: #142b46;
+  border-bottom: 3px solid #c5a15b;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.site-brand {
+  color: #e6c783;
+  font-size: 23px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-decoration: none;
+}
+
+.site-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.site-links a {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.site-links a:hover {
+  color: #e6c783;
+}
     body {
     font-family: Arial, sans-serif;
     background-color: #f4f1ea;
@@ -149,6 +187,16 @@ form button {
   </style>
 </head>
 <body>
+  <nav class="site-nav">
+  <a href="#home" class="site-brand">HAVEN</a>
+  <div class="site-links">
+    <a href="#home">Home</a>
+    <a href="#properties-list">Rent</a>
+    <a href="#properties-list">Buy</a>
+    <a href="#about">About</a>
+    <a href="#contact">Contact</a>
+  </div>
+</nav>
   <div class="container">
     <h1>Find Your Place. Invest in Your Future.</h1>
     <p id="api-status">Checking system connection...</p>
