@@ -103,6 +103,46 @@ form button {
       object-fit: cover;
       border-radius: 10px 10px 0 0;
     }
+    
+.property-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin: 28px 0;
+}
+
+.option-card {
+    display: block;
+    padding: 24px;
+    background: #142b46;
+    color: #ffffff;
+    border: 1px solid #c5a15b;
+    border-radius: 14px;
+    text-decoration: none;
+    box-shadow: 0 6px 18px rgba(20, 43, 70, 0.12);
+}
+
+.option-card h3 {
+    color: #ffffff;
+    margin: 12px 0;
+}
+
+.option-card p {
+    line-height: 1.6;
+}
+
+.option-icon {
+    color: #c5a15b;
+    font-size: 30px;
+}
+
+.option-link {
+    display: inline-block;
+    margin-top: 10px;
+    color: #e6c783;
+    font-weight: bold;
+}
+
   </style>
 </head>
 <body>
@@ -136,6 +176,23 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
       <input type="text" id="search-bar" placeholder="Search properties...">
       <button type="submit">Search</button>
     </form>
+    
+<div class="property-options">
+    <a href="#properties-list" class="option-card">
+        <span class="option-icon">⌂</span>
+        <h3>Rent a Property</h3>
+        <p>Find a comfortable home or apartment to rent.</p>
+        <span class="option-link">Explore Rentals →</span>
+    </a>
+
+    <a href="#properties" class="option-card">
+        <span class="option-icon">◆</span>
+        <h3>Buy a Property</h3>
+        <p>Discover a property to own and invest in.</p>
+        <span class="option-link">Explore Properties →</span>
+    </a>
+</div>
+
 
     <h2>About Us</h2>
     <p>Welcome to Haven Property Solutions, your trusted partner in property management. We are a team of experienced professionals dedicated to providing top-notch services to property owners and tenants. Our goal is to ensure that every property under our management is well-maintained, profitable, and hassle-free for our clients.</p>
