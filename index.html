@@ -136,6 +136,23 @@ async function loadProperties() {
     data.properties.forEach(property => {
       const card = document.createElement("div");
       card.className = "property";
+      
+if (Array.isArray(property.images) && property.images.length > 0) {
+  const photo = document.createElement("img");
+  photo.src = property.images[0];
+  photo.alt = property.title || "Property photograph";
+  photo.loading = "lazy";
+  photo.style.width = "100%";
+  photo.style.height = "220px";
+  photo.style.objectFit = "cover";
+  photo.style.borderRadius = "10px";
+  photo.style.marginBottom = "12px";
+  photo.onerror = () => {
+    photo.style.display = "none";
+  };
+  card.appendChild(photo);
+}
+
 
       const title = document.createElement("h3");
       title.textContent = property.title || "Property listing";
