@@ -416,7 +416,8 @@ async function startServer() {
 });
 
 console.log("Connecting to MongoDB Atlas...");
-
+console.log("MongoDB driver version:", require("mongodb/package.json").version);
+console.log("Starting secure MongoDB connection...");
 await client.connect();
 
 console.log("MongoDB Atlas connection established.");
