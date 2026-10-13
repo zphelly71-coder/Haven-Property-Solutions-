@@ -292,6 +292,20 @@ async function loadProperties() {
       const card = document.createElement("div");
       card.className = "property";
       
+const badge = document.createElement("p");
+badge.textContent =
+  property.status === "published"
+    ? (property.listingType === "sale" ? "FOR SALE" : "FOR RENT")
+    : "DRAFT";
+badge.style.display = "inline-block";
+badge.style.padding = "5px 10px";
+badge.style.backgroundColor = "#142b46";
+badge.style.color = "#e6c783";
+badge.style.fontWeight = "bold";
+badge.style.borderRadius = "6px";
+badge.style.fontSize = "12px";
+card.appendChild(badge);
+      
 if (Array.isArray(property.images) && property.images.length > 0) {
   const photo = document.createElement("img");
   photo.src = property.images[0];
