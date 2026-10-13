@@ -430,6 +430,7 @@ console.log("MongoDB Atlas connection established.");
 }
 
 startServer().catch((error) => {
-  console.error("Server startup failed:", error.message);
+  console.error("Server startup failed:", error);
+  console.error("Underlying cause:", error.cause);
   process.exit(1);
 });
