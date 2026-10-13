@@ -411,7 +411,8 @@ async function startServer() {
 
   const client = new MongoClient(MONGODB_URI, {
   serverSelectionTimeoutMS: 15000,
-  connectTimeoutMS: 15000
+  connectTimeoutMS: 15000, 
+  family: 4
 });
 
 console.log("Connecting to MongoDB Atlas...");
