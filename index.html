@@ -292,11 +292,14 @@ async function loadProperties() {
       const card = document.createElement("div");
       card.className = "property";
       
+
 const badge = document.createElement("p");
-badge.textContent =
-  property.status === "published"
-    ? (property.listingType === "sale" ? "FOR SALE" : "FOR RENT")
-    : "DRAFT";
+const isPublished =
+  String(property.status || "").trim().toLowerCase() === "published";
+badge.textContent = isPublished
+  ? (property.listingType === "sale" ? "FOR SALE" : "FOR RENT")
+  : "DRAFT";
+
 badge.style.display = "inline-block";
 badge.style.padding = "5px 10px";
 badge.style.backgroundColor = "#142b46";
