@@ -409,8 +409,16 @@ async function startServer() {
     throw new Error("MONGODB_URI environment variable is missing.");
   }
 
-  const client = new MongoClient(MONGODB_URI);
-  await client.connect();
+  const client = new MongoClient(MONGODB_URI, {
+  serverSelectionTimeoutMS: 15000,
+  connectTimeoutMS: 15000
+});
+
+console.log("Connecting to MongoDB Atlas...");
+
+await client.connect();
+
+console.log("MongoDB Atlas connection established.");
 
   db = client.db(DB_NAME);
 
