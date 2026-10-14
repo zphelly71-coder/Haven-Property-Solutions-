@@ -95,6 +95,7 @@ button:disabled{opacity:.5}
     <option value="sale">For Sale</option>
     <option value="rent">For Rent</option>
     <option value="lease">For Lease</option>
+    <option value="short-stay">Short Stay / Airbnb</option>
   </select>
 </div>
 <div class="card" id="propertyDetails">
@@ -129,6 +130,26 @@ button:disabled{opacity:.5}
       <option value="Processing">Processing</option>
       <option value="Not specified">Not specified</option>
     </select>
+  </div>
+  <div id="airbnbFields" hidden>
+  <h4>Short Stay / Airbnb Details</h4>
+
+  <label for="nightlyRate">Nightly rate (KES)</label>
+  <input id="nightlyRate" type="number" min="0" placeholder="e.g. 4500">
+
+  <label for="maxGuests">Maximum guests</label>
+  <input id="maxGuests" type="number" min="1" placeholder="e.g. 4">
+
+  <label for="minimumNights">Minimum nights per stay</label>
+  <input id="minimumNights" type="number" min="1" value="1">
+
+  <label for="checkInTime">Check-in time</label>
+  <input id="checkInTime" type="time">
+
+  <label for="checkOutTime">Check-out time</label>
+  <input id="checkOutTime" type="time">
+
+  <p>Online booking and payments will be added in a later phase.</p>
   </div>
 
   <div id="stayFields" hidden>
@@ -232,8 +253,33 @@ function resetForm() {
   $("cancelEdit").hidden = true;
   $("bedrooms").value = 0;
   $("bathrooms").value = 0;
+  $("landSize").value = "";
+$("landUnit").selectedIndex = 0;
+$("landUse").selectedIndex = 0;
+$("titleDeed").selectedIndex = 0;
+
+$("nightlyRate").value = "";
+$("maxGuests").value = "";
+$("minimumNights").value = 1;
+$("checkInTime").value = "";
+$("checkOutTime").value = "";
+
+updatePropertyFields();
+}
+function updatePropertyFields() {
+  const type = $("propertyType").value;
+  const purpose = $("listingPurpose").value;
+
+  $("landFields").hidden = type !== "Land / Plot";
+
+  $("airbnbFields").hidden =
+    purpose !== "short-stay" && purpose !== "airbnb";
 }
 
+$("propertyType").addEventListener("change", updatePropertyFields);
+$("listingPurpose").addEventListener("change", updatePropertyFields);
+
+updatePropertyFields();
 $("loginForm").addEventListener("submit", async event => {
   event.preventDefault();
   const button = $("loginForm").querySelector("button");
@@ -329,8 +375,11 @@ function beginEdit(property) {
   
 for (const field of [
   "title", "description", "location", "price",
-  "pricePeriod", "propertyType", "listingPurpose", "status",
-  "bedrooms", "bathrooms"
+"pricePeriod", "propertyType", "listingPurpose", "status",
+"bedrooms", "bathrooms",
+"landSize", "landUnit", "landUse", "titleDeed",
+"nightlyRate", "maxGuests", "minimumNights",
+"checkInTime", "checkOutTime"
 ]) {
 
     $(field).value = property[field] ?? (
@@ -354,19 +403,29 @@ $("propertyForm").addEventListener("submit", async event => {
   button.disabled = true;
 
   const property = {
-    title: $("title").value.trim(),
-    description: $("description").value.trim(),
-    location: $("location").value.trim(),
-    price: Number($("price").value),
-    pricePeriod: $("pricePeriod").value,
-    propertyType: $("propertyType").value.trim(),
-    listingPurpose: $("listingPurpose").value,
-    status: $("status").value,
-    bedrooms: Number($("bedrooms").value),
-    bathrooms: Number($("bathrooms").value),
-    images: $("images").value.split("\n").map(s => s.trim()).filter(Boolean)
-  };
+  title: $("title").value.trim(),
+  description: $("description").value.trim(),
+  location: $("location").value.trim(),
+  price: Number($("price").value),
+  pricePeriod: $("pricePeriod").value,
+  propertyType: $("propertyType").value.trim(),
+  listingPurpose: $("listingPurpose").value,
+  status: $("status").value,
+  bedrooms: Number($("bedrooms").value),
+  bathrooms: Number($("bathrooms").value),
+  images: $("images").value.split("\n").map(s => s.trim()).filter(Boolean),
 
+  landSize: Number($("landSize").value) || 0,
+  landUnit: $("landUnit").value,
+  landUse: $("landUse").value,
+  titleDeed: $("titleDeed").value,
+
+  nightlyRate: Number($("nightlyRate").value) || 0,
+  maxGuests: Number($("maxGuests").value) || 0,
+  minimumNights: Number($("minimumNights").value) || 1,
+  checkInTime: $("checkInTime").value,
+  checkOutTime: $("checkOutTime").value
+};
   try {
     if (editingId) {
       await api("/api/properties/" + encodeURIComponent(editingId), {
