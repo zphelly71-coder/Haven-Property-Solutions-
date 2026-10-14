@@ -145,6 +145,7 @@ app.get("/api/properties", async (req, res) => {
 
 
 function validateProperty(data) {
+
   const allowed = [
     "title",
     "description",
@@ -152,11 +153,22 @@ function validateProperty(data) {
     "price",
     "pricePeriod",
     "propertyType",
+    "listingPurpose",
     "bedrooms",
     "bathrooms",
     "images",
-    "status"
+    "status",
+    "landSize",
+    "landUnit",
+    "landUse",
+    "titleDeed",
+    "nightlyRate",
+    "maxGuests",
+    "minimumNights",
+    "checkInTime",
+    "checkOutTime"
   ];
+
 
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return "Invalid property data";
