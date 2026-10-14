@@ -337,11 +337,30 @@ app.patch("/api/properties/:id", requireAdmin, async (req, res) => {
       });
     }
 
+   
     const allowed = [
-      "title", "description", "location", "price",
-      "pricePeriod", "propertyType", "bedrooms",
-      "bathrooms", "images", "status"
+      "title",
+      "description",
+      "location",
+      "price",
+      "pricePeriod",
+      "propertyType",
+      "listingPurpose",
+      "bedrooms",
+      "bathrooms",
+      "images",
+      "status",
+      "landSize",
+      "landUnit",
+      "landUse",
+      "titleDeed",
+      "nightlyRate",
+      "maxGuests",
+      "minimumNights",
+      "checkInTime",
+      "checkOutTime"
     ];
+
 
     for (const key of Object.keys(changes)) {
       if (!allowed.includes(key)) {
