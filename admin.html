@@ -388,7 +388,7 @@ for (const field of [
       ["price", "bedrooms", "bathrooms"].includes(field) ? 0 : ""
     );
   }
-
+  updatePropertyFields();
   $("images").value = Array.isArray(property.images)
     ? property.images.join("\n") : "";
 
