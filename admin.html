@@ -74,8 +74,19 @@ button:disabled{opacity:.5}
         </div>
         <div class="row">
           <div>
-            <label for="propertyType">Property type</label>
-            <input id="propertyType" placeholder="Apartment, house, land...">
+            
+<label for="propertyType">Property type</label>
+<select id="propertyType" required>
+  <option value="House">House</option>
+  <option value="Apartment">Apartment</option>
+  <option value="Land / Plot">Land / Plot</option>
+  <option value="Commercial Building">Commercial Building</option>
+  <option value="Office">Office</option>
+  <option value="Shop">Shop</option>
+  <option value="Warehouse">Warehouse</option>
+  <option value="Farm">Farm</option>
+</select>
+
           </div>
           <div>
             <label for="status">Listing status</label>
