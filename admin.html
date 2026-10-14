@@ -88,6 +88,16 @@ button:disabled{opacity:.5}
 </select>
 
           </div>
+          
+<div>
+  <label for="listingPurpose">Listing purpose</label>
+  <select id="listingPurpose" required>
+    <option value="sale">For Sale</option>
+    <option value="rent">For Rent</option>
+    <option value="lease">For Lease</option>
+  </select>
+</div>
+
           <div>
             <label for="status">Listing status</label>
             <select id="status">
@@ -264,10 +274,13 @@ function beginEdit(property) {
   $("saveButton").textContent = "Update property";
   $("cancelEdit").hidden = false;
 
-  for (const field of [
-    "title", "description", "location", "price",
-    "pricePeriod", "propertyType", "status", "bedrooms", "bathrooms"
-  ]) {
+  
+for (const field of [
+  "title", "description", "location", "price",
+  "pricePeriod", "propertyType", "listingPurpose", "status",
+  "bedrooms", "bathrooms"
+]) {
+
     $(field).value = property[field] ?? (
       field === "pricePeriod" ? "month" :
       field === "status" ? "published" :
@@ -295,6 +308,7 @@ $("propertyForm").addEventListener("submit", async event => {
     price: Number($("price").value),
     pricePeriod: $("pricePeriod").value,
     propertyType: $("propertyType").value.trim(),
+    listingPurpose: $("listingPurpose").value,
     status: $("status").value,
     bedrooms: Number($("bedrooms").value),
     bathrooms: Number($("bathrooms").value),
