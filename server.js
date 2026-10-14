@@ -122,7 +122,15 @@ app.get("/api/properties", async (req, res) => {
             images: 1,
             createdAt: 1,
             status: 1,
-            listingType: 1
+            listingType: 1,
+            
+            listingPurpose: 1,
+            nightlyRate: 1,
+            maxGuests: 1,
+            minimumNights: 1,
+            checkInTime: 1,
+            checkOutTime: 1
+
           }
         }
       )
