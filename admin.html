@@ -97,7 +97,56 @@ button:disabled{opacity:.5}
     <option value="lease">For Lease</option>
   </select>
 </div>
+<div class="card" id="propertyDetails">
+  <h3>Additional Property Details</h3>
 
+  <div id="landFields" hidden>
+    <h4>Land / Plot Details</h4>
+
+    <label for="landSize">Land size</label>
+    <input id="landSize" type="number" min="0" step="any"
+      placeholder="e.g. 0.5">
+
+    <label for="landUnit">Measurement unit</label>
+    <select id="landUnit">
+      <option value="square feet">Square feet</option>
+      <option value="square metres">Square metres</option>
+      <option value="acres">Acres</option>
+      <option value="hectares">Hectares</option>
+    </select>
+
+    <label for="landUse">Land use</label>
+    <select id="landUse">
+      <option value="Residential">Residential</option>
+      <option value="Commercial">Commercial</option>
+      <option value="Agricultural">Agricultural</option>
+      <option value="Mixed use">Mixed use</option>
+    </select>
+
+    <label for="titleDeed">Title deed status</label>
+    <select id="titleDeed">
+      <option value="Available">Available</option>
+      <option value="Processing">Processing</option>
+      <option value="Not specified">Not specified</option>
+    </select>
+  </div>
+
+  <div id="stayFields" hidden>
+    <h4>Airbnb / Short-stay Details</h4>
+
+    <label for="guestCapacity">Maximum guests</label>
+    <input id="guestCapacity" type="number" min="1"
+      placeholder="e.g. 4">
+
+    <label for="stayAmenities">Amenities</label>
+    <textarea id="stayAmenities"
+      placeholder="e.g. Wi-Fi, kitchen, parking, swimming pool"></textarea>
+
+    <label for="checkInInfo">Check-in information</label>
+    <input id="checkInInfo"
+      placeholder="e.g. Check-in from 2 PM">
+  </div>
+      </div>
           <div>
             <label for="status">Listing status</label>
             <select id="status">
@@ -116,6 +165,9 @@ button:disabled{opacity:.5}
             <input id="bathrooms" type="number" min="0" max="100" step="1" value="0">
           </div>
         </div>
+        
+<div id="dynamicFields"></div>
+
         <label for="images">Image URLs (one per line, optional)</label>
         <textarea id="images" placeholder="https://example.com/property.jpg"></textarea>
         <button type="submit" id="saveButton">Save property</button>
