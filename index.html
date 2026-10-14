@@ -342,6 +342,34 @@ if (Array.isArray(property.images) && property.images.length > 0) {
       description.textContent = property.description || "";
 
       card.append(title, location, price, description);
+      
+      if (["short-stay", "airbnb"].includes(String(property.listingPurpose || "").toLowerCase())) {
+        const stayDetails = document.createElement("p");
+        const details = [];
+
+        if (Number(property.nightlyRate) > 0) {
+          details.push("Nightly rate: KSh " + Number(property.nightlyRate).toLocaleString("en-KE"));
+        }
+
+        if (Number(property.maxGuests) > 0) {
+          details.push("Maximum guests: " + Number(property.maxGuests));
+        }
+
+        if (Number(property.minimumNights) > 0) {
+          details.push("Minimum stay: " + Number(property.minimumNights) +
+            (Number(property.minimumNights) === 1 ? " night" : " nights"));
+        }
+
+        if (property.checkInTime) details.push("Check-in: " + property.checkInTime);
+        if (property.checkOutTime) details.push("Check-out: " + property.checkOutTime);
+
+        if (details.length) {
+          stayDetails.textContent = details.join(" · ");
+          stayDetails.style.fontWeight = "600";
+          card.appendChild(stayDetails);
+        }
+      }
+
       list.appendChild(card);
     });
 
