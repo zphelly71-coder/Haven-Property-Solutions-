@@ -231,6 +231,7 @@ function validateProperty(data) {
 }
 
 function cleanProperty(data) {
+  
   const fields = [
     "title",
     "description",
@@ -238,10 +239,20 @@ function cleanProperty(data) {
     "price",
     "pricePeriod",
     "propertyType",
+    "listingPurpose",
     "bedrooms",
     "bathrooms",
     "images",
-    "status"
+    "status",
+    "landSize",
+    "landUnit",
+    "landUse",
+    "titleDeed",
+    "nightlyRate",
+    "maxGuests",
+    "minimumNights",
+    "checkInTime",
+    "checkOutTime"
   ];
 
   const result = {};
