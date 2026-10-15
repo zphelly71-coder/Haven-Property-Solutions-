@@ -96,7 +96,38 @@ app.get("/api/health", (req, res) => {
     database: db ? "connected" : "not connected"
   });
 });
+app.post(
+  "/api/admin/cloudinary-signature",
+  requireAdmin,
+  (req, res) => {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
+    if (!cloudName || !apiKey || !apiSecret) {
+      return res.status(503).json({
+        status: "error",
+        message: "Cloudinary is not configured"
+      });
+    }
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const folder = "haven-property-solutions";
+
+    const signature = crypto
+      .createHash("sha1")
+      .update(`folder=${folder}&timestamp=${timestamp}${apiSecret}`)
+      .digest("hex");
+
+    res.json({
+      cloudName,
+      apiKey,
+      timestamp,
+      folder,
+      signature
+    });
+  }
+);
 app.get("/api/properties", async (req, res) => {
   try {
     if (!db) {
