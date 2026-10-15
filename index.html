@@ -194,9 +194,9 @@ form button {
   <nav class="site-nav">
   <a href="#home" class="site-brand">HAVEN PROPERTY SOLUTIONS</a>
   <div class="site-links">
-    <a href="#home">Home</a>
-    <a href="#properties-list">Rent</a>
-    <a href="#properties-list">Buy</a>
+    <a href="#home" data-purpose="all">Home</a>
+    <a href="#properties-list" data-purpose="rent">Rent</a>
+    <a href="#properties-list" data-purpose="sale">Buy</a>
 <a href="#properties-list" data-purpose="short-stay">Short Stay / Airbnb</a>
     <a href="#about">About</a>
     <a href="#contact">Contact</a>
@@ -401,6 +401,27 @@ document.querySelectorAll('.site-links a[data-purpose="short-stay"]')
   .forEach(link => {
     link.addEventListener("click", () => {
       selectedPurpose = "short-stay";
+      loadProperties();
+    });
+  });
+  document.querySelectorAll('.site-links a[data-purpose="all"]')
+  .forEach(link => {
+    link.addEventListener("click", () => {
+      selectedPurpose = "all";
+      loadProperties();
+    });
+  });
+  document.querySelectorAll('.site-links a[data-purpose="rent"]')
+  .forEach(link => {
+    link.addEventListener("click", () => {
+      selectedPurpose = "rent";
+      loadProperties();
+    });
+  });
+  document.querySelectorAll('.site-links a[data-purpose="sale"]')
+  .forEach(link => {
+    link.addEventListener("click", () => {
+      selectedPurpose = "sale";
       loadProperties();
     });
   });
