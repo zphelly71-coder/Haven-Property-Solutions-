@@ -396,7 +396,7 @@ for (const field of [
   message("Editing " + (property.title || "property") + ".");
 }
 
-$("propertyForm").addEventListener("submit", async event => {
+$("saveButton").addEventListener("click", async event => {
   event.preventDefault();
 
   const button = $("saveButton");
