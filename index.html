@@ -297,7 +297,12 @@ const badge = document.createElement("p");
 const isPublished =
   String(property.status || "").trim().toLowerCase() === "published";
 badge.textContent = isPublished
-  ? (property.listingType === "sale" ? "FOR SALE" : "FOR RENT")
+  ? (
+    property.listingPurpose === "sale" ? "FOR SALE" :
+    property.listingPurpose === "lease" ? "FOR LEASE" :
+    property.listingPurpose === "short-stay" ? "SHORT STAY / AIRBNB" :
+    "FOR RENT"
+  )
   : "DRAFT";
 
 badge.style.display = "inline-block";
