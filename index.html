@@ -271,6 +271,7 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
 
 <script>
   let selectedPurpose = "all";
+  let searchTerm = "";
 async function loadProperties() {
   const status = document.getElementById("properties-status");
   const list = document.getElementById("properties-list");
@@ -287,12 +288,21 @@ async function loadProperties() {
   ? data.properties
   : [];
 
-const properties = selectedPurpose === "all"
-  ? allProperties
-  : allProperties.filter(property =>
-      String(property.listingPurpose || "").trim().toLowerCase()
-        === selectedPurpose
-    );
+const properties = allProperties.filter(property => {
+  const purposeMatches = selectedPurpose === "all" ||
+    String(property.listingPurpose || "").trim().toLowerCase()
+      === selectedPurpose;
+
+  const searchableText = [
+    property.title,
+    property.location,
+    property.description
+  ].join(" ").toLowerCase();
+
+  const searchMatches = searchableText.includes(searchTerm);
+
+  return purposeMatches && searchMatches;
+});
     list.replaceChildren();
 
     if (!properties || properties.length === 0) {
@@ -424,6 +434,18 @@ document.querySelectorAll('.site-links a[data-purpose="short-stay"]')
       selectedPurpose = "sale";
       loadProperties();
     });
+  });
+  document.getElementById("search-bar")
+  .addEventListener("input", event => {
+    searchTerm = event.target.value.trim().toLowerCase();
+    loadProperties();
+  });
+  document.getElementById("search-bar").form
+  .addEventListener("submit", event => {
+    event.preventDefault();
+    searchTerm = document.getElementById("search-bar")
+      .value.trim().toLowerCase();
+    loadProperties();
   });
 loadProperties();
 </script>
