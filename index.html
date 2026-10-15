@@ -270,6 +270,7 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
 <div class="properties" id="properties-list"></div>
 
 <script>
+  let selectedPurpose = "all";
 async function loadProperties() {
   const status = document.getElementById("properties-status");
   const list = document.getElementById("properties-list");
@@ -282,14 +283,26 @@ async function loadProperties() {
     if (!response.ok) throw new Error("Could not load properties");
 
     const data = await response.json();
+   const allProperties = Array.isArray(data.properties)
+  ? data.properties
+  : [];
+
+const properties = selectedPurpose === "all"
+  ? allProperties
+  : allProperties.filter(property =>
+      String(property.listingPurpose || "").trim().toLowerCase()
+        === selectedPurpose
+    );
     list.replaceChildren();
 
-    if (!data.properties || data.properties.length === 0) {
-      status.textContent = "No published properties available yet.";
-      return;
-    }
+    if (!properties || properties.length === 0) {
+  status.textContent = selectedPurpose === "short-stay"
+    ? "No published Short Stay / Airbnb properties available yet."
+    : "No published properties available yet.";
+  return;
+}
 
-    data.properties.forEach(property => {
+    properties.forEach(property => {
       const card = document.createElement("div");
       card.className = "property";
       
@@ -379,12 +392,18 @@ if (Array.isArray(property.images) && property.images.length > 0) {
       list.appendChild(card);
     });
 
-    status.textContent = "Showing " + data.properties.length + " properties";
+    status.textContent = "Showing " + properties.length + " properties";
   } catch (error) {
     status.textContent = "Unable to load properties. Please try again later.";
   }
 }
-
+document.querySelectorAll('.site-links a[data-purpose="short-stay"]')
+  .forEach(link => {
+    link.addEventListener("click", () => {
+      selectedPurpose = "short-stay";
+      loadProperties();
+    });
+  });
 loadProperties();
 </script>
 
