@@ -266,12 +266,50 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
 
     
 <h2>Featured Properties</h2>
+    <button id="favorites-filter-button" type="button" class="button">
+  ♥ Show My Favourites
+</button>
+<p id="favorites-count"></p>
 <p id="properties-status">Loading properties...</p>
 <div class="properties" id="properties-list"></div>
 
 <script>
   let selectedPurpose = "all";
   let searchTerm = "";
+  let showingFavorites = false;
+  const HAVEN_FAVORITES_KEY = "havenFavoritePropertyIds";
+
+function havenGetFavorites() {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(HAVEN_FAVORITES_KEY) || "[]"
+    );
+    return Array.isArray(saved) ? saved.map(String) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function havenPropertyKey(property) {
+  return String(
+    property._id ||
+    property.id ||
+    ((property.title || "Property") + "|" +
+      (property.location || ""))
+  );
+}
+
+function havenSaveFavorites(favorites) {
+  try {
+    localStorage.setItem(
+      HAVEN_FAVORITES_KEY,
+      JSON.stringify(favorites)
+    );
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
 async function loadProperties() {
   const status = document.getElementById("properties-status");
   const list = document.getElementById("properties-list");
@@ -301,7 +339,10 @@ const properties = allProperties.filter(property => {
 
   const searchMatches = searchableText.includes(searchTerm);
 
-  return purposeMatches && searchMatches;
+  return purposeMatches &&
+  searchMatches &&
+  (!showingFavorites ||
+    havenGetFavorites().includes(havenPropertyKey(property)));
 });
     list.replaceChildren();
 
@@ -337,6 +378,45 @@ badge.style.fontWeight = "bold";
 badge.style.borderRadius = "6px";
 badge.style.fontSize = "12px";
 card.appendChild(badge);
+      const favoriteButton = document.createElement("button");
+favoriteButton.type = "button";
+favoriteButton.style.margin = "8px 0 12px";
+favoriteButton.style.padding = "8px 12px";
+favoriteButton.style.borderRadius = "8px";
+favoriteButton.style.cursor = "pointer";
+favoriteButton.style.background = "#fff";
+favoriteButton.style.border = "1px solid #c5a15b";
+
+const favoriteKey = havenPropertyKey(property);
+
+function updateFavoriteButton() {
+  const isFavorite = havenGetFavorites().includes(favoriteKey);
+  favoriteButton.textContent = isFavorite
+    ? "♥ Saved to Favourites"
+    : "♡ Add to Favourites";
+  favoriteButton.style.color = isFavorite ? "#b42335" : "#142b46";
+  favoriteButton.setAttribute("aria-pressed", String(isFavorite));
+}
+
+favoriteButton.addEventListener("click", () => {
+  const favorites = havenGetFavorites();
+  const isFavorite = favorites.includes(favoriteKey);
+
+  const updatedFavorites = isFavorite
+    ? favorites.filter(id => id !== favoriteKey)
+    : [...favorites, favoriteKey];
+
+  if (!havenSaveFavorites(updatedFavorites)) {
+    alert("Unable to save favourites in this browser.");
+    return;
+  }
+
+  updateFavoriteButton();
+  updateFavoritesFilterButton();
+});
+
+updateFavoriteButton();
+card.appendChild(favoriteButton);
       
 if (Array.isArray(property.images) && property.images.length > 0) {
   const images = property.images.filter(
@@ -560,6 +640,30 @@ document.querySelectorAll('.site-links a[data-purpose="short-stay"]')
   .forEach(link => {
     link.addEventListener("click", () => {
       selectedPurpose = "short-stay";
+      const favoritesFilterButton =
+  document.getElementById("favorites-filter-button");
+
+const favoritesCount =
+  document.getElementById("favorites-count");
+
+function updateFavoritesFilterButton() {
+  const total = havenGetFavorites().length;
+
+  favoritesFilterButton.textContent = showingFavorites
+    ? "♥ Show All Properties"
+    : "♥ Show My Favourites";
+
+  favoritesCount.textContent =
+    total + (total === 1 ? " saved favourite" : " saved favourites");
+}
+
+favoritesFilterButton.addEventListener("click", () => {
+  showingFavorites = !showingFavorites;
+  updateFavoritesFilterButton();
+  loadProperties();
+});
+
+updateFavoritesFilterButton();
       loadProperties();
     });
   });
