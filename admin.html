@@ -548,6 +548,8 @@ $("summaryContacted").textContent =
   Number(summary.contacted || 0).toLocaleString();
 
 $("summaryClosed").textContent =
+  $("summaryConverted").textContent =
+  Number(summary.converted || 0).toLocaleString();
   Number(summary.closed || 0).toLocaleString();
     const allEnquiries = Array.isArray(result.enquiries)
   ? result.enquiries
