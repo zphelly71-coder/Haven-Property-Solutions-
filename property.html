@@ -273,6 +273,41 @@ async function loadPropertyDetails() {
     content.appendChild(price);
 
     addDetail("Location", property.location);
+    if (property.location && String(property.location).trim()) {
+  const mapSection = document.createElement("div");
+  mapSection.style.margin = "20px 0";
+
+  const mapHeading = document.createElement("h2");
+  mapHeading.textContent = "Property Location";
+
+  const mapFrame = document.createElement("iframe");
+  mapFrame.title = "Map showing property location";
+  mapFrame.loading = "lazy";
+  mapFrame.width = "100%";
+  mapFrame.height = "300";
+  mapFrame.style.border = "0";
+  mapFrame.style.borderRadius = "10px";
+
+  const mapQuery = String(property.location).trim();
+
+  mapFrame.src =
+    "https://maps.google.com/maps?q=" +
+    encodeURIComponent(mapQuery) +
+    "&output=embed";
+
+  const mapLink = document.createElement("a");
+  mapLink.href =
+    "https://www.google.com/maps/search/?api=1&query=" +
+    encodeURIComponent(mapQuery);
+  mapLink.target = "_blank";
+  mapLink.rel = "noopener noreferrer";
+  mapLink.className = "button";
+  mapLink.textContent = "Open Location in Google Maps";
+  mapLink.style.marginTop = "10px";
+
+  mapSection.append(mapHeading, mapFrame, mapLink);
+  content.appendChild(mapSection);
+}
     addDetail("Listing type", property.listingPurpose);
     addDetail("Description", property.description);
     addDetail("Bedrooms", property.bedrooms);
