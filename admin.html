@@ -219,6 +219,9 @@ button:disabled{opacity:.5}
  <button type="button" id="refreshEnquiriesButton">
   Refresh enquiries
 </button>
+      <button type="button" id="exportEnquiriesButton">
+  Export Enquiries to CSV
+</button>
 
 <label for="enquiryStatusFilter">Filter by status</label>
 <select id="enquiryStatusFilter">
@@ -391,6 +394,95 @@ async function loadProperties() {
   } catch (error) {
     $("propertyList").textContent = "Could not load listings.";
     message(error.message);
+  }
+}
+  async function exportEnquiriesToCSV() {
+  const button = $("exportEnquiriesButton");
+  button.disabled = true;
+
+  try {
+    const result = await api("/api/admin/enquiries");
+
+    const allEnquiries = Array.isArray(result.enquiries)
+      ? result.enquiries
+      : [];
+
+    const selectedStatus = $("enquiryStatusFilter").value;
+
+    const enquiries = selectedStatus === "all"
+      ? allEnquiries
+      : allEnquiries.filter(enquiry =>
+          (enquiry.status || "new") === selectedStatus
+        );
+
+    if (enquiries.length === 0) {
+      message("There are no enquiries to export for this filter.");
+      return;
+    }
+
+    const headers = [
+      "Property",
+      "Location",
+      "Customer Name",
+      "Email",
+      "Phone",
+      "Message",
+      "Status",
+      "Received Date"
+    ];
+
+    const rows = enquiries.map(enquiry => [
+      enquiry.propertyTitle,
+      enquiry.propertyLocation,
+      enquiry.name,
+      enquiry.email,
+      enquiry.phone,
+      enquiry.message,
+      enquiry.status || "new",
+      enquiry.createdAt
+        ? new Date(enquiry.createdAt).toISOString()
+        : ""
+    ]);
+
+    function csvValue(value) {
+      let text = String(value ?? "");
+
+      // Reduce spreadsheet formula-injection risk.
+      if (/^\s*[=+\-@]/.test(text)) {
+        text = "'" + text;
+      }
+
+      return '"' + text.replace(/"/g, '""') + '"';
+    }
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(csvValue).join(","))
+      .join("\r\n");
+
+    const blob = new Blob(
+      ["\uFEFF", csvContent],
+      { type: "text/csv;charset=utf-8;" }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download =
+      "haven-enquiries-" + selectedStatus + "-" +
+      new Date().toISOString().slice(0, 10) + ".csv";
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    message("Enquiries exported successfully.");
+  } catch (error) {
+    message(error.message || "Unable to export enquiries.");
+  } finally {
+    button.disabled = false;
   }
 }
 async function loadEnquiries() {
@@ -664,6 +756,7 @@ $("saveButton").addEventListener("click", async event => {
 $("cancelEdit").addEventListener("click", resetForm);
 $("refreshButton").addEventListener("click", loadProperties);
   $("refreshEnquiriesButton").addEventListener("click", loadEnquiries);
+  $("exportEnquiriesButton").addEventListener("click", exportEnquiriesToCSV);
   $("enquiryStatusFilter").addEventListener("change", loadEnquiries);
 $("logoutButton").addEventListener("click", () => logout());
 
