@@ -437,7 +437,50 @@ function cleanProperty(data) {
 
   return result;
 }
+app.get("/api/admin/enquiries", requireAdmin, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Database not connected"
+      });
+    }
 
+    const enquiries = await db.collection("enquiries")
+      .find(
+        {},
+        {
+          projection: {
+            propertyId: 1,
+            propertyTitle: 1,
+            propertyLocation: 1,
+            name: 1,
+            email: 1,
+            phone: 1,
+            message: 1,
+            status: 1,
+            createdAt: 1
+          }
+        }
+      )
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .toArray();
+
+    res.json({
+      status: "ok",
+      count: enquiries.length,
+      enquiries
+    });
+  } catch (error) {
+    console.error("Admin enquiry list failed:", error.message);
+
+    res.status(500).json({
+      status: "error",
+      message: "Unable to load customer enquiries"
+    });
+  }
+});
 app.get("/api/admin/properties", requireAdmin, async (req, res) => {
   try {
     const properties = await db.collection("properties")
