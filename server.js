@@ -437,6 +437,63 @@ function cleanProperty(data) {
 
   return result;
 }
+app.patch("/api/admin/enquiries/:id", requireAdmin, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Database not connected"
+      });
+    }
+
+    const { ObjectId } = require("mongodb");
+    const id = req.params.id;
+    const newStatus = req.body?.status;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid enquiry ID"
+      });
+    }
+
+    if (!["new", "contacted", "closed"].includes(newStatus)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Status must be new, contacted, or closed"
+      });
+    }
+
+    const result = await db.collection("enquiries").updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          status: newStatus,
+          updatedAt: new Date()
+        }
+      }
+    );
+
+    if (!result.matchedCount) {
+      return res.status(404).json({
+        status: "error",
+        message: "Enquiry not found"
+      });
+    }
+
+    res.json({
+      status: "ok",
+      message: "Enquiry status updated"
+    });
+  } catch (error) {
+    console.error("Enquiry status update failed:", error.message);
+
+    res.status(500).json({
+      status: "error",
+      message: "Unable to update enquiry status"
+    });
+  }
+});
 app.get("/api/admin/enquiries", requireAdmin, async (req, res) => {
   try {
     if (!db) {
