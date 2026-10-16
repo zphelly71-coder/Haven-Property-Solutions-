@@ -615,6 +615,7 @@ $("logoutButton").addEventListener("click", () => logout());
 if (sessionStorage.getItem(TOKEN_KEY)) {
   showDashboard();
   loadProperties().catch(() => logout());
+  loadEnquiries().catch(() => logout());
 }
 </script>
 </body>
