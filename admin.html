@@ -1100,6 +1100,7 @@ $("refreshButton").addEventListener("click", loadProperties);
   $("exportEnquiriesButton").addEventListener("click", exportEnquiriesToCSV);
   $("enquiryStatusFilter").addEventListener("change", loadEnquiries);
   $("refreshReportButton").addEventListener("click", loadMonthlyReport);
+  $("downloadReportButton").addEventListener("click", downloadMonthlyReport);
 $("logoutButton").addEventListener("click", () => logout());
 
 if (sessionStorage.getItem(TOKEN_KEY)) {
