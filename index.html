@@ -640,11 +640,6 @@ document.querySelectorAll('.site-links a[data-purpose="short-stay"]')
   .forEach(link => {
     link.addEventListener("click", () => {
       selectedPurpose = "short-stay";
-      
-  loadProperties();
-});
-
-updateFavoritesFilterButton();
       loadProperties();
     });
   });
