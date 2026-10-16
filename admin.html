@@ -422,11 +422,43 @@ async function loadEnquiries() {
         "Message: " + (enquiry.message || "No message");
       messageText.style.whiteSpace = "pre-wrap";
 
-      const status = document.createElement("p");
-      status.className = "muted";
-      status.textContent =
-        "Status: " + (enquiry.status || "new");
+     const statusLabel = document.createElement("label");
+statusLabel.textContent = "Enquiry status";
 
+const status = document.createElement("select");
+status.innerHTML = `
+  <option value="new">New</option>
+  <option value="contacted">Contacted</option>
+  <option value="closed">Closed</option>
+`;
+status.value = ["new", "contacted", "closed"].includes(enquiry.status)
+  ? enquiry.status
+  : "new";
+status.style.marginBottom = "12px";
+      status.addEventListener("change", async () => {
+  const previousStatus = enquiry.status || "new";
+  const newStatus = status.value;
+
+  status.disabled = true;
+
+  try {
+    await api(
+      "/api/admin/enquiries/" + encodeURIComponent(enquiry._id),
+      {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus })
+      }
+    );
+
+    enquiry.status = newStatus;
+    message("Enquiry status updated successfully.");
+  } catch (error) {
+    status.value = previousStatus;
+    message(error.message);
+  } finally {
+    status.disabled = false;
+  }
+});
       const date = document.createElement("p");
       date.className = "muted";
       date.textContent = enquiry.createdAt
