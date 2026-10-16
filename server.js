@@ -128,6 +128,124 @@ app.post(
     });
   }
 );
+app.post("/api/enquiries", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Database not connected"
+      });
+    }
+
+    const { ObjectId } = require("mongodb");
+    const body = req.body || {};
+
+    const propertyId =
+      typeof body.propertyId === "string"
+        ? body.propertyId.trim()
+        : "";
+
+    const name =
+      typeof body.name === "string" ? body.name.trim() : "";
+
+    const email =
+      typeof body.email === "string"
+        ? body.email.trim().toLowerCase()
+        : "";
+
+    const phone =
+      typeof body.phone === "string" ? body.phone.trim() : "";
+
+    const message =
+      typeof body.message === "string"
+        ? body.message.trim()
+        : "";
+
+    if (!ObjectId.isValid(propertyId)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid property selection"
+      });
+    }
+
+    if (!name || name.length > 100) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter your name (maximum 100 characters)"
+      });
+    }
+
+    if (
+      email.length > 254 ||
+      (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter a valid email address"
+      });
+    }
+
+    if (
+      phone.length > 30 ||
+      (phone && !/^[+()\d\s.-]{6,30}$/.test(phone))
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter a valid phone number"
+      });
+    }
+
+    if (!email && !phone) {
+      return res.status(400).json({
+        status: "error",
+        message: "Provide an email address or phone number"
+      });
+    }
+
+    if (!message || message.length > 2000) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter your enquiry (maximum 2000 characters)"
+      });
+    }
+
+    const property = await db.collection("properties").findOne({
+      _id: new ObjectId(propertyId),
+      status: "published"
+    });
+
+    if (!property) {
+      return res.status(404).json({
+        status: "error",
+        message: "Property not found or no longer available"
+      });
+    }
+
+    await db.collection("enquiries").insertOne({
+      propertyId: property._id,
+      propertyTitle: property.title,
+      propertyLocation: property.location,
+      name,
+      email,
+      phone,
+      message,
+      status: "new",
+      createdAt: new Date()
+    });
+
+    return res.status(201).json({
+      status: "ok",
+      message: "Your enquiry was submitted successfully"
+    });
+  } catch (error) {
+    console.error("Customer enquiry submission failed:", error.message);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Unable to submit your enquiry. Please try again."
+    });
+  }
+});
 app.get("/api/properties", async (req, res) => {
   try {
     if (!db) {
