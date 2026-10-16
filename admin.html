@@ -423,19 +423,7 @@ async function loadProperties() {
 
   try {
     const result = await api("/api/admin/enquiries");
-const summary = result.summary || {};
 
-$("summaryTotal").textContent =
-  Number(summary.total ?? result.count ?? 0).toLocaleString();
-
-$("summaryNew").textContent =
-  Number(summary.new || 0).toLocaleString();
-
-$("summaryContacted").textContent =
-  Number(summary.contacted || 0).toLocaleString();
-
-$("summaryClosed").textContent =
-  Number(summary.closed || 0).toLocaleString();
     const allEnquiries = Array.isArray(result.enquiries)
       ? result.enquiries
       : [];
@@ -524,6 +512,19 @@ async function loadEnquiries() {
 
   try {
     const result = await api("/api/admin/enquiries");
+    const summary = result.summary || {};
+
+$("summaryTotal").textContent =
+  Number(summary.total ?? result.count ?? 0).toLocaleString();
+
+$("summaryNew").textContent =
+  Number(summary.new || 0).toLocaleString();
+
+$("summaryContacted").textContent =
+  Number(summary.contacted || 0).toLocaleString();
+
+$("summaryClosed").textContent =
+  Number(summary.closed || 0).toLocaleString();
     const allEnquiries = Array.isArray(result.enquiries)
   ? result.enquiries
   : [];
