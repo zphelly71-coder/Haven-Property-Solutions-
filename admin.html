@@ -862,12 +862,170 @@ $("saveButton").addEventListener("click", async event => {
     button.disabled = false;
   }
 });
+async function loadMonthlyReport() {
+  const button = $("refreshReportButton");
+  const status = $("reportStatus");
+  const output = $("monthlyReport");
 
+  button.disabled = true;
+  status.textContent = "Generating business report...";
+  output.replaceChildren();
+
+  try {
+    const report = await api("/api/admin/reports/monthly");
+    const monthly = Array.isArray(report.monthly)
+      ? report.monthly
+      : [];
+    const popular = Array.isArray(report.popularProperties)
+      ? report.popularProperties
+      : [];
+
+    const totalEnquiries = monthly.reduce(
+      (sum, item) => sum + Number(item.enquiries || 0),
+      0
+    );
+
+    const totalConversions = monthly.reduce(
+      (sum, item) => sum + Number(item.conversions || 0),
+      0
+    );
+
+    const metrics = document.createElement("div");
+    metrics.style.cssText =
+      "display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0;";
+
+    function addMetric(label, value) {
+      const card = document.createElement("div");
+      card.style.cssText =
+        "border:1px solid #dbe3de;border-radius:8px;padding:16px;";
+
+      const heading = document.createElement("p");
+      heading.textContent = label;
+
+      const number = document.createElement("strong");
+      number.style.fontSize = "26px";
+      number.textContent = Number(value).toLocaleString();
+
+      card.append(heading, number);
+      metrics.appendChild(card);
+    }
+
+    addMetric("Enquiries received", totalEnquiries);
+    addMetric("Successful deals", totalConversions);
+    output.appendChild(metrics);
+
+    const trendHeading = document.createElement("h3");
+    trendHeading.textContent = "Monthly enquiry trends";
+    output.appendChild(trendHeading);
+
+    const tableWrap = document.createElement("div");
+    tableWrap.style.overflowX = "auto";
+
+    const table = document.createElement("table");
+    table.style.cssText =
+      "width:100%;border-collapse:collapse;text-align:left;";
+
+    const headerRow = document.createElement("tr");
+
+    for (const label of [
+      "Month",
+      "Enquiries received",
+      "Successful deals"
+    ]) {
+      const th = document.createElement("th");
+      th.textContent = label;
+      th.style.cssText =
+        "padding:10px 8px;border-bottom:2px solid #dbe3de;";
+      headerRow.appendChild(th);
+    }
+
+    const thead = document.createElement("thead");
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+
+    for (const item of monthly) {
+      const row = document.createElement("tr");
+
+      const parts = String(item.month).split("-");
+      const monthLabel = new Date(
+        Number(parts[0]),
+        Number(parts[1]) - 1,
+        1
+      ).toLocaleDateString("en-KE", {
+        month: "short",
+        year: "numeric"
+      });
+
+      for (const value of [
+        monthLabel,
+        Number(item.enquiries || 0).toLocaleString(),
+        Number(item.conversions || 0).toLocaleString()
+      ]) {
+        const cell = document.createElement("td");
+        cell.textContent = value;
+        cell.style.cssText =
+          "padding:10px 8px;border-bottom:1px solid #dbe3de;";
+        row.appendChild(cell);
+      }
+
+      tbody.appendChild(row);
+    }
+
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    output.appendChild(tableWrap);
+
+    const popularHeading = document.createElement("h3");
+    popularHeading.textContent = "Top 5 properties by enquiries";
+    popularHeading.style.marginTop = "24px";
+    output.appendChild(popularHeading);
+
+    if (popular.length === 0) {
+      const empty = document.createElement("p");
+      empty.textContent =
+        "No property enquiries were recorded during this period.";
+      output.appendChild(empty);
+    } else {
+      for (const property of popular) {
+        const card = document.createElement("div");
+        card.style.cssText =
+          "border-bottom:1px solid #dbe3de;padding:12px 0;";
+
+        const title = document.createElement("strong");
+        title.textContent = property.title || "Untitled property";
+
+        const location = document.createElement("p");
+        location.className = "muted";
+        location.textContent = property.location || "Location not recorded";
+
+        const count = document.createElement("p");
+        count.textContent =
+          "Enquiries: " +
+          Number(property.enquiries || 0).toLocaleString();
+
+        card.append(title, location, count);
+        output.appendChild(card);
+      }
+    }
+
+    status.textContent =
+      "Report generated successfully for the last 12 months. " +
+      "Successful deals are counted by conversion date.";
+  } catch (error) {
+    status.textContent =
+      error.message || "Unable to generate the report.";
+  } finally {
+    button.disabled = false;
+  }
+}
 $("cancelEdit").addEventListener("click", resetForm);
 $("refreshButton").addEventListener("click", loadProperties);
   $("refreshEnquiriesButton").addEventListener("click", loadEnquiries);
   $("exportEnquiriesButton").addEventListener("click", exportEnquiriesToCSV);
   $("enquiryStatusFilter").addEventListener("change", loadEnquiries);
+  $("refreshReportButton").addEventListener("click", loadMonthlyReport);
 $("logoutButton").addEventListener("click", () => logout());
 
 if (sessionStorage.getItem(TOKEN_KEY)) {
