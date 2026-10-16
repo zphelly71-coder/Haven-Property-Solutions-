@@ -216,10 +216,19 @@ button:disabled{opacity:.5}
   <p class="muted">
     View messages sent by customers about your properties.
   </p>
-  <button type="button" id="refreshEnquiriesButton">
-    Refresh enquiries
-  </button>
-  <div id="enquiryList">Enquiries will appear here.</div>
+ <button type="button" id="refreshEnquiriesButton">
+  Refresh enquiries
+</button>
+
+<label for="enquiryStatusFilter">Filter by status</label>
+<select id="enquiryStatusFilter">
+  <option value="all">All enquiries</option>
+  <option value="new">New</option>
+  <option value="contacted">Contacted</option>
+  <option value="closed">Closed</option>
+</select>
+
+<div id="enquiryList">Enquiries will appear here.</div>
 </div>
   </section>
 </main>
@@ -390,12 +399,25 @@ async function loadEnquiries() {
 
   try {
     const result = await api("/api/admin/enquiries");
+    const allEnquiries = Array.isArray(result.enquiries)
+  ? result.enquiries
+  : [];
+
+const selectedStatus = $("enquiryStatusFilter").value;
+
+const enquiries = selectedStatus === "all"
+  ? allEnquiries
+  : allEnquiries.filter(enquiry =>
+      (enquiry.status || "new") === selectedStatus
+    );
     list.replaceChildren();
 
-    if (!result.enquiries || result.enquiries.length === 0) {
-      list.textContent = "No customer enquiries received yet.";
-      return;
-    }
+   if (enquiries.length === 0) {
+  list.textContent = selectedStatus === "all"
+    ? "No customer enquiries received yet."
+    : "No enquiries found with status: " + selectedStatus + ".";
+  return;
+}
 
     for (const enquiry of result.enquiries) {
       const card = document.createElement("article");
@@ -642,6 +664,7 @@ $("saveButton").addEventListener("click", async event => {
 $("cancelEdit").addEventListener("click", resetForm);
 $("refreshButton").addEventListener("click", loadProperties);
   $("refreshEnquiriesButton").addEventListener("click", loadEnquiries);
+  $("enquiryStatusFilter").addEventListener("change", loadEnquiries);
 $("logoutButton").addEventListener("click", () => logout());
 
 if (sessionStorage.getItem(TOKEN_KEY)) {
