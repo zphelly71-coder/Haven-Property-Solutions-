@@ -289,6 +289,45 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
       <input type="text" id="search-bar" placeholder="Search properties...">
       <button type="submit">Search</button>
     </form>
+    <div id="advanced-filters" style="margin: 16px 0; padding: 16px; border: 1px solid #e4d8bd; border-radius: 10px; background: #fff;">
+  <h3>Refine Your Search</h3>
+
+  <label for="filter-location">Location</label>
+  <input type="text" id="filter-location" placeholder="Enter town or area">
+
+  <label for="filter-min-price">Minimum price (KSh)</label>
+  <input type="number" id="filter-min-price" min="0" placeholder="Minimum price">
+
+  <label for="filter-max-price">Maximum price (KSh)</label>
+  <input type="number" id="filter-max-price" min="0" placeholder="Maximum price">
+
+  <label for="filter-bedrooms">Minimum bedrooms</label>
+  <select id="filter-bedrooms">
+    <option value="">Any number</option>
+    <option value="1">1 or more</option>
+    <option value="2">2 or more</option>
+    <option value="3">3 or more</option>
+    <option value="4">4 or more</option>
+    <option value="5">5 or more</option>
+  </select>
+
+  <label for="filter-property-type">Property type</label>
+  <select id="filter-property-type">
+    <option value="">All property types</option>
+    <option value="House">House</option>
+    <option value="Apartment">Apartment</option>
+    <option value="Land / Plot">Land / Plot</option>
+    <option value="Commercial Building">Commercial Building</option>
+    <option value="Office">Office</option>
+    <option value="Shop">Shop</option>
+    <option value="Warehouse">Warehouse</option>
+    <option value="Farm">Farm</option>
+  </select>
+
+  <button type="button" id="clear-advanced-filters" class="button">
+    Clear Filters
+  </button>
+</div>
     
 <div class="property-options">
     <a href="#properties-list" class="option-card">
@@ -384,7 +423,21 @@ async function loadProperties() {
    const allProperties = Array.isArray(data.properties)
   ? data.properties
   : [];
+const filterLocation = document
+  .getElementById("filter-location")
+  .value.trim().toLowerCase();
 
+const minPriceValue =
+  document.getElementById("filter-min-price").value;
+
+const maxPriceValue =
+  document.getElementById("filter-max-price").value;
+
+const minBedroomsValue =
+  document.getElementById("filter-bedrooms").value;
+
+const propertyTypeValue =
+  document.getElementById("filter-property-type").value;
 const properties = allProperties.filter(property => {
   const purposeMatches = selectedPurpose === "all" ||
     String(property.listingPurpose || "").trim().toLowerCase()
@@ -397,9 +450,38 @@ const properties = allProperties.filter(property => {
   ].join(" ").toLowerCase();
 
   const searchMatches = searchableText.includes(searchTerm);
+  const locationMatches =
+  !filterLocation ||
+  String(property.location || "")
+    .toLowerCase()
+    .includes(filterLocation);
+
+const price = Number(property.price);
+
+const minPriceMatches =
+  minPriceValue === "" ||
+  (Number.isFinite(price) && price >= Number(minPriceValue));
+
+const maxPriceMatches =
+  maxPriceValue === "" ||
+  (Number.isFinite(price) && price <= Number(maxPriceValue));
+
+const bedroomsMatches =
+  minBedroomsValue === "" ||
+  Number(property.bedrooms || 0) >= Number(minBedroomsValue);
+
+const propertyTypeMatches =
+  !propertyTypeValue ||
+  String(property.propertyType || "").toLowerCase() ===
+    propertyTypeValue.toLowerCase();
 
   return purposeMatches &&
   searchMatches &&
+  locationMatches &&
+  minPriceMatches &&
+  maxPriceMatches &&
+  bedroomsMatches &&
+  propertyTypeMatches &&
   (!showingFavorites ||
     havenGetFavorites().includes(havenPropertyKey(property)));
 });
@@ -761,6 +843,30 @@ favoritesFilterButton.addEventListener("click", () => {
 });
 
 updateFavoritesFilterButton();
+  ["filter-location", "filter-min-price", "filter-max-price"]
+  .forEach(id => {
+    document.getElementById(id).addEventListener("input", () => {
+      loadProperties();
+    });
+  });
+
+["filter-bedrooms", "filter-property-type"]
+  .forEach(id => {
+    document.getElementById(id).addEventListener("change", () => {
+      loadProperties();
+    });
+  });
+
+document.getElementById("clear-advanced-filters")
+  .addEventListener("click", () => {
+    document.getElementById("filter-location").value = "";
+    document.getElementById("filter-min-price").value = "";
+    document.getElementById("filter-max-price").value = "";
+    document.getElementById("filter-bedrooms").value = "";
+    document.getElementById("filter-property-type").value = "";
+
+    loadProperties();
+  });
 loadProperties();
 </script>
 
