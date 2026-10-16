@@ -389,6 +389,131 @@ whatsappShare.target = "_blank";
 whatsappShare.rel = "noopener noreferrer";
 
 content.appendChild(whatsappShare);
+    const enquirySection = document.createElement("section");
+enquirySection.style.marginTop = "24px";
+enquirySection.style.padding = "18px";
+enquirySection.style.border = "1px solid #e4d8bd";
+enquirySection.style.borderRadius = "10px";
+
+const enquiryHeading = document.createElement("h2");
+enquiryHeading.textContent = "Enquire About This Property";
+
+const enquiryIntro = document.createElement("p");
+enquiryIntro.textContent =
+  "Send us your details and message about this property.";
+
+const enquiryForm = document.createElement("form");
+
+enquiryForm.innerHTML = `
+  <label for="enquiry-name">Your name</label>
+  <input id="enquiry-name" name="name"
+    type="text" maxlength="100" required>
+
+  <label for="enquiry-email">Email address (optional)</label>
+  <input id="enquiry-email" name="email"
+    type="email" maxlength="254">
+
+  <label for="enquiry-phone">Phone number (optional)</label>
+  <input id="enquiry-phone" name="phone"
+    type="tel" maxlength="30">
+
+  <label for="enquiry-message">Your enquiry</label>
+  <textarea id="enquiry-message" name="message"
+    maxlength="2000" rows="5" required></textarea>
+
+  <button type="submit" class="button gold">
+    Send Enquiry
+  </button>
+`;
+
+enquiryForm.querySelectorAll("input, textarea").forEach(field => {
+  field.style.width = "100%";
+  field.style.padding = "12px";
+  field.style.marginBottom = "12px";
+  field.style.boxSizing = "border-box";
+});
+
+const enquiryStatus = document.createElement("p");
+enquiryStatus.setAttribute("role", "status");
+enquiryStatus.setAttribute("aria-live", "polite");
+
+enquiryForm.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const name =
+    enquiryForm.elements.namedItem("name").value.trim();
+  const email =
+    enquiryForm.elements.namedItem("email").value.trim();
+  const phone =
+    enquiryForm.elements.namedItem("phone").value.trim();
+  const message =
+    enquiryForm.elements.namedItem("message").value.trim();
+
+  if (!email && !phone) {
+    enquiryStatus.textContent =
+      "Please provide an email address or phone number.";
+    return;
+  }
+
+  const propertyId = String(property._id || property.id || "");
+
+  if (!propertyId) {
+    enquiryStatus.textContent =
+      "Unable to identify this property. Please contact us through WhatsApp.";
+    return;
+  }
+
+  const submitButton = enquiryForm.querySelector(
+    'button[type="submit"]'
+  );
+  submitButton.disabled = true;
+  enquiryStatus.textContent = "Sending your enquiry...";
+
+  try {
+    const enquiryResponse = await fetch(
+      API_URL + "/api/enquiries",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          propertyId,
+          name,
+          email,
+          phone,
+          message
+        })
+      }
+    );
+
+    const enquiryResult = await enquiryResponse.json();
+
+    if (!enquiryResponse.ok) {
+      throw new Error(
+        enquiryResult.message || "Unable to send your enquiry."
+      );
+    }
+
+    enquiryStatus.textContent =
+      "Thank you! Your enquiry has been submitted successfully.";
+    enquiryForm.reset();
+  } catch (error) {
+    enquiryStatus.textContent =
+      error.message || "Unable to send your enquiry. Please try again.";
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
+enquirySection.append(
+  enquiryHeading,
+  enquiryIntro,
+  enquiryForm,
+  enquiryStatus
+);
+
+content.appendChild(enquirySection);
 
   } catch (error) {
     content.textContent =
