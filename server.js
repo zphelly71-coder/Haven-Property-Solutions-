@@ -547,6 +547,126 @@ const result = await db.collection("enquiries").updateOne(
     });
   }
 });
+app.get("/api/admin/reports/monthly", requireAdmin, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Database not connected"
+      });
+    }
+
+    const nairobiParts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "Africa/Nairobi",
+        year: "numeric",
+        month: "2-digit"
+      }).formatToParts(new Date()).map(part => [
+        part.type,
+        part.value
+      ])
+    );
+
+    const year = Number(nairobiParts.year);
+    const month = Number(nairobiParts.month) - 1;
+
+    const months = Array.from({ length: 12 }, (_, index) =>
+      new Date(Date.UTC(year, month - 11 + index, 1))
+        .toISOString()
+        .slice(0, 7)
+    );
+
+    const startDate = new Date(
+      Date.UTC(year, month - 11, 1) - 3 * 60 * 60 * 1000
+    );
+
+    const [enquiryMonths, conversionMonths, popularProperties] =
+      await Promise.all([
+        db.collection("enquiries").aggregate([
+          { $match: { createdAt: { $gte: startDate } } },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m",
+                  date: "$createdAt",
+                  timezone: "Africa/Nairobi"
+                }
+              },
+              count: { $sum: 1 }
+            }
+          }
+        ]).toArray(),
+
+        db.collection("enquiries").aggregate([
+          {
+            $match: {
+              status: "converted",
+              convertedAt: { $gte: startDate }
+            }
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m",
+                  date: "$convertedAt",
+                  timezone: "Africa/Nairobi"
+                }
+              },
+              count: { $sum: 1 }
+            }
+          }
+        ]).toArray(),
+
+        db.collection("enquiries").aggregate([
+          { $match: { createdAt: { $gte: startDate } } },
+          {
+            $group: {
+              _id: "$propertyId",
+              title: { $first: "$propertyTitle" },
+              location: { $first: "$propertyLocation" },
+              enquiries: { $sum: 1 }
+            }
+          },
+          { $sort: { enquiries: -1 } },
+          { $limit: 5 }
+        ]).toArray()
+      ]);
+
+    const enquiryCounts = Object.fromEntries(
+      enquiryMonths.map(item => [item._id, item.count])
+    );
+
+    const conversionCounts = Object.fromEntries(
+      conversionMonths.map(item => [item._id, item.count])
+    );
+
+    const monthly = months.map(monthKey => ({
+      month: monthKey,
+      enquiries: enquiryCounts[monthKey] || 0,
+      conversions: conversionCounts[monthKey] || 0
+    }));
+
+    res.json({
+      status: "ok",
+      period: "Last 12 months",
+      monthly,
+      popularProperties: popularProperties.map(item => ({
+        title: item.title || "Untitled property",
+        location: item.location || "Location not recorded",
+        enquiries: item.enquiries
+      }))
+    });
+  } catch (error) {
+    console.error("Monthly report failed:", error.message);
+
+    res.status(500).json({
+      status: "error",
+      message: "Unable to generate monthly business report"
+    });
+  }
+});
 app.get("/api/admin/enquiries", requireAdmin, async (req, res) => {
   try {
     if (!db) {
