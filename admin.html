@@ -530,6 +530,61 @@ const enquiries = selectedStatus === "all"
 
       const phone = document.createElement("p");
       phone.textContent = "Phone: " + (enquiry.phone || "Not provided");
+     const contactActions = document.createElement("div");
+contactActions.style.display = "flex";
+contactActions.style.flexWrap = "wrap";
+contactActions.style.gap = "8px";
+contactActions.style.margin = "12px 0";
+
+if (enquiry.phone) {
+  let whatsappNumber = String(enquiry.phone).replace(/\D/g, "");
+
+  // Convert common Kenyan local numbers to international format.
+  if (whatsappNumber.startsWith("0")) {
+    whatsappNumber = "254" + whatsappNumber.slice(1);
+  } else if (
+    whatsappNumber.length === 9 &&
+    (whatsappNumber.startsWith("7") ||
+      whatsappNumber.startsWith("1"))
+  ) {
+    whatsappNumber = "254" + whatsappNumber;
+  }
+
+  const whatsappButton = document.createElement("a");
+  whatsappButton.href =
+    "https://wa.me/" + whatsappNumber + "?text=" +
+    encodeURIComponent(
+      "Hello " + (enquiry.name || "there") +
+      ", I am following up on your enquiry about " +
+      (enquiry.propertyTitle || "a property") + "."
+    );
+  whatsappButton.target = "_blank";
+  whatsappButton.rel = "noopener noreferrer";
+  whatsappButton.className = "button";
+  whatsappButton.textContent = "Reply on WhatsApp";
+
+  contactActions.appendChild(whatsappButton);
+}
+
+if (enquiry.email) {
+  const emailButton = document.createElement("a");
+  emailButton.href =
+    "mailto:" + enquiry.email +
+    "?subject=" + encodeURIComponent(
+      "Your property enquiry: " +
+      (enquiry.propertyTitle || "Haven Property Solutions")
+    ) +
+    "&body=" + encodeURIComponent(
+      "Hello " + (enquiry.name || "there") + ",\n\n" +
+      "I am following up on your enquiry about " +
+      (enquiry.propertyTitle || "a property") + ".\n\n" +
+      "Regards,\nHaven Property Solutions"
+    );
+  emailButton.className = "button";
+  emailButton.textContent = "Reply by Email";
+
+  contactActions.appendChild(emailButton);
+}
 
       const messageText = document.createElement("p");
       messageText.textContent =
@@ -580,15 +635,16 @@ status.style.marginBottom = "12px";
         : "Received date unavailable";
 
       card.append(
-        heading,
-        propertyInfo,
-        customer,
-        email,
-        phone,
-        messageText,
-        status,
-        date
-      );
+  heading,
+  propertyInfo,
+  customer,
+  email,
+  phone,
+  contactActions,
+  messageText,
+  status,
+  date
+);
 
       list.appendChild(card);
     }
