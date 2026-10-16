@@ -640,26 +640,7 @@ document.querySelectorAll('.site-links a[data-purpose="short-stay"]')
   .forEach(link => {
     link.addEventListener("click", () => {
       selectedPurpose = "short-stay";
-      const favoritesFilterButton =
-  document.getElementById("favorites-filter-button");
-
-const favoritesCount =
-  document.getElementById("favorites-count");
-
-function updateFavoritesFilterButton() {
-  const total = havenGetFavorites().length;
-
-  favoritesFilterButton.textContent = showingFavorites
-    ? "♥ Show All Properties"
-    : "♥ Show My Favourites";
-
-  favoritesCount.textContent =
-    total + (total === 1 ? " saved favourite" : " saved favourites");
-}
-
-favoritesFilterButton.addEventListener("click", () => {
-  showingFavorites = !showingFavorites;
-  updateFavoritesFilterButton();
+      
   loadProperties();
 });
 
@@ -700,6 +681,32 @@ updateFavoritesFilterButton();
       .value.trim().toLowerCase();
     loadProperties();
   });
+  const favoritesFilterButton =
+  document.getElementById("favorites-filter-button");
+
+const favoritesCount =
+  document.getElementById("favorites-count");
+
+function updateFavoritesFilterButton() {
+  const total = havenGetFavorites().length;
+
+  favoritesFilterButton.textContent = showingFavorites
+    ? "♥ Show All Properties"
+    : "♥ Show My Favourites";
+
+  favoritesCount.textContent =
+    total + (total === 1
+      ? " saved favourite"
+      : " saved favourites");
+}
+
+favoritesFilterButton.addEventListener("click", () => {
+  showingFavorites = !showingFavorites;
+  updateFavoritesFilterButton();
+  loadProperties();
+});
+
+updateFavoritesFilterButton();
 loadProperties();
 </script>
 
