@@ -232,7 +232,50 @@ app.post("/api/enquiries", async (req, res) => {
       status: "new",
       createdAt: new Date()
     });
+const notificationUrl = process.env.ENQUIRY_NOTIFICATION_URL;
+const notificationSecret =
+  process.env.ENQUIRY_NOTIFICATION_SECRET;
 
+if (notificationUrl && notificationSecret) {
+  try {
+    const notificationResponse = await fetch(notificationUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        secret: notificationSecret,
+        name,
+        email,
+        phone,
+        propertyTitle: property.title,
+        propertyLocation: property.location,
+        message
+      }),
+      signal: AbortSignal.timeout(10000)
+    });
+
+    const notificationResult =
+      await notificationResponse.json().catch(() => ({}));
+
+    if (
+      !notificationResponse.ok ||
+      notificationResult.status !== "ok"
+    ) {
+      console.error(
+        "Email notification was not confirmed:",
+        notificationResult.message || notificationResponse.status
+      );
+    }
+  } catch (notificationError) {
+    console.error(
+      "Email notification failed:",
+      notificationError.message
+    );
+  }
+} else {
+  console.error("Email notification environment variables are missing.");
+}
     return res.status(201).json({
       status: "ok",
       message: "Your enquiry was submitted successfully"
