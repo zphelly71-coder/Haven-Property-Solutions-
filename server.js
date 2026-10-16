@@ -714,11 +714,12 @@ const summary = {
   total: totalEnquiries,
   new: 0,
   contacted: 0,
-  closed: 0
+  closed: 0,
+  converted: 0
 };
 
 for (const group of statusGroups) {
-  if (["new", "contacted", "closed"].includes(group._id)) {
+  if (["new", "contacted", "closed", "converted"].includes(group._id)) {
     summary[group._id] = group.count;
   }
 }
