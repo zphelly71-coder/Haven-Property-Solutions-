@@ -507,15 +507,25 @@ app.patch("/api/admin/enquiries/:id", requireAdmin, async (req, res) => {
   });
 }
 
-    const result = await db.collection("enquiries").updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          status: newStatus,
-          updatedAt: new Date()
-        }
-      }
-    );
+    const now = new Date();
+
+const update = {
+  $set: {
+    status: newStatus,
+    updatedAt: now
+  }
+};
+
+if (newStatus === "converted") {
+  update.$set.convertedAt = now;
+} else {
+  update.$unset = { convertedAt: "" };
+}
+
+const result = await db.collection("enquiries").updateOne(
+  { _id: new ObjectId(id) },
+  update
+);
 
     if (!result.matchedCount) {
       return res.status(404).json({
