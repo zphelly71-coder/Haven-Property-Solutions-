@@ -496,6 +496,15 @@ thumbnails.style.padding = "4px 0";
 
       const title = document.createElement("h3");
       title.textContent = property.title || "Property listing";
+      const detailsButton = document.createElement("a");
+detailsButton.href =
+  "./property.html?id=" +
+  encodeURIComponent(String(property._id || property.id || ""));
+detailsButton.className = "button";
+detailsButton.textContent = "View Full Details";
+detailsButton.style.display = "inline-block";
+detailsButton.style.marginTop = "10px";
+detailsButton.style.textDecoration = "none";
 
       const location = document.createElement("p");
       location.textContent = "Location: " + (property.location || "Not specified");
@@ -510,6 +519,7 @@ thumbnails.style.padding = "4px 0";
       description.textContent = property.description || "";
 
       card.append(title, location, price, description);
+card.appendChild(detailsButton);
       
       if (["short-stay", "airbnb"].includes(String(property.listingPurpose || "").toLowerCase())) {
         const stayDetails = document.createElement("p");
