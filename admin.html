@@ -635,7 +635,7 @@ status.innerHTML = `
   <option value="closed">Closed</option>
   <option value="converted">Converted — Successful Deal</option>
 `;
-status.value = ["new", "contacted", "closed"].includes(enquiry.status)
+status.value = ["new", "contacted", "closed", "converted"].includes(enquiry.status)
   ? enquiry.status
   : "new";
 status.style.marginBottom = "12px";
