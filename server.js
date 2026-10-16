@@ -500,12 +500,12 @@ app.patch("/api/admin/enquiries/:id", requireAdmin, async (req, res) => {
       });
     }
 
-    if (!["new", "contacted", "closed"].includes(newStatus)) {
-      return res.status(400).json({
-        status: "error",
-        message: "Status must be new, contacted, or closed"
-      });
-    }
+    if (!["new", "contacted", "closed", "converted"].includes(newStatus)) {
+  return res.status(400).json({
+    status: "error",
+    message: "Status must be new, contacted, closed, or converted"
+  });
+}
 
     const result = await db.collection("enquiries").updateOne(
       { _id: new ObjectId(id) },
