@@ -305,6 +305,55 @@ async function loadPropertyDetails() {
     contact.className = "button gold";
     contact.textContent = "Enquire on WhatsApp";
     content.appendChild(contact);
+    const shareButton = document.createElement("button");
+shareButton.type = "button";
+shareButton.className = "button";
+shareButton.textContent = "Share Property";
+
+shareButton.addEventListener("click", async () => {
+  const shareText =
+    "Check out " + (property.title || "this property") +
+    " in " + (property.location || "our listings") + ".";
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: property.title || "Haven Property Solutions",
+        text: shareText,
+        url: window.location.href
+      });
+    } else {
+      window.prompt(
+        "Copy this property link to share:",
+        window.location.href
+      );
+    }
+  } catch (error) {
+    if (error.name !== "AbortError") {
+      window.prompt(
+        "Copy this property link to share:",
+        window.location.href
+      );
+    }
+  }
+});
+
+content.appendChild(shareButton);
+
+const whatsappShare = document.createElement("a");
+whatsappShare.className = "button gold";
+whatsappShare.textContent = "Share on WhatsApp";
+whatsappShare.href =
+  "https://wa.me/?text=" +
+  encodeURIComponent(
+    "Check out " + (property.title || "this property") +
+    " in " + (property.location || "our listings") + ": " +
+    window.location.href
+  );
+whatsappShare.target = "_blank";
+whatsappShare.rel = "noopener noreferrer";
+
+content.appendChild(whatsappShare);
 
   } catch (error) {
     content.textContent =
