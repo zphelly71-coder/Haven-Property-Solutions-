@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>Haven Property Solutions</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <style>
   /* Premium Haven navigation */
 .site-nav {
@@ -187,7 +188,65 @@ form button {
     color: #e6c783;
     font-weight: bold;
 }
+@media (max-width: 600px) {
+  .container {
+    margin: 12px auto;
+    padding: 12px;
+    border-radius: 8px;
+  }
 
+  .site-nav {
+    padding: 14px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .site-links {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .site-links a {
+    padding: 5px 0;
+  }
+
+  h1 {
+    font-size: 25px;
+    padding: 22px 16px;
+  }
+
+  form {
+    flex-direction: column;
+  }
+
+  input[type="text"],
+  form button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .properties {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .property {
+    width: 100%;
+    max-width: 100%;
+    margin: 12px 0;
+    padding: 14px;
+  }
+
+  .property img {
+    max-width: 100%;
+  }
+
+  .property button,
+  .property .button {
+    max-width: 100%;
+    white-space: normal;
+  }
+}
   </style>
 </head>
 <body>
