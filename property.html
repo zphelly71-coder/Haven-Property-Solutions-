@@ -145,5 +145,177 @@
   <footer>
     © Haven Property Solutions
   </footer>
+  
+<script>
+const API_URL =
+  "https://haven-property-solutions-api.onrender.com/api/properties";
+
+const content = document.getElementById("property-content");
+
+function getPropertyId() {
+  return new URLSearchParams(window.location.search).get("id");
+}
+
+function addDetail(label, value) {
+  if (value === undefined || value === null || value === "") return;
+
+  const row = document.createElement("div");
+  row.className = "detail-row";
+
+  const strong = document.createElement("strong");
+  strong.textContent = label + ": ";
+
+  const text = document.createElement("span");
+  text.textContent = String(value);
+
+  row.append(strong, text);
+  content.appendChild(row);
+}
+
+async function loadPropertyDetails() {
+  try {
+    const id = getPropertyId();
+
+    if (!id) {
+      content.textContent =
+        "No property was selected. Please return to the property listings.";
+      return;
+    }
+
+    const response = await fetch(API_URL);
+
+    if (!response.ok) {
+      throw new Error("Could not load the property listings.");
+    }
+
+    const data = await response.json();
+    const properties = Array.isArray(data.properties)
+      ? data.properties
+      : [];
+
+    const property = properties.find(item =>
+      String(item._id || item.id || "") === id &&
+      String(item.status || "").toLowerCase() === "published"
+    );
+
+    if (!property) {
+      content.textContent =
+        "This property could not be found or is no longer available.";
+      return;
+    }
+
+    content.replaceChildren();
+
+    const title = document.createElement("h1");
+    title.textContent = property.title || "Property details";
+    content.appendChild(title);
+
+    const images = Array.isArray(property.images)
+      ? property.images.filter(url =>
+          typeof url === "string" && url.trim()
+        )
+      : [];
+
+    if (images.length) {
+      const mainPhoto = document.createElement("img");
+      mainPhoto.className = "gallery-main";
+      mainPhoto.src = images[0];
+      mainPhoto.alt = property.title || "Property photo";
+
+      const thumbnails = document.createElement("div");
+      thumbnails.className = "thumbnails";
+
+      images.forEach((url, index) => {
+        const thumbnail = document.createElement("img");
+        thumbnail.src = url;
+        thumbnail.alt = "Property photo " + (index + 1);
+
+        if (index === 0) thumbnail.classList.add("active");
+
+        thumbnail.addEventListener("click", () => {
+          mainPhoto.src = url;
+          thumbnails.querySelectorAll("img").forEach(item =>
+            item.classList.remove("active")
+          );
+          thumbnail.classList.add("active");
+        });
+
+        thumbnails.appendChild(thumbnail);
+      });
+
+      mainPhoto.addEventListener("click", () => {
+        const viewer = document.createElement("div");
+        viewer.style.cssText =
+          "position:fixed;inset:0;background:rgba(0,0,0,.94);" +
+          "display:flex;align-items:center;justify-content:center;" +
+          "padding:16px;z-index:99999;cursor:zoom-out";
+
+        const largePhoto = document.createElement("img");
+        largePhoto.src = mainPhoto.src;
+        largePhoto.alt = mainPhoto.alt;
+        largePhoto.style.cssText =
+          "max-width:100%;max-height:100%;object-fit:contain";
+
+        viewer.appendChild(largePhoto);
+        viewer.addEventListener("click", () => viewer.remove());
+        document.body.appendChild(viewer);
+      });
+
+      content.append(mainPhoto, thumbnails);
+    }
+
+    const price = document.createElement("p");
+    price.className = "price";
+    price.textContent = property.price != null
+      ? "KSh " + Number(property.price).toLocaleString("en-KE") +
+        (property.pricePeriod ? "/" + property.pricePeriod : "")
+      : "Contact us for price";
+    content.appendChild(price);
+
+    addDetail("Location", property.location);
+    addDetail("Listing type", property.listingPurpose);
+    addDetail("Description", property.description);
+    addDetail("Bedrooms", property.bedrooms);
+    addDetail("Bathrooms", property.bathrooms);
+    addDetail("Property type", property.propertyType);
+    addDetail("Nightly rate", property.nightlyRate
+      ? "KSh " + Number(property.nightlyRate).toLocaleString("en-KE")
+      : "");
+    addDetail("Maximum guests", property.maxGuests);
+    addDetail("Minimum nights", property.minimumNights);
+    addDetail("Check-in", property.checkInTime);
+    addDetail("Check-out", property.checkOutTime);
+
+    const backLink = document.createElement("a");
+    backLink.href = "./";
+    backLink.className = "button";
+    backLink.textContent = "Back to listings";
+    content.appendChild(backLink);
+
+    const contact = document.createElement("a");
+    contact.href =
+      "https://wa.me/?text=" +
+      encodeURIComponent(
+        "Hello, I am interested in " +
+        (property.title || "this property") +
+        " in " + (property.location || "your listings") + "."
+      );
+    contact.target = "_blank";
+    contact.rel = "noopener noreferrer";
+    contact.className = "button gold";
+    contact.textContent = "Enquire on WhatsApp";
+    content.appendChild(contact);
+
+  } catch (error) {
+    content.textContent =
+      "Unable to load property details. Please try again later.";
+  }
+}
+
+loadPropertyDetails();
+</script>
+</body>
+</html>
+
 </body>
 </html>
