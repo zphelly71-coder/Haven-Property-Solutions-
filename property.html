@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Property Details | Haven Property Solutions</title>
+  <meta name="description" content="View property photos, prices, locations and full details at Haven Property Solutions.">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f1ea;
+      color: #1b2b42;
+    }
+
+    header {
+      background: #142b46;
+      color: #e6c783;
+      padding: 20px;
+      border-bottom: 4px solid #c5a15b;
+    }
+
+    header a {
+      color: #e6c783;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 28px auto;
+      padding: 20px;
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .gallery-main {
+      width: 100%;
+      max-height: 560px;
+      object-fit: contain;
+      background: #142b46;
+      border-radius: 10px;
+      cursor: zoom-in;
+    }
+
+    .thumbnails {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      margin: 12px 0;
+      padding: 4px;
+    }
+
+    .thumbnails img {
+      width: 90px;
+      height: 68px;
+      object-fit: cover;
+      border-radius: 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+      border: 3px solid transparent;
+    }
+
+    .thumbnails img.active {
+      border-color: #c5a15b;
+    }
+
+    .price {
+      font-size: 24px;
+      font-weight: bold;
+      color: #142b46;
+    }
+
+    .detail-row {
+      padding: 10px 0;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    .button {
+      display: inline-block;
+      border: 0;
+      border-radius: 7px;
+      padding: 12px 18px;
+      background: #142b46;
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 5px 5px 5px 0;
+    }
+
+    .button.gold {
+      background: #c5a15b;
+      color: #142b46;
+    }
+
+    .message {
+      padding: 16px;
+      background: #fff;
+      border-radius: 8px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px;
+      color: #555;
+    }
+
+    @media (max-width: 600px) {
+      main {
+        margin: 12px auto;
+        padding: 12px;
+      }
+
+      .panel {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <a href="./">← Haven Property Solutions</a>
+    <p>Property details</p>
+  </header>
+
+  <main>
+    <div id="property-content" class="message">
+      Loading property details...
+    </div>
+  </main>
+
+  <footer>
+    © Haven Property Solutions
+  </footer>
+</body>
+</html>
