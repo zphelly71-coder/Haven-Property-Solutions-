@@ -216,6 +216,27 @@ button:disabled{opacity:.5}
   <p class="muted">
     View messages sent by customers about your properties.
   </p>
+      <div id="enquirySummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:16px 0;">
+  <div style="background:#eef2f5;padding:16px;border-radius:10px;border-left:4px solid #142b46;">
+    <p style="margin:0 0 8px;">Total Enquiries</p>
+    <strong id="summaryTotal" style="font-size:28px;">—</strong>
+  </div>
+
+  <div style="background:#fff8e7;padding:16px;border-radius:10px;border-left:4px solid #c5a15b;">
+    <p style="margin:0 0 8px;">New</p>
+    <strong id="summaryNew" style="font-size:28px;">—</strong>
+  </div>
+
+  <div style="background:#eaf5ef;padding:16px;border-radius:10px;border-left:4px solid #23804b;">
+    <p style="margin:0 0 8px;">Contacted</p>
+    <strong id="summaryContacted" style="font-size:28px;">—</strong>
+  </div>
+
+  <div style="background:#f1eef8;padding:16px;border-radius:10px;border-left:4px solid #7154a3;">
+    <p style="margin:0 0 8px;">Closed</p>
+    <strong id="summaryClosed" style="font-size:28px;">—</strong>
+  </div>
+</div>
  <button type="button" id="refreshEnquiriesButton">
   Refresh enquiries
 </button>
@@ -402,7 +423,19 @@ async function loadProperties() {
 
   try {
     const result = await api("/api/admin/enquiries");
+const summary = result.summary || {};
 
+$("summaryTotal").textContent =
+  Number(summary.total ?? result.count ?? 0).toLocaleString();
+
+$("summaryNew").textContent =
+  Number(summary.new || 0).toLocaleString();
+
+$("summaryContacted").textContent =
+  Number(summary.contacted || 0).toLocaleString();
+
+$("summaryClosed").textContent =
+  Number(summary.closed || 0).toLocaleString();
     const allEnquiries = Array.isArray(result.enquiries)
       ? result.enquiries
       : [];
