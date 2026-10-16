@@ -339,21 +339,74 @@ badge.style.fontSize = "12px";
 card.appendChild(badge);
       
 if (Array.isArray(property.images) && property.images.length > 0) {
-  const photo = document.createElement("img");
-  photo.src = property.images[0];
-  photo.alt = property.title || "Property photograph";
-  photo.loading = "lazy";
-  photo.style.width = "100%";
-  photo.style.height = "220px";
-  photo.style.objectFit = "cover";
-  photo.style.borderRadius = "10px";
-  photo.style.marginBottom = "12px";
-  photo.onerror = () => {
-    photo.style.display = "none";
-  };
-  card.appendChild(photo);
-}
+  const images = property.images.filter(
+    url => typeof url === "string" && url.trim()
+  );
 
+  if (images.length > 0) {
+    const gallery = document.createElement("div");
+    gallery.style.marginBottom = "12px";
+
+    const photo = document.createElement("img");
+    photo.src = images[0];
+    photo.alt = property.title || "Property photograph";
+    photo.loading = "lazy";
+    photo.style.width = "100%";
+    photo.style.height = "240px";
+    photo.style.objectFit = "cover";
+    photo.style.borderRadius = "10px";
+    photo.style.display = "block";
+
+    const controls = document.createElement("div");
+    controls.style.display = "flex";
+    controls.style.justifyContent = "space-between";
+    controls.style.alignItems = "center";
+    controls.style.gap = "10px";
+    controls.style.marginTop = "8px";
+
+    let currentImage = 0;
+
+    const previous = document.createElement("button");
+    previous.type = "button";
+    previous.textContent = "← Previous";
+
+    const counter = document.createElement("span");
+    counter.textContent = "1 / " + images.length;
+
+    const next = document.createElement("button");
+    next.type = "button";
+    next.textContent = "Next →";
+
+    previous.addEventListener("click", () => {
+      currentImage =
+        (currentImage - 1 + images.length) % images.length;
+      photo.src = images[currentImage];
+      counter.textContent =
+        (currentImage + 1) + " / " + images.length;
+    });
+
+    next.addEventListener("click", () => {
+      currentImage = (currentImage + 1) % images.length;
+      photo.src = images[currentImage];
+      counter.textContent =
+        (currentImage + 1) + " / " + images.length;
+    });
+
+    controls.append(previous, counter, next);
+    gallery.append(photo, controls);
+    card.appendChild(gallery);
+
+    if (images.length <= 1) {
+      previous.hidden = true;
+      next.hidden = true;
+      counter.hidden = true;
+    }
+
+    photo.onerror = () => {
+      gallery.style.display = "none";
+    };
+  }
+}
 
       const title = document.createElement("h3");
       title.textContent = property.title || "Property listing";
