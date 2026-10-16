@@ -345,6 +345,9 @@ if (Array.isArray(property.images) && property.images.length > 0) {
 
   if (images.length > 0) {
     const gallery = document.createElement("div");
+    gallery.style.display = "flex";
+gallery.style.flexDirection = "column";
+gallery.style.gap = "8px";
     gallery.style.marginBottom = "12px";
 
     const photo = document.createElement("img");
@@ -356,6 +359,40 @@ if (Array.isArray(property.images) && property.images.length > 0) {
     photo.style.objectFit = "cover";
     photo.style.borderRadius = "10px";
     photo.style.display = "block";
+    photo.style.cursor = "zoom-in";
+photo.title = "Click to view larger photo";
+    photo.addEventListener("click", () => {
+  const viewer = document.createElement("div");
+  viewer.style.position = "fixed";
+  viewer.style.inset = "0";
+  viewer.style.background = "rgba(0, 0, 0, 0.92)";
+  viewer.style.display = "flex";
+  viewer.style.alignItems = "center";
+  viewer.style.justifyContent = "center";
+  viewer.style.padding = "20px";
+  viewer.style.boxSizing = "border-box";
+  viewer.style.zIndex = "99999";
+  viewer.style.cursor = "zoom-out";
+
+  const largePhoto = document.createElement("img");
+  largePhoto.src = photo.src;
+  largePhoto.alt = photo.alt;
+  largePhoto.style.maxWidth = "100%";
+  largePhoto.style.maxHeight = "100%";
+  largePhoto.style.objectFit = "contain";
+
+  viewer.appendChild(largePhoto);
+  document.body.appendChild(viewer);
+
+  viewer.addEventListener("click", () => {
+    viewer.remove();
+  });
+});
+    const thumbnails = document.createElement("div");
+thumbnails.style.display = "flex";
+thumbnails.style.gap = "8px";
+thumbnails.style.overflowX = "auto";
+thumbnails.style.padding = "4px 0";
 
     const controls = document.createElement("div");
     controls.style.display = "flex";
@@ -365,6 +402,41 @@ if (Array.isArray(property.images) && property.images.length > 0) {
     controls.style.marginTop = "8px";
 
     let currentImage = 0;
+    images.forEach((imageUrl, index) => {
+  const thumbnail = document.createElement("img");
+  thumbnail.src = imageUrl;
+  thumbnail.alt =
+    (property.title || "Property") + " photo " + (index + 1);
+  thumbnail.loading = "lazy";
+  thumbnail.style.width = "72px";
+  thumbnail.style.height = "54px";
+  thumbnail.style.objectFit = "cover";
+  thumbnail.style.borderRadius = "6px";
+  thumbnail.style.cursor = "pointer";
+  thumbnail.style.flexShrink = "0";
+  thumbnail.style.border =
+    index === 0 ? "3px solid #e6c783" : "3px solid transparent";
+
+  thumbnail.addEventListener("click", () => {
+    currentImage = index;
+    photo.src = images[currentImage];
+    counter.textContent =
+      (currentImage + 1) + " / " + images.length;
+
+    thumbnails.querySelectorAll("img").forEach((item, itemIndex) => {
+      item.style.border =
+        itemIndex === currentImage
+          ? "3px solid #e6c783"
+          : "3px solid transparent";
+    });
+  });
+
+  thumbnail.onerror = () => {
+    thumbnail.style.display = "none";
+  };
+
+  thumbnails.appendChild(thumbnail);
+});
 
     const previous = document.createElement("button");
     previous.type = "button";
@@ -378,22 +450,36 @@ if (Array.isArray(property.images) && property.images.length > 0) {
     next.textContent = "Next →";
 
     previous.addEventListener("click", () => {
-      currentImage =
-        (currentImage - 1 + images.length) % images.length;
-      photo.src = images[currentImage];
-      counter.textContent =
-        (currentImage + 1) + " / " + images.length;
-    });
+  currentImage =
+    (currentImage - 1 + images.length) % images.length;
+  photo.src = images[currentImage];
+  counter.textContent =
+    (currentImage + 1) + " / " + images.length;
+
+  thumbnails.querySelectorAll("img").forEach((item, itemIndex) => {
+    item.style.border =
+      itemIndex === currentImage
+        ? "3px solid #e6c783"
+        : "3px solid transparent";
+  });
+});
 
     next.addEventListener("click", () => {
-      currentImage = (currentImage + 1) % images.length;
-      photo.src = images[currentImage];
-      counter.textContent =
-        (currentImage + 1) + " / " + images.length;
-    });
+  currentImage = (currentImage + 1) % images.length;
+  photo.src = images[currentImage];
+  counter.textContent =
+    (currentImage + 1) + " / " + images.length;
+
+  thumbnails.querySelectorAll("img").forEach((item, itemIndex) => {
+    item.style.border =
+      itemIndex === currentImage
+        ? "3px solid #e6c783"
+        : "3px solid transparent";
+  });
+});
 
     controls.append(previous, counter, next);
-    gallery.append(photo, controls);
+    gallery.append(photo, thumbnails, controls);
     card.appendChild(gallery);
 
     if (images.length <= 1) {
