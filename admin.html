@@ -1031,6 +1031,69 @@ async function loadMonthlyReport() {
     button.disabled = false;
   }
 }
+ async function downloadMonthlyReport() {
+  const button = $("downloadReportButton");
+  const status = $("reportStatus");
+
+  button.disabled = true;
+  status.textContent = "Preparing CSV report...";
+
+  try {
+    const report = await api("/api/admin/reports/monthly");
+
+    const escapeCSV = value =>
+      '"' + String(value ?? "").replace(/"/g, '""') + '"';
+
+    const rows = [
+      ["HAVEN PROPERTY SOLUTIONS"],
+      ["Monthly Business Report", "Last 12 months"],
+      [],
+      ["Month", "Enquiries Received", "Successful Deals"],
+      ...(report.monthly || []).map(item => [
+        item.month,
+        item.enquiries || 0,
+        item.conversions || 0
+      ]),
+      [],
+      ["Top Properties by Enquiries"],
+      ["Property", "Location", "Enquiries"],
+      ...(report.popularProperties || []).map(property => [
+        property.title,
+        property.location,
+        property.enquiries || 0
+      ])
+    ];
+
+    const csv = "\uFEFF" + rows
+      .map(row => row.map(escapeCSV).join(","))
+      .join("\r\n");
+
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download =
+      "haven-monthly-report-" +
+      new Date().toISOString().slice(0, 10) +
+      ".csv";
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+
+    status.textContent = "Monthly report downloaded successfully.";
+  } catch (error) {
+    status.textContent =
+      error.message || "Unable to download the report.";
+  } finally {
+    button.disabled = false;
+  }
+  } 
 $("cancelEdit").addEventListener("click", resetForm);
 $("refreshButton").addEventListener("click", loadProperties);
   $("refreshEnquiriesButton").addEventListener("click", loadEnquiries);
