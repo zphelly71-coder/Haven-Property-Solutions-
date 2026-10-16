@@ -566,12 +566,38 @@ app.get("/api/admin/enquiries", requireAdmin, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100)
       .toArray();
+const totalEnquiries = await db.collection("enquiries")
+  .countDocuments({});
 
+const statusGroups = await db.collection("enquiries")
+  .aggregate([
+    {
+      $group: {
+        _id: { $ifNull: ["$status", "new"] },
+        count: { $sum: 1 }
+      }
+    }
+  ])
+  .toArray();
+
+const summary = {
+  total: totalEnquiries,
+  new: 0,
+  contacted: 0,
+  closed: 0
+};
+
+for (const group of statusGroups) {
+  if (["new", "contacted", "closed"].includes(group._id)) {
+    summary[group._id] = group.count;
+  }
+}
     res.json({
-      status: "ok",
-      count: enquiries.length,
-      enquiries
-    });
+  status: "ok",
+  count: enquiries.length,
+  enquiries,
+  summary
+});
   } catch (error) {
     console.error("Admin enquiry list failed:", error.message);
 
