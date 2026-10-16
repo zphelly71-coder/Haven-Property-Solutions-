@@ -211,6 +211,16 @@ button:disabled{opacity:.5}
       <button type="button" class="secondary" id="logoutButton">Log out</button>
       <div id="propertyList"></div>
     </div>
+    <div class="card">
+  <h2>Customer Enquiries</h2>
+  <p class="muted">
+    View messages sent by customers about your properties.
+  </p>
+  <button type="button" id="refreshEnquiriesButton">
+    Refresh enquiries
+  </button>
+  <div id="enquiryList">Enquiries will appear here.</div>
+</div>
   </section>
 </main>
 <script>
@@ -304,6 +314,7 @@ $("loginForm").addEventListener("submit", async event => {
     showDashboard();
     message("Login successful.");
     await loadProperties();
+    await loadEnquiries();
   } catch (error) {
     message(error.message);
   } finally {
@@ -373,7 +384,73 @@ async function loadProperties() {
     message(error.message);
   }
 }
+async function loadEnquiries() {
+  const list = $("enquiryList");
+  list.textContent = "Loading customer enquiries...";
 
+  try {
+    const result = await api("/api/admin/enquiries");
+    list.replaceChildren();
+
+    if (!result.enquiries || result.enquiries.length === 0) {
+      list.textContent = "No customer enquiries received yet.";
+      return;
+    }
+
+    for (const enquiry of result.enquiries) {
+      const card = document.createElement("article");
+      card.className = "property";
+
+      const heading = document.createElement("h3");
+      heading.textContent = enquiry.propertyTitle || "Property enquiry";
+
+      const propertyInfo = document.createElement("p");
+      propertyInfo.textContent =
+        enquiry.propertyLocation || "Location not provided";
+
+      const customer = document.createElement("p");
+      customer.textContent = "Customer: " + (enquiry.name || "Not provided");
+
+      const email = document.createElement("p");
+      email.textContent = "Email: " + (enquiry.email || "Not provided");
+
+      const phone = document.createElement("p");
+      phone.textContent = "Phone: " + (enquiry.phone || "Not provided");
+
+      const messageText = document.createElement("p");
+      messageText.textContent =
+        "Message: " + (enquiry.message || "No message");
+      messageText.style.whiteSpace = "pre-wrap";
+
+      const status = document.createElement("p");
+      status.className = "muted";
+      status.textContent =
+        "Status: " + (enquiry.status || "new");
+
+      const date = document.createElement("p");
+      date.className = "muted";
+      date.textContent = enquiry.createdAt
+        ? "Received: " + new Date(enquiry.createdAt).toLocaleString()
+        : "Received date unavailable";
+
+      card.append(
+        heading,
+        propertyInfo,
+        customer,
+        email,
+        phone,
+        messageText,
+        status,
+        date
+      );
+
+      list.appendChild(card);
+    }
+  } catch (error) {
+    list.textContent = "Could not load customer enquiries.";
+    message(error.message);
+  }
+}
 function beginEdit(property) {
   editingId = property._id;
   $("propertyId").value = editingId;
@@ -532,6 +609,7 @@ $("saveButton").addEventListener("click", async event => {
 
 $("cancelEdit").addEventListener("click", resetForm);
 $("refreshButton").addEventListener("click", loadProperties);
+  $("refreshEnquiriesButton").addEventListener("click", loadEnquiries);
 $("logoutButton").addEventListener("click", () => logout());
 
 if (sessionStorage.getItem(TOKEN_KEY)) {
