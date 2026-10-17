@@ -337,6 +337,49 @@ button:disabled{opacity:.5}
   <h3>Saved Property Deals</h3>
   <button type="button" id="refreshFinancialButton">Refresh Financial Records</button>
   <div id="financialDealList">Financial records will appear here.</div>
+  
+<hr>
+
+<h3>Record a Payment Instalment</h3>
+<p class="muted">
+  Record money received or paid against a saved property deal.
+</p>
+
+<form id="financialPaymentForm">
+  <label for="paymentDealId">Property deal</label>
+  <select id="paymentDealId" required>
+    <option value="">Select a saved deal</option>
+  </select>
+
+  <label for="paymentPurpose">Payment purpose</label>
+  <select id="paymentPurpose" required>
+    <option value="commission">Commission received</option>
+    <option value="resale_receipt">Resale proceeds received</option>
+    <option value="purchase_payment">Purchase cost paid</option>
+  </select>
+
+  <label for="paymentAmount">Instalment amount (KES)</label>
+  <input id="paymentAmount" type="number" min="0.01"
+         step="0.01" required>
+
+  <label for="paymentDate">Payment date</label>
+  <input id="paymentDate" type="date" required>
+
+  <label for="paymentNotes">Notes (optional)</label>
+  <textarea id="paymentNotes" maxlength="500"></textarea>
+
+  <button type="submit" id="savePaymentButton">
+    Record Payment
+  </button>
+</form>
+
+<p id="paymentStatus" class="muted" role="status"></p>
+
+<h3>Payment History</h3>
+<div id="financialPaymentHistory">
+  Select a property deal to view its payments.
+</div>
+
 
   <h3>Saved Business Expenses</h3>
   <div id="businessExpenseList">Business expenses will appear here.</div>
@@ -1199,6 +1242,25 @@ async function loadFinancialRecords() {
 
     dealList.replaceChildren();
     expenseList.replaceChildren();
+    const paymentDealSelect = $("paymentDealId");
+paymentDealSelect.replaceChildren();
+
+const placeholder = document.createElement("option");
+placeholder.value = "";
+placeholder.textContent = "Select a saved deal";
+paymentDealSelect.appendChild(placeholder);
+
+for (const deal of dealResult.deals || []) {
+  const option = document.createElement("option");
+  option.value = String(deal._id);
+  option.textContent =
+    (deal.propertyTitle || "Untitled property") +
+    " — " + (deal.transactionType || "Deal") +
+    " — " + new Date(deal.transactionDate).toLocaleDateString("en-KE");
+
+  paymentDealSelect.appendChild(option);
+}
+    expenseList.replaceChildren();
 
     const addLine = (parent, text) => {
       const line = document.createElement("p");
@@ -1277,6 +1339,93 @@ $("financialDealForm").addEventListener("submit", async event => {
   } catch (error) {
     status.textContent =
       error.message || "Unable to save property deal.";
+  } finally {
+    button.disabled = false;
+  }
+});
+
+async function loadPaymentHistory(dealId) {
+  const history = $("financialPaymentHistory");
+  history.textContent = "Loading payment history...";
+
+  if (!dealId) {
+    history.textContent = "Select a property deal to view its payments.";
+    return;
+  }
+
+  try {
+    const result = await api(
+      "/api/admin/financial-deals/" +
+      encodeURIComponent(dealId) + "/payments"
+    );
+
+    history.replaceChildren();
+
+    if (!result.payments || result.payments.length === 0) {
+      history.textContent = "No payments recorded for this deal yet.";
+      return;
+    }
+
+    for (const payment of result.payments) {
+      const item = document.createElement("p");
+      item.textContent =
+        new Intl.NumberFormat("en-KE", {
+          style: "currency",
+          currency: "KES"
+        }).format(Number(payment.amount) || 0) +
+        " | " + payment.purpose +
+        " | " + payment.direction +
+        " | " + new Date(payment.paymentDate).toLocaleDateString("en-KE") +
+        (payment.notes ? " | " + payment.notes : "");
+
+      history.appendChild(item);
+    }
+  } catch (error) {
+    history.textContent = error.message || "Could not load payment history.";
+  }
+}
+
+$("paymentDealId").addEventListener("change", async () => {
+  await loadPaymentHistory($("paymentDealId").value);
+});
+
+$("financialPaymentForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const button = $("savePaymentButton");
+  const status = $("paymentStatus");
+  const dealId = $("paymentDealId").value;
+  const purpose = $("paymentPurpose").value;
+
+  const direction =
+    purpose === "purchase_payment" ? "paid" : "received";
+
+  button.disabled = true;
+  status.textContent = "Recording payment...";
+
+  try {
+    await api(
+      "/api/admin/financial-deals/" +
+      encodeURIComponent(dealId) + "/payments",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          purpose,
+          direction,
+          amount: Number($("paymentAmount").value),
+          paymentDate: $("paymentDate").value,
+          notes: $("paymentNotes").value.trim()
+        })
+      }
+    );
+
+    status.textContent = "Payment recorded successfully.";
+    $("financialPaymentForm").reset();
+
+    await loadPaymentHistory(dealId);
+    await loadFinancialRecords();
+  } catch (error) {
+    status.textContent = error.message || "Unable to record payment.";
   } finally {
     button.disabled = false;
   }
