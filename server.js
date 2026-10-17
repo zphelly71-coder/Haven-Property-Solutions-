@@ -1063,6 +1063,68 @@ app.get(
   }
 );
 
+app.get(
+  "/api/admin/financial-test-cleanup-preview",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({
+          status: "error",
+          message: "Database not connected"
+        });
+      }
+
+      const allowedIds = [
+        "6ad3812ea062c70b970d829e",
+        "6ad38306a062c70b970d82a0",
+        "6ad38a93a062c70b970d82a3",
+        "6ad38368a062c70b970d82a1"
+      ].map(id => new ObjectId(id));
+
+      const deals = await db
+        .collection("financial_deals")
+        .find({ _id: { $in: allowedIds } })
+        .project({
+          propertyTitle: 1,
+          transactionType: 1,
+          transactionAmount: 1,
+          commissionEarned: 1,
+          purchaseCost: 1,
+          notes: 1
+        })
+        .toArray();
+
+      const payments = await db
+        .collection("financial_payments")
+        .find({ dealId: { $in: allowedIds } })
+        .project({
+          dealId: 1,
+          purpose: 1,
+          direction: 1,
+          amount: 1,
+          notes: 1
+        })
+        .toArray();
+
+      res.json({
+        status: "ok",
+        previewOnly: true,
+        deals,
+        payments,
+        dealCount: deals.length,
+        paymentCount: payments.length
+      });
+    } catch (error) {
+      console.error("Financial test cleanup preview failed:", error.message);
+      res.status(500).json({
+        status: "error",
+        message: "Unable to preview test records"
+      });
+    }
+  }
+);
+
 app.post(
   "/api/admin/financial-deals",
   requireAdmin,
