@@ -1556,19 +1556,7 @@ $("refreshFinancialReportButton").addEventListener(
   loadFinancialReport
 );
 
-  async () => {
-    const status = $("businessExpenseStatus");
-    status.textContent = "Refreshing financial records...";
-
-    try {
-      await loadFinancialRecords();
-      status.textContent = "Financial records refreshed.";
-    } catch (error) {
-      status.textContent = "Could not refresh financial records.";
-    }
-  }
-);
-
+  
 $("cancelEdit").addEventListener("click", resetForm);
 $("refreshButton").addEventListener("click", loadProperties);
   $("refreshEnquiriesButton").addEventListener("click", loadEnquiries);
