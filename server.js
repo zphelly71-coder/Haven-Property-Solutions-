@@ -1099,6 +1099,99 @@ app.get(
   }
 );
 
+app.post(
+  "/api/admin/business-expenses",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({
+          status: "error",
+          message: "Database not connected"
+        });
+      }
+
+      const body = req.body || {};
+      const category = body.category;
+      const description =
+        typeof body.description === "string"
+          ? body.description.trim()
+          : "";
+      const amount = body.amount;
+      const expenseDate = new Date(body.expenseDate);
+
+      const allowedCategories = [
+        "marketing",
+        "transport",
+        "repairs",
+        "office",
+        "other"
+      ];
+
+      if (!allowedCategories.includes(category)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Select a valid expense category"
+        });
+      }
+
+      if (!description || description.length > 300) {
+        return res.status(400).json({
+          status: "error",
+          message: "Enter a description (maximum 300 characters)"
+        });
+      }
+
+      const amountError = validateMoney(amount, "Amount");
+
+      if (amountError || amount <= 0) {
+        return res.status(400).json({
+          status: "error",
+          message: amountError || "Amount must be greater than zero"
+        });
+      }
+
+      if (
+        typeof body.expenseDate !== "string" ||
+        !body.expenseDate ||
+        Number.isNaN(expenseDate.getTime())
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Enter a valid expense date"
+        });
+      }
+
+      const expense = {
+        category,
+        description,
+        amount,
+        expenseDate,
+        currency: "KES",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const result = await db
+        .collection("business_expenses")
+        .insertOne(expense);
+
+      res.status(201).json({
+        status: "ok",
+        message: "Business expense saved",
+        id: result.insertedId
+      });
+    } catch (error) {
+      console.error("Business expense save failed:", error.message);
+
+      res.status(500).json({
+        status: "error",
+        message: "Unable to save business expense"
+      });
+    }
+  }
+);
+
 async function startServer() {
   if (!MONGODB_URI) {
     throw new Error("MONGODB_URI environment variable is missing.");
