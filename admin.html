@@ -1177,6 +1177,159 @@ async function loadMonthlyReport() {
     button.disabled = false;
   }
   } 
+  
+async function loadFinancialRecords() {
+  const dealList = $("financialDealList");
+  const expenseList = $("businessExpenseList");
+
+  dealList.textContent = "Loading property deals...";
+  expenseList.textContent = "Loading business expenses...";
+
+  const money = value =>
+    new Intl.NumberFormat("en-KE", {
+      style: "currency",
+      currency: "KES"
+    }).format(Number(value) || 0);
+
+  try {
+    const [dealResult, expenseResult] = await Promise.all([
+      api("/api/admin/financial-deals"),
+      api("/api/admin/business-expenses")
+    ]);
+
+    dealList.replaceChildren();
+    expenseList.replaceChildren();
+
+    const addLine = (parent, text) => {
+      const line = document.createElement("p");
+      line.textContent = text;
+      parent.appendChild(line);
+    };
+
+    if (!dealResult.deals || dealResult.deals.length === 0) {
+      addLine(dealList, "No property deals recorded yet.");
+    } else {
+      dealResult.deals.forEach(deal => {
+        addLine(
+          dealList,
+          `${deal.propertyTitle || "Untitled property"} | ` +
+          `${deal.transactionType || "Deal"} | ` +
+          `Date: ${deal.transactionDate || "Not set"} | ` +
+          `Sale/resale: ${money(deal.transactionAmount)} | ` +
+          `Commission: ${money(deal.commissionEarned)} | ` +
+          `Purchase cost: ${money(deal.purchaseCost)} | ` +
+          `Direct expenses: ${money(deal.directExpenses)} | ` +
+          `Payment received: ${money(deal.paymentReceived)}`
+        );
+      });
+    }
+
+    if (!expenseResult.expenses || expenseResult.expenses.length === 0) {
+      addLine(expenseList, "No business expenses recorded yet.");
+    } else {
+      expenseResult.expenses.forEach(expense => {
+        addLine(
+          expenseList,
+          `${expense.category || "Other"} | ` +
+          `${expense.description || "Expense"} | ` +
+          `Date: ${expense.expenseDate || "Not set"} | ` +
+          `Amount: ${money(expense.amount)}`
+        );
+      });
+    }
+  } catch (error) {
+    dealList.textContent = "Could not load property deals.";
+    expenseList.textContent = "Could not load business expenses.";
+    throw error;
+  }
+}
+
+$("financialDealForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const button = $("saveDealButton");
+  const status = $("financialDealStatus");
+
+  button.disabled = true;
+  status.textContent = "Saving property deal...";
+
+  try {
+    const payload = {
+      propertyTitle: $("dealPropertyTitle").value.trim(),
+      transactionType: $("dealType").value,
+      transactionDate: $("dealDate").value,
+      transactionAmount: Number($("dealAmount").value),
+      commissionEarned: Number($("dealCommission").value),
+      purchaseCost: Number($("dealPurchaseCost").value),
+      directExpenses: Number($("dealExpenses").value),
+      paymentReceived: Number($("dealPayment").value),
+      notes: $("dealNotes").value.trim()
+    };
+
+    await api("/api/admin/financial-deals", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+
+    $("financialDealForm").reset();
+    status.textContent = "Property deal saved successfully.";
+    await loadFinancialRecords();
+  } catch (error) {
+    status.textContent =
+      error.message || "Unable to save property deal.";
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("businessExpenseForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const button = $("saveExpenseButton");
+  const status = $("businessExpenseStatus");
+
+  button.disabled = true;
+  status.textContent = "Saving business expense...";
+
+  try {
+    const payload = {
+      category: $("expenseCategory").value,
+      description: $("expenseDescription").value.trim(),
+      amount: Number($("expenseAmount").value),
+      expenseDate: $("expenseDate").value
+    };
+
+    await api("/api/admin/business-expenses", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+
+    $("businessExpenseForm").reset();
+    status.textContent = "Business expense saved successfully.";
+    await loadFinancialRecords();
+  } catch (error) {
+    status.textContent =
+      error.message || "Unable to save business expense.";
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("refreshFinancialButton").addEventListener(
+  "click",
+  async () => {
+    const status = $("businessExpenseStatus");
+    status.textContent = "Refreshing financial records...";
+
+    try {
+      await loadFinancialRecords();
+      status.textContent = "Financial records refreshed.";
+    } catch (error) {
+      status.textContent = "Could not refresh financial records.";
+    }
+  }
+);
+
 $("cancelEdit").addEventListener("click", resetForm);
 $("refreshButton").addEventListener("click", loadProperties);
   $("refreshEnquiriesButton").addEventListener("click", loadEnquiries);
@@ -1190,6 +1343,9 @@ if (sessionStorage.getItem(TOKEN_KEY)) {
   showDashboard();
   loadProperties().catch(() => logout());
   loadEnquiries().catch(() => logout());
+  loadFinancialRecords().catch(error =>
+    console.error("Financial records loading failed:", error)
+  );
 }
 </script>
 </body>
