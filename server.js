@@ -668,6 +668,82 @@ app.get("/api/admin/reports/monthly", requireAdmin, async (req, res) => {
     });
   }
 });
+
+app.get("/api/admin/reports/financial", requireAdmin, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Database not connected"
+      });
+    }
+
+    const [deals, expenses] = await Promise.all([
+      db.collection("financial_deals").find({}).toArray(),
+      db.collection("business_expenses").find({}).toArray()
+    ]);
+
+    const totals = {
+      deals: deals.length,
+      commissionsEarned: 0,
+      commissionsReceived: 0,
+      resaleRevenue: 0,
+      resaleReceipts: 0,
+      purchaseCosts: 0,
+      purchasePayments: 0,
+      directDealExpenses: 0,
+      resaleProfit: 0,
+      businessExpenses: 0
+    };
+
+    for (const deal of deals) {
+      const amount = Number(deal.transactionAmount) || 0;
+      const commission = Number(deal.commissionEarned) || 0;
+      const purchaseCost = Number(deal.purchaseCost) || 0;
+      const directExpenses = Number(deal.directExpenses) || 0;
+      const commissionReceived =
+        Number(deal.commissionReceivedTotal) || 0;
+      const resaleReceived =
+        Number(deal.resaleReceivedTotal) || 0;
+      const purchasePaid =
+        Number(deal.purchasePaidTotal) || 0;
+
+      if (deal.transactionType === "resale") {
+        totals.resaleRevenue += amount;
+        totals.resaleReceipts += resaleReceived;
+        totals.purchaseCosts += purchaseCost;
+        totals.purchasePayments += purchasePaid;
+        totals.directDealExpenses += directExpenses;
+        totals.resaleProfit += amount - purchaseCost - directExpenses;
+      } else {
+        totals.commissionsEarned += commission;
+        totals.commissionsReceived += commissionReceived;
+      }
+    }
+
+    for (const expense of expenses) {
+      totals.businessExpenses += Number(expense.amount) || 0;
+    }
+
+    totals.estimatedNetProfit =
+      totals.resaleProfit +
+      totals.commissionsEarned -
+      totals.businessExpenses;
+
+    res.json({
+      status: "ok",
+      currency: "KES",
+      totals
+    });
+  } catch (error) {
+    console.error("Financial report failed:", error.message);
+    res.status(500).json({
+      status: "error",
+      message: "Unable to generate financial report"
+    });
+  }
+});
+
 app.get("/api/admin/enquiries", requireAdmin, async (req, res) => {
   try {
     if (!db) {
