@@ -1397,6 +1397,7 @@ app.post(
 
         let allowedTotal;
         let totalField;
+        let legacyPaymentReceived = 0;
 
         if (body.purpose === "commission") {
           if (
@@ -1429,6 +1430,13 @@ app.post(
           allowedTotal = deal.purchaseCost || 0;
           totalField = "purchasePaidTotal";
         }
+                if (
+          body.purpose === "commission" ||
+          body.purpose === "resale_receipt"
+        ) {
+          legacyPaymentReceived =
+            Number(deal.paymentReceived) || 0;
+        }
 
         // The conditional update atomically reserves room for this payment.
         // The transaction keeps the total and payment-ledger entry in sync.
@@ -1439,9 +1447,10 @@ app.post(
               $lte: [
                 {
                   $add: [
-                    { $ifNull: [`$${totalField}`, 0] },
-                    body.amount
-                  ]
+  { $ifNull: [`$${totalField}`, 0] },
+  legacyPaymentReceived,
+  body.amount
+]
                 },
                 allowedTotal
               ]
