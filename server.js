@@ -905,6 +905,53 @@ app.delete("/api/properties/:id", requireAdmin, async (req, res) => {
   }
 });
 
+function validateMoney(value, fieldName) {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value < 0
+  ) {
+    return `${fieldName} must be a non-negative number`;
+  }
+
+  return null;
+}
+
+app.get(
+  "/api/admin/financial-deals",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({
+          status: "error",
+          message: "Database not connected"
+        });
+      }
+
+      const deals = await db
+        .collection("financial_deals")
+        .find({})
+        .sort({ transactionDate: -1 })
+        .limit(500)
+        .toArray();
+
+      res.json({
+        status: "ok",
+        count: deals.length,
+        deals
+      });
+    } catch (error) {
+      console.error("Financial deals load failed:", error.message);
+
+      res.status(500).json({
+        status: "error",
+        message: "Unable to load financial deals"
+      });
+    }
+  }
+);
+
 async function startServer() {
   if (!MONGODB_URI) {
     throw new Error("MONGODB_URI environment variable is missing.");
