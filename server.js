@@ -952,6 +952,118 @@ app.get(
   }
 );
 
+app.post(
+  "/api/admin/financial-deals",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({
+          status: "error",
+          message: "Database not connected"
+        });
+      }
+
+      const body = req.body || {};
+      const allowedTypes = ["sale", "rental", "resale"];
+
+      if (
+        typeof body.propertyTitle !== "string" ||
+        !body.propertyTitle.trim() ||
+        body.propertyTitle.trim().length > 150
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "A valid property title is required"
+        });
+      }
+
+      if (!allowedTypes.includes(body.transactionType)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Transaction type must be sale, rental, or resale"
+        });
+      }
+
+      for (const field of [
+        "transactionAmount",
+        "commissionEarned",
+        "purchaseCost",
+        "directExpenses",
+        "paymentReceived"
+      ]) {
+        const value = body[field] ?? 0;
+        const error = validateMoney(value, field);
+
+        if (error) {
+          return res.status(400).json({
+            status: "error",
+            message: error
+          });
+        }
+      }
+
+      const transactionDate = new Date(body.transactionDate);
+
+      if (
+        typeof body.transactionDate !== "string" ||
+        !body.transactionDate ||
+        Number.isNaN(transactionDate.getTime())
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "A valid transaction date is required"
+        });
+      }
+
+      const deal = {
+        propertyTitle: body.propertyTitle.trim(),
+        transactionType: body.transactionType,
+        transactionDate,
+        transactionAmount: body.transactionAmount ?? 0,
+        commissionEarned: body.commissionEarned ?? 0,
+        purchaseCost: body.purchaseCost ?? 0,
+        directExpenses: body.directExpenses ?? 0,
+        paymentReceived: body.paymentReceived ?? 0,
+        notes: typeof body.notes === "string"
+          ? body.notes.trim().slice(0, 1000)
+          : "",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      
+const expectedPayment =
+  deal.transactionType === "resale"
+    ? deal.transactionAmount
+    : deal.commissionEarned;
+
+deal.outstandingAmount = Math.max(
+  0,
+  expectedPayment - deal.paymentReceived
+);
+
+
+      const result = await db
+        .collection("financial_deals")
+        .insertOne(deal);
+
+      res.status(201).json({
+        status: "ok",
+        message: "Financial deal saved",
+        id: result.insertedId
+      });
+    } catch (error) {
+      console.error("Financial deal save failed:", error.message);
+
+      res.status(500).json({
+        status: "error",
+        message: "Unable to save financial deal"
+      });
+    }
+  }
+);
+
 app.get(
   "/api/admin/business-expenses",
   requireAdmin,
