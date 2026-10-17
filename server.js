@@ -1125,6 +1125,18 @@ app.get(
   }
 );
 
+app.get(
+  "/api/admin/financial-test-cleanup-diagnostic",
+  requireAdmin,
+  (req, res) => {
+    res.json({
+      status: "ok",
+      diagnosticOnly: true,
+      message: "Diagnostic route is reachable"
+    });
+  }
+);
+
 app.post(
   "/api/admin/financial-test-cleanup",
   requireAdmin,
