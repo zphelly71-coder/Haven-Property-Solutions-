@@ -12,7 +12,12 @@ const MONGODB_URI = process.env.MONGODB_URI;
 const DB_NAME =
   process.env.MONGODB_DB || "haven_property_solutions";
 
-app.use(cors());
+app.use(cors({
+  origin: "https://zphelly71-coder.github.io",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204
+}));
 app.use(express.json());
 
 let db;
