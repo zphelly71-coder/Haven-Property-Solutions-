@@ -952,6 +952,41 @@ app.get(
   }
 );
 
+app.get(
+  "/api/admin/business-expenses",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({
+          status: "error",
+          message: "Database not connected"
+        });
+      }
+
+      const expenses = await db
+        .collection("business_expenses")
+        .find({})
+        .sort({ expenseDate: -1 })
+        .limit(500)
+        .toArray();
+
+      res.json({
+        status: "ok",
+        count: expenses.length,
+        expenses
+      });
+    } catch (error) {
+      console.error("Business expenses load failed:", error.message);
+
+      res.status(500).json({
+        status: "error",
+        message: "Unable to load business expenses"
+      });
+    }
+  }
+);
+
 async function startServer() {
   if (!MONGODB_URI) {
     throw new Error("MONGODB_URI environment variable is missing.");
