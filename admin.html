@@ -259,6 +259,89 @@ button:disabled{opacity:.5}
 
 <div id="enquiryList">Enquiries will appear here.</div>
 </div>
+    
+<div class="card" id="financialManagementCard">
+  <h2>Financial Management</h2>
+  <p class="muted">
+    Record property deals, commissions, resale profits,
+    and business expenses in Kenyan shillings (KES).
+  </p>
+
+  <h3>Record a Property Deal</h3>
+  <form id="financialDealForm">
+    <label for="dealPropertyTitle">Property name</label>
+    <input id="dealPropertyTitle" maxlength="150" required>
+
+    <label for="dealType">Transaction type</label>
+    <select id="dealType" required>
+      <option value="sale">Sale — Commission</option>
+      <option value="rental">Rental — Commission</option>
+      <option value="resale">Buying and reselling</option>
+    </select>
+
+    <label for="dealDate">Transaction date</label>
+    <input id="dealDate" type="date" required>
+
+    <label for="dealAmount">Sale or resale amount (KES)</label>
+    <input id="dealAmount" type="number" min="0" step="0.01" value="0" required>
+
+    <label for="dealCommission">Commission earned (KES)</label>
+    <input id="dealCommission" type="number" min="0" step="0.01" value="0" required>
+
+    <label for="dealPurchaseCost">Purchase cost (KES, for resale)</label>
+    <input id="dealPurchaseCost" type="number" min="0" step="0.01" value="0" required>
+
+    <label for="dealExpenses">Direct deal expenses (KES)</label>
+    <input id="dealExpenses" type="number" min="0" step="0.01" value="0" required>
+
+    <label for="dealPayment">Payment received (KES)</label>
+    <input id="dealPayment" type="number" min="0" step="0.01" value="0" required>
+
+    <label for="dealNotes">Notes (optional)</label>
+    <textarea id="dealNotes" maxlength="1000"></textarea>
+
+    <button type="submit" id="saveDealButton">Save Property Deal</button>
+  </form>
+
+  <p id="financialDealStatus" class="muted" role="status"></p>
+
+  <hr>
+
+  <h3>Record a Business Expense</h3>
+  <form id="businessExpenseForm">
+    <label for="expenseCategory">Category</label>
+    <select id="expenseCategory" required>
+      <option value="marketing">Marketing and advertising</option>
+      <option value="transport">Transport</option>
+      <option value="repairs">Repairs and maintenance</option>
+      <option value="office">Office and administration</option>
+      <option value="other">Other</option>
+    </select>
+
+    <label for="expenseDescription">Description</label>
+    <input id="expenseDescription" maxlength="300" required>
+
+    <label for="expenseAmount">Amount (KES)</label>
+    <input id="expenseAmount" type="number" min="0.01" step="0.01" required>
+
+    <label for="expenseDate">Expense date</label>
+    <input id="expenseDate" type="date" required>
+
+    <button type="submit" id="saveExpenseButton">Save Business Expense</button>
+  </form>
+
+  <p id="businessExpenseStatus" class="muted" role="status"></p>
+
+  <hr>
+
+  <h3>Saved Property Deals</h3>
+  <button type="button" id="refreshFinancialButton">Refresh Financial Records</button>
+  <div id="financialDealList">Financial records will appear here.</div>
+
+  <h3>Saved Business Expenses</h3>
+  <div id="businessExpenseList">Business expenses will appear here.</div>
+</div>
+
     <div class="card" id="monthlyReportCard">
   <h2>Monthly Business Report</h2>
 
