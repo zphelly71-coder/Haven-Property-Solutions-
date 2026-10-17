@@ -3,7 +3,7 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 const crypto = require("crypto");
 
 const app = express();
@@ -16,6 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 let db;
+let mongoClient;
 const adminSessions = new Map();
 const SESSION_DURATION = 2 * 60 * 60 * 1000;
 
@@ -1016,21 +1017,25 @@ app.post(
         });
       }
 
-      const deal = {
-        propertyTitle: body.propertyTitle.trim(),
-        transactionType: body.transactionType,
-        transactionDate,
-        transactionAmount: body.transactionAmount ?? 0,
-        commissionEarned: body.commissionEarned ?? 0,
-        purchaseCost: body.purchaseCost ?? 0,
-        directExpenses: body.directExpenses ?? 0,
-        paymentReceived: body.paymentReceived ?? 0,
-        notes: typeof body.notes === "string"
-          ? body.notes.trim().slice(0, 1000)
-          : "",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+     
+const deal = {
+  propertyTitle: body.propertyTitle.trim(),
+  transactionType: body.transactionType,
+  transactionDate,
+  transactionAmount: body.transactionAmount ?? 0,
+  commissionEarned: body.commissionEarned ?? 0,
+  purchaseCost: body.purchaseCost ?? 0,
+  directExpenses: body.directExpenses ?? 0,
+  paymentReceived: body.paymentReceived ?? 0,
+  commissionReceivedTotal: 0,
+  resaleReceivedTotal: 0,
+  purchasePaidTotal: 0,
+  notes: typeof body.notes === "string"
+    ? body.notes.trim().slice(0, 1000)
+    : "",
+  createdAt: new Date(),
+  updatedAt: new Date()
+};
 
       
 const expectedPayment =
@@ -1192,12 +1197,265 @@ app.post(
   }
 );
 
+app.post(
+  "/api/admin/financial-deals/:dealId/payments",
+  requireAdmin,
+  async (req, res) => {
+    if (!db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Database not connected"
+      });
+    }
+
+    const { dealId } = req.params;
+    const body = req.body || {};
+
+    if (!ObjectId.isValid(dealId)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid property deal ID"
+      });
+    }
+
+    if (!["received", "paid"].includes(body.direction)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Direction must be received or paid"
+      });
+    }
+
+    if (
+      typeof body.amount !== "number" ||
+      !Number.isFinite(body.amount) ||
+      body.amount <= 0
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Payment amount must be greater than zero"
+      });
+    }
+
+    if (
+      typeof body.paymentDate !== "string" ||
+      !body.paymentDate ||
+      Number.isNaN(new Date(body.paymentDate).getTime())
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "A valid payment date is required"
+      });
+    }
+
+    const allowedPurposes = [
+      "commission",
+      "resale_receipt",
+      "purchase_payment"
+    ];
+
+    if (!allowedPurposes.includes(body.purpose)) {
+      return res.status(400).json({
+        status: "error",
+        message:
+          "Purpose must be commission, resale_receipt, or purchase_payment"
+      });
+    }
+
+    const session = mongoClient.startSession();
+    let balanceExceeded = false;
+    let dealMissing = false;
+    let invalidPurposeForDeal = false;
+    let insertedPaymentId;
+
+    try {
+      await session.withTransaction(async () => {
+        balanceExceeded = false;
+        dealMissing = false;
+        invalidPurposeForDeal = false;
+        insertedPaymentId = undefined;
+
+        const deals = db.collection("financial_deals");
+        const deal = await deals.findOne(
+          { _id: new ObjectId(dealId) },
+          { session }
+        );
+
+        if (!deal) {
+          dealMissing = true;
+          return;
+        }
+
+        let allowedTotal;
+        let totalField;
+
+        if (body.purpose === "commission") {
+          if (
+            !["sale", "rental"].includes(deal.transactionType) ||
+            body.direction !== "received"
+          ) {
+            invalidPurposeForDeal = true;
+            return;
+          }
+          allowedTotal = deal.commissionEarned || 0;
+          totalField = "commissionReceivedTotal";
+        } else if (body.purpose === "resale_receipt") {
+          if (
+            deal.transactionType !== "resale" ||
+            body.direction !== "received"
+          ) {
+            invalidPurposeForDeal = true;
+            return;
+          }
+          allowedTotal = deal.transactionAmount || 0;
+          totalField = "resaleReceivedTotal";
+        } else {
+          if (
+            deal.transactionType !== "resale" ||
+            body.direction !== "paid"
+          ) {
+            invalidPurposeForDeal = true;
+            return;
+          }
+          allowedTotal = deal.purchaseCost || 0;
+          totalField = "purchasePaidTotal";
+        }
+
+        // The conditional update atomically reserves room for this payment.
+        // The transaction keeps the total and payment-ledger entry in sync.
+        const updateResult = await deals.updateOne(
+          {
+            _id: new ObjectId(dealId),
+            $expr: {
+              $lte: [
+                {
+                  $add: [
+                    { $ifNull: [`$${totalField}`, 0] },
+                    body.amount
+                  ]
+                },
+                allowedTotal
+              ]
+            }
+          },
+          {
+            $inc: { [totalField]: body.amount },
+            $set: { updatedAt: new Date() }
+          },
+          { session }
+        );
+
+        if (!updateResult.matchedCount) {
+          balanceExceeded = true;
+          return;
+        }
+
+        const payment = {
+          dealId: new ObjectId(dealId),
+          direction: body.direction,
+          purpose: body.purpose,
+          amount: body.amount,
+          paymentDate: new Date(body.paymentDate),
+          notes: typeof body.notes === "string"
+            ? body.notes.trim().slice(0, 500)
+            : "",
+          createdAt: new Date()
+        };
+
+        const result = await db
+          .collection("financial_payments")
+          .insertOne(payment, { session });
+        insertedPaymentId = result.insertedId;
+      });
+
+      if (dealMissing) {
+        return res.status(404).json({
+          status: "error",
+          message: "Property deal not found"
+        });
+      }
+
+      if (invalidPurposeForDeal) {
+        return res.status(400).json({
+          status: "error",
+          message: "Payment purpose or direction does not match this deal type"
+        });
+      }
+
+      if (balanceExceeded) {
+        return res.status(400).json({
+          status: "error",
+          message: "This payment exceeds the remaining balance for this purpose."
+        });
+      }
+
+      return res.status(201).json({
+        status: "ok",
+        message: "Payment recorded successfully",
+        id: insertedPaymentId
+      });
+    } catch (error) {
+      console.error("Payment recording failed:", error.message);
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to record payment"
+      });
+    } finally {
+      await session.endSession();
+    }
+  }
+);
+
+app.get(
+  "/api/admin/financial-deals/:dealId/payments",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({
+          status: "error",
+          message: "Database not connected"
+        });
+      }
+
+      const { dealId } = req.params;
+
+      if (!ObjectId.isValid(dealId)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid property deal ID"
+        });
+      }
+
+      const payments = await db
+        .collection("financial_payments")
+        .find({
+          dealId: new ObjectId(dealId)
+        })
+        .sort({ paymentDate: -1, createdAt: -1 })
+        .toArray();
+
+      res.json({
+        status: "ok",
+        count: payments.length,
+        payments
+      });
+    } catch (error) {
+      console.error("Payment history load failed:", error.message);
+
+      res.status(500).json({
+        status: "error",
+        message: "Unable to load payment history"
+      });
+    }
+  }
+);
+
 async function startServer() {
   if (!MONGODB_URI) {
     throw new Error("MONGODB_URI environment variable is missing.");
   }
 
-  const client = new MongoClient(MONGODB_URI, {
+  mongoClient = new MongoClient(MONGODB_URI, {
   serverSelectionTimeoutMS: 15000,
   connectTimeoutMS: 15000, 
   family: 4
@@ -1206,11 +1464,11 @@ async function startServer() {
 console.log("Connecting to MongoDB Atlas...");
 console.log("MongoDB driver version:", require("mongodb/package.json").version);
 console.log("Starting secure MongoDB connection...");
-await client.connect();
+await mongoClient.connect();
 
 console.log("MongoDB Atlas connection established.");
 
-  db = client.db(DB_NAME);
+  db = mongoClient.db(DB_NAME);
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Haven API listening on port ${PORT}`);
