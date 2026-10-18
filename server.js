@@ -170,6 +170,156 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+app.post(
+  "/api/admin/mpesa/stk-push",
+  requireAdmin,
+  async (req, res) => {
+    if (!db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Database not connected"
+      });
+    }
+
+    const { dealId, phoneNumber } = req.body || {};
+    const amount = Number(req.body?.amount);
+
+    if (!ObjectId.isValid(dealId || "")) {
+      return res.status(400).json({
+        status: "error",
+        message: "A valid property deal ID is required"
+      });
+    }
+
+    if (
+      !Number.isSafeInteger(amount) ||
+      amount < 1 ||
+      amount > 150000
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter a valid whole-number amount"
+      });
+    }
+
+    if (
+      typeof phoneNumber !== "string" ||
+      !/^254[17]\d{8}$/.test(phoneNumber)
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Use phone format 2547XXXXXXXX or 2541XXXXXXXX"
+      });
+    }
+
+    if (MPESA_ENVIRONMENT !== "sandbox") {
+      return res.status(400).json({
+        status: "error",
+        message: "This test endpoint is restricted to the sandbox"
+      });
+    }
+
+    let pendingId;
+
+    try {
+      const deals = db.collection("financial_deals");
+      const deal = await deals.findOne({
+        _id: new ObjectId(dealId)
+      });
+
+      if (!deal) {
+        return res.status(404).json({
+          status: "error",
+          message: "Property deal not found"
+        });
+      }
+
+      if (deal.transactionType !== "resale") {
+        return res.status(400).json({
+          status: "error",
+          message: "Sandbox test requires an existing resale deal"
+        });
+      }
+
+      const allowedTotal = Number(deal.transactionAmount) || 0;
+      const recordedTotal = Number(deal.resaleReceivedTotal) || 0;
+      const legacyReceived = Number(deal.paymentReceived) || 0;
+      const remaining = allowedTotal - recordedTotal - legacyReceived;
+
+      if (amount > remaining) {
+        return res.status(400).json({
+          status: "error",
+          message: "Amount exceeds the remaining resale balance",
+          remaining: Math.max(0, remaining)
+        });
+      }
+
+      // This record tracks the request only. It is NOT a payment.
+      const pending = {
+        dealId: new ObjectId(dealId),
+        purpose: "resale_receipt",
+        direction: "received",
+        amount,
+        phoneNumber,
+        status: "initiating",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const saved = await db
+        .collection("mpesa_stk_requests")
+        .insertOne(pending);
+
+      pendingId = saved.insertedId;
+
+      const stk = await initiateMpesaStkPush({
+        phoneNumber,
+        amount,
+        accountReference: `HPS${String(pendingId).slice(-8)}`
+      });
+
+      await db.collection("mpesa_stk_requests").updateOne(
+        { _id: pendingId, status: "initiating" },
+        {
+          $set: {
+            status: "pending",
+            merchantRequestId: stk.MerchantRequestID,
+            checkoutRequestId: stk.CheckoutRequestID,
+            responseCode: stk.ResponseCode,
+            updatedAt: new Date()
+          }
+        }
+      );
+
+      return res.status(202).json({
+        status: "ok",
+        message: "STK Push request accepted; awaiting payment result",
+        requestId: pendingId,
+        checkoutRequestId: stk.CheckoutRequestID
+      });
+    } catch (error) {
+      console.error("STK Push initiation failed:", error.message);
+
+      if (pendingId) {
+        await db.collection("mpesa_stk_requests").updateOne(
+          { _id: pendingId, status: "initiating" },
+          {
+            $set: {
+              status: "initiation_error",
+              updatedAt: new Date()
+            }
+          }
+        ).catch(() => {});
+      }
+
+      return res.status(502).json({
+        status: "error",
+        message: "Unable to initiate STK Push; check server logs"
+      });
+    }
+  }
+);
+
 app.get("/", (req, res) => {
   res.json({
     message: "Haven Property Solutions API",
