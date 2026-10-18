@@ -46,6 +46,111 @@ function safeCompare(a, b) {
   return crypto.timingSafeEqual(first, second);
 }
 
+async function getMpesaAccessToken() {
+  if (!MPESA_CONSUMER_KEY || !MPESA_CONSUMER_SECRET) {
+    throw new Error("Daraja credentials are not configured");
+  }
+
+  const credentials = Buffer.from(
+    `${MPESA_CONSUMER_KEY}:${MPESA_CONSUMER_SECRET}`
+  ).toString("base64");
+
+  const response = await fetch(
+    `${MPESA_BASE_URL}/oauth/v1/generate?grant_type=client_credentials`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Basic ${credentials}`
+      },
+      signal: AbortSignal.timeout(15000)
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || !data.access_token) {
+    throw new Error("Daraja authentication failed");
+  }
+
+  return data.access_token;
+}
+
+function getMpesaTimestamp() {
+  // East Africa Time (UTC+3)
+  return new Date(Date.now() + 3 * 60 * 60 * 1000)
+    .toISOString()
+    .replace(/[-T:.Z]/g, "")
+    .slice(0, 14);
+}
+
+async function initiateMpesaStkPush({
+  phoneNumber,
+  amount,
+  accountReference
+}) {
+  if (!MPESA_PASSKEY || !MPESA_SHORTCODE || !MPESA_CALLBACK_URL) {
+    throw new Error("Daraja STK Push configuration is incomplete");
+  }
+
+  if (!Number.isSafeInteger(amount) || amount < 1) {
+    throw new Error("Amount must be a positive whole number");
+  }
+
+  if (!/^2547\d{8}$/.test(phoneNumber)) {
+    throw new Error("Phone number must use format 2547XXXXXXXX");
+  }
+
+  if (!MPESA_CALLBACK_URL.startsWith("https://")) {
+    throw new Error("An HTTPS callback URL is required");
+  }
+
+  const timestamp = getMpesaTimestamp();
+
+  const password = Buffer.from(
+    `${MPESA_SHORTCODE}${MPESA_PASSKEY}${timestamp}`
+  ).toString("base64");
+
+  const accessToken = await getMpesaAccessToken();
+
+  const response = await fetch(
+    `${MPESA_BASE_URL}/mpesa/stkpush/v1/processrequest`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        BusinessShortCode: MPESA_SHORTCODE,
+        Password: password,
+        Timestamp: timestamp,
+        TransactionType: "CustomerPayBillOnline",
+        Amount: amount,
+        PartyA: phoneNumber,
+        PartyB: MPESA_SHORTCODE,
+        PhoneNumber: phoneNumber,
+        CallBackURL: MPESA_CALLBACK_URL,
+        AccountReference: accountReference,
+        TransactionDesc: "Property payment"
+      }),
+      signal: AbortSignal.timeout(20000)
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || data.ResponseCode !== "0") {
+    console.error("Daraja STK request failed:", {
+      status: response.status,
+      errorCode: data.errorCode
+    });
+
+    throw new Error("Daraja did not accept the STK Push request");
+  }
+
+  return data;
+}
+
 function requireAdmin(req, res, next) {
   const authorization = req.headers.authorization || "";
   const token = authorization.startsWith("Bearer ")
