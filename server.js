@@ -96,7 +96,7 @@ async function initiateMpesaStkPush({
     throw new Error("Amount must be a positive whole number");
   }
 
-  if (!/^2547\d{8}$/.test(phoneNumber)) {
+ if (!/^254[17]\d{8}$/.test(phoneNumber)) {
     throw new Error("Phone number must use format 2547XXXXXXXX");
   }
 
@@ -131,7 +131,7 @@ async function initiateMpesaStkPush({
         PhoneNumber: phoneNumber,
         CallBackURL: MPESA_CALLBACK_URL,
         AccountReference: accountReference,
-        TransactionDesc: "Property payment"
+        TransactionDesc: "Property pay"
       }),
       signal: AbortSignal.timeout(20000)
     }
@@ -139,13 +139,59 @@ async function initiateMpesaStkPush({
 
   const data = await response.json();
 
-  if (!response.ok || data.ResponseCode !== "0") {
+    if (
+    !response.ok ||
+    String(data.ResponseCode) !== "0" ||
+    !data.MerchantRequestID ||
+    !data.CheckoutRequestID
+  ) {
     console.error("Daraja STK request failed:", {
       status: response.status,
       errorCode: data.errorCode
     });
 
     throw new Error("Daraja did not accept the STK Push request");
+  }
+
+  return data;
+}
+
+async function queryMpesaStkStatus(checkoutRequestId) {
+  if (!checkoutRequestId || !MPESA_PASSKEY || !MPESA_SHORTCODE) {
+    throw new Error("STK Query configuration is incomplete");
+  }
+
+  const timestamp = getMpesaTimestamp();
+
+  const password = Buffer.from(
+    `${MPESA_SHORTCODE}${MPESA_PASSKEY}${timestamp}`
+  ).toString("base64");
+
+  const accessToken = await getMpesaAccessToken();
+
+  const response = await fetch(
+    `${MPESA_BASE_URL}/mpesa/stkpushquery/v1/query`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        BusinessShortCode: MPESA_SHORTCODE,
+        Password: password,
+        Timestamp: timestamp,
+        CheckoutRequestID: checkoutRequestId
+      }),
+      signal: AbortSignal.timeout(15000)
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error("Daraja STK Query HTTP error:", response.status);
+    throw new Error("Unable to verify STK transaction with Daraja");
   }
 
   return data;
@@ -290,6 +336,59 @@ app.post(
           }
         }
       );
+
+
+      const earlyEvent = await db
+        .collection("mpesa_callback_events")
+        .findOne({
+          checkoutRequestId: String(stk.CheckoutRequestID),
+          status: "unmatched"
+        });
+
+      if (earlyEvent?.callback?.Body?.stkCallback) {
+        const earlyCallback = earlyEvent.callback.Body.stkCallback;
+
+        if (
+          String(earlyCallback.CheckoutRequestID) ===
+          String(stk.CheckoutRequestID)
+        ) {
+          const attached = await db
+            .collection("mpesa_stk_requests")
+            .updateOne(
+              {
+                _id: pendingId,
+                checkoutRequestId: String(stk.CheckoutRequestID),
+                status: "pending"
+              },
+              {
+                $set: {
+                  status: "verification_required",
+                  callbackData: earlyCallback,
+                  callbackReceivedAt:
+                    earlyEvent.receivedAt || new Date(),
+                  updatedAt: new Date()
+                }
+              }
+            );
+
+          if (attached.modifiedCount === 1) {
+            await db
+              .collection("mpesa_callback_events")
+              .updateOne(
+                {
+                  _id: earlyEvent._id,
+                  status: "unmatched"
+                },
+                {
+                  $set: {
+                    status: "attached",
+                    attachedAt: new Date()
+                  }
+                }
+              );
+          }
+        }
+      }
 
       return res.status(202).json({
         status: "ok",
@@ -1839,6 +1938,579 @@ app.get(
   }
 );
 
+
+app.post("/api/mpesa/callback", async (req, res) => {
+  const callback = req.body?.Body?.stkCallback;
+
+  if (!callback?.CheckoutRequestID) {
+    return res.status(400).json({
+      ResultCode: 1,
+      ResultDesc: "Invalid callback"
+    });
+  }
+
+  const checkoutId = String(callback.CheckoutRequestID);
+  const resultCode = Number(callback.ResultCode);
+
+  try {
+    if (!db || !mongoClient) {
+      return res.status(503).json({
+        ResultCode: 1,
+        ResultDesc: "Database unavailable"
+      });
+    }
+
+    const requests = db.collection("mpesa_stk_requests");
+
+    // Find the request created when the STK prompt was initiated.
+    const existingRequest = await requests.findOne({
+      checkoutRequestId: checkoutId
+    });
+
+    if (!existingRequest) {
+      // Retain unmatched callbacks for investigation and recovery.
+      await db.collection("mpesa_callback_events").updateOne(
+        { checkoutRequestId: checkoutId },
+        {
+          $setOnInsert: {
+            checkoutRequestId: checkoutId,
+            callback: req.body,
+            status: "unmatched",
+            receivedAt: new Date()
+          }
+        },
+        { upsert: true }
+      );
+
+      return res.status(200).json({
+        ResultCode: 0,
+        ResultDesc: "Callback retained for investigation"
+      });
+    }
+
+    // Never change a completed payment because of a repeated callback.
+    if (existingRequest.status === "completed") {
+      return res.status(200).json({
+        ResultCode: 0,
+        ResultDesc: "Callback already processed"
+      });
+    }
+
+    // Failed or cancelled prompts are not financial payments.
+    if (resultCode !== 0) {
+      await requests.updateOne(
+        {
+          _id: existingRequest._id,
+          status: { $in: ["pending", "verification_required"] }
+        },
+        {
+          $set: {
+            status: "failed",
+            resultCode: callback.ResultCode,
+            resultDescription: String(
+              callback.ResultDesc || "Payment unsuccessful"
+            ).slice(0, 300),
+            callbackReceivedAt: new Date(),
+            updatedAt: new Date()
+          }
+        }
+      );
+
+      return res.status(200).json({
+        ResultCode: 0,
+        ResultDesc: "Callback processed"
+      });
+    }
+
+    // Persist the callback BEFORE making the external query.
+    // If Daraja is temporarily unavailable, the result is not lost.
+    const savedCallback = await requests.updateOne(
+      {
+        _id: existingRequest._id,
+        status: { $in: ["pending", "verification_required"] }
+      },
+      {
+        $set: {
+          status: "verification_required",
+          callbackData: callback,
+          callbackReceivedAt: new Date(),
+          updatedAt: new Date()
+        }
+      }
+    );
+
+    if (!savedCallback.matchedCount) {
+      return res.status(200).json({
+        ResultCode: 0,
+        ResultDesc: "Request already being processed or finalized"
+      });
+    }
+
+    let queryResult;
+
+    try {
+      queryResult = await queryMpesaStkStatus(checkoutId);
+    } catch (error) {
+      console.error("STK Query unavailable:", error.message);
+
+      // The callback is persisted. Reconciliation must retry this request.
+      return res.status(200).json({
+        ResultCode: 0,
+        ResultDesc: "Callback saved for reconciliation"
+      });
+    }
+
+    // Verify that the query response belongs to this checkout request
+    // and explicitly reports a successful transaction.
+    if (
+      String(queryResult.CheckoutRequestID || "") !== checkoutId ||
+      String(queryResult.ResponseCode) !== "0" ||
+      String(queryResult.ResultCode) !== "0"
+    ) {
+      console.warn("STK transaction requires reconciliation:", {
+        checkoutId,
+        queryCheckoutId: queryResult.CheckoutRequestID,
+        responseCode: queryResult.ResponseCode,
+        resultCode: queryResult.ResultCode
+      });
+
+      return res.status(200).json({
+        ResultCode: 0,
+        ResultDesc: "Callback saved for reconciliation"
+      });
+    }
+
+    const items = callback.CallbackMetadata?.Item || [];
+    const metadata = {};
+
+    for (const item of items) {
+      if (item.Name) metadata[item.Name] = item.Value;
+    }
+
+    const receipt = String(metadata.MpesaReceiptNumber || "");
+    const callbackAmount = Number(metadata.Amount);
+    const callbackPhone = String(metadata.PhoneNumber || "");
+
+    if (
+      !receipt ||
+      !Number.isSafeInteger(callbackAmount) ||
+      callbackAmount < 1 ||
+      !callbackPhone
+    ) {
+      await requests.updateOne(
+        {
+          _id: existingRequest._id,
+          status: "verification_required"
+        },
+        {
+          $set: {
+            status: "verification_error",
+            updatedAt: new Date()
+          }
+        }
+      );
+
+      return res.status(200).json({
+        ResultCode: 0,
+        ResultDesc: "Callback requires investigation"
+      });
+    }
+
+    const session = mongoClient.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        const request = await requests.findOne(
+          {
+            _id: existingRequest._id,
+            checkoutRequestId: checkoutId,
+            status: "verification_required"
+          },
+          { session }
+        );
+
+        // A repeated callback or concurrent handler cannot record twice.
+        if (!request) return;
+
+        if (
+          request.purpose !== "resale_receipt" ||
+          request.direction !== "received" ||
+          request.amount !== callbackAmount ||
+          request.phoneNumber !== callbackPhone ||
+          (
+            request.merchantRequestId &&
+            String(callback.MerchantRequestID || "") !==
+              String(request.merchantRequestId)
+          ) ||
+          (
+            queryResult.MerchantRequestID &&
+            request.merchantRequestId &&
+            String(queryResult.MerchantRequestID) !==
+              String(request.merchantRequestId)
+          )
+        ) {
+          await requests.updateOne(
+            { _id: request._id, status: "verification_required" },
+            {
+              $set: {
+                status: "verification_error",
+                updatedAt: new Date()
+              }
+            },
+            { session }
+          );
+          return;
+        }
+
+        const payments = db.collection("financial_payments");
+
+        const duplicate = await payments.findOne(
+          { mpesaReceiptNumber: receipt },
+          { session }
+        );
+
+        if (duplicate) {
+          await requests.updateOne(
+            { _id: request._id, status: "verification_required" },
+            {
+              $set: {
+                status: "duplicate_receipt",
+                updatedAt: new Date()
+              }
+            },
+            { session }
+          );
+          return;
+        }
+
+        const deals = db.collection("financial_deals");
+        const deal = await deals.findOne(
+          { _id: request.dealId },
+          { session }
+        );
+
+        if (!deal || deal.transactionType !== "resale") {
+          await requests.updateOne(
+            { _id: request._id, status: "verification_required" },
+            {
+              $set: {
+                status: "verification_error",
+                updatedAt: new Date()
+              }
+            },
+            { session }
+          );
+          return;
+        }
+
+        const allowedTotal = Number(deal.transactionAmount) || 0;
+        const legacyReceived = Number(deal.paymentReceived) || 0;
+
+        // Recheck the balance and update it atomically.
+        const updateResult = await deals.updateOne(
+          {
+            _id: request.dealId,
+            $expr: {
+              $lte: [
+                {
+                  $add: [
+                    { $ifNull: ["$resaleReceivedTotal", 0] },
+                    legacyReceived,
+                    request.amount
+                  ]
+                },
+                allowedTotal
+              ]
+            }
+          },
+          {
+            $inc: { resaleReceivedTotal: request.amount },
+            $set: { updatedAt: new Date() }
+          },
+          { session }
+        );
+
+        if (!updateResult.matchedCount) {
+          await requests.updateOne(
+            { _id: request._id, status: "verification_required" },
+            {
+              $set: {
+                status: "balance_exceeded",
+                updatedAt: new Date()
+              }
+            },
+            { session }
+          );
+          return;
+        }
+
+        const transactionDate = String(
+          metadata.TransactionDate || ""
+        );
+
+        let paymentDate = new Date();
+
+        if (/^\d{14}$/.test(transactionDate)) {
+          const iso =
+            `${transactionDate.slice(0, 4)}-` +
+            `${transactionDate.slice(4, 6)}-` +
+            `${transactionDate.slice(6, 8)}T` +
+            `${transactionDate.slice(8, 10)}:` +
+            `${transactionDate.slice(10, 12)}:` +
+            `${transactionDate.slice(12, 14)}+03:00`;
+
+          const parsed = new Date(iso);
+
+          if (!Number.isNaN(parsed.getTime())) {
+            paymentDate = parsed;
+          }
+        }
+
+        await payments.insertOne(
+          {
+            dealId: request.dealId,
+            direction: "received",
+            purpose: "resale_receipt",
+            amount: request.amount,
+            paymentDate,
+            notes: `M-Pesa receipt ${receipt}`,
+            paymentMethod: "mpesa",
+            mpesaReceiptNumber: receipt,
+            mpesaCheckoutRequestId: checkoutId,
+            createdAt: new Date()
+          },
+          { session }
+        );
+
+        await requests.updateOne(
+          { _id: request._id, status: "verification_required" },
+          {
+            $set: {
+              status: "completed",
+              mpesaReceiptNumber: receipt,
+              completedAt: new Date(),
+              updatedAt: new Date()
+            },
+            $unset: { callbackData: "" }
+          },
+          { session }
+        );
+      });
+    } catch (error) {
+      if (
+  error.code === 11000 &&
+  (
+    error.keyPattern?.mpesaReceiptNumber ||
+    error.message?.includes("uniq_mpesa_receipt_number")
+  )
+) {
+        // Unique receipt index protects against concurrent duplicate receipts.
+        await requests.updateOne(
+          {
+            _id: existingRequest._id,
+            status: "verification_required"
+          },
+          {
+            $set: {
+              status: "duplicate_receipt",
+              updatedAt: new Date()
+            }
+          }
+        );
+
+        return res.status(200).json({
+          ResultCode: 0,
+          ResultDesc: "Duplicate receipt retained for investigation"
+        });
+      }
+
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+
+    return res.status(200).json({
+      ResultCode: 0,
+      ResultDesc: "Callback processed"
+    });
+  } catch (error) {
+    console.error("M-Pesa callback processing failed:", error.message);
+
+    return res.status(500).json({
+      ResultCode: 1,
+      ResultDesc: "Callback processing failed"
+    });
+  }
+});
+
+app.get(
+  "/api/admin/mpesa/reconciliation",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({
+          status: "error",
+          message: "Database not connected"
+        });
+      }
+
+      const requests = await db
+        .collection("mpesa_stk_requests")
+        .find({
+          status: {
+            $in: [
+              "verification_required",
+              "verification_error",
+              "balance_exceeded",
+              "duplicate_receipt",
+              "initiation_error"
+            ]
+          }
+        })
+        .project({
+          dealId: 1,
+          amount: 1,
+          phoneNumber: 1,
+          purpose: 1,
+          direction: 1,
+          status: 1,
+          checkoutRequestId: 1,
+          merchantRequestId: 1,
+          mpesaReceiptNumber: 1,
+          resultCode: 1,
+          resultDescription: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          callbackReceivedAt: 1
+        })
+        .sort({ updatedAt: -1 })
+        .limit(100)
+        .toArray();
+
+      return res.json({
+        status: "ok",
+        count: requests.length,
+        requests
+      });
+    } catch (error) {
+      console.error("M-Pesa reconciliation load failed:", error.message);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load reconciliation requests"
+      });
+    }
+  }
+);
+
+app.post(
+  "/api/admin/mpesa/reconciliation/retry",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({
+          status: "error",
+          message: "Database not connected"
+        });
+      }
+
+      if (!MPESA_CALLBACK_URL) {
+        return res.status(503).json({
+          status: "error",
+          message: "M-Pesa callback URL is not configured"
+        });
+      }
+
+      // Only retry callbacks already saved for verification.
+      const savedRequests = await db
+        .collection("mpesa_stk_requests")
+        .find({
+          status: "verification_required",
+          checkoutRequestId: { $type: "string" },
+          callbackData: { $exists: true }
+        })
+        .sort({ updatedAt: 1 })
+        .limit(20)
+        .project({
+          checkoutRequestId: 1,
+          callbackData: 1
+        })
+        .toArray();
+
+      const results = [];
+
+      for (const request of savedRequests) {
+        try {
+          // Re-submit the saved callback to the existing handler.
+          // This does not create a new STK Push.
+          const response = await fetch(MPESA_CALLBACK_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              Body: {
+                stkCallback: request.callbackData
+              }
+            }),
+            signal: AbortSignal.timeout(30000)
+          });
+
+          const currentRequest = await db
+  .collection("mpesa_stk_requests")
+  .findOne(
+    { _id: request._id },
+    {
+      projection: {
+        status: 1,
+        mpesaReceiptNumber: 1
+      }
+    }
+  );
+
+results.push({
+  checkoutRequestId: request.checkoutRequestId,
+  httpStatus: response.status,
+  callbackAccepted: response.ok,
+  requestStatus: currentRequest?.status || "not_found",
+  completed: currentRequest?.status === "completed"
+});
+        } catch (error) {
+          console.error(
+            "M-Pesa reconciliation retry failed:",
+            request.checkoutRequestId,
+            error.message
+          );
+
+          results.push({
+            checkoutRequestId: request.checkoutRequestId,
+            accepted: false,
+            message: "Retry failed; request remains for investigation"
+          });
+        }
+      }
+
+      return res.json({
+        status: "ok",
+        attempted: results.length,
+        results
+      });
+    } catch (error) {
+      console.error(
+        "M-Pesa reconciliation retry endpoint failed:",
+        error.message
+      );
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to retry M-Pesa reconciliation"
+      });
+    }
+  }
+);
+
 async function startServer() {
   if (!MONGODB_URI) {
     throw new Error("MONGODB_URI environment variable is missing.");
@@ -1858,6 +2530,14 @@ await mongoClient.connect();
 console.log("MongoDB Atlas connection established.");
 
   db = mongoClient.db(DB_NAME);
+  await db.collection("financial_payments").createIndex(
+  { mpesaReceiptNumber: 1 },
+  {
+    unique: true,
+    sparse: true,
+    name: "uniq_mpesa_receipt_number"
+  }
+);
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Haven API listening on port ${PORT}`);
