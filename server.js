@@ -14,6 +14,7 @@ const DB_NAME =
 const MPESA_CONSUMER_KEY = process.env.MPESA_CONSUMER_KEY;
 const MPESA_CONSUMER_SECRET = process.env.MPESA_CONSUMER_SECRET;
 const MPESA_PASSKEY = process.env.MPESA_PASSKEY;
+const MPESA_CALLBACK_URL = process.env.MPESA_CALLBACK_URL;
 const MPESA_SHORTCODE = process.env.MPESA_SHORTCODE || "174379";
 const MPESA_ENVIRONMENT = process.env.MPESA_ENVIRONMENT || "sandbox";
 
