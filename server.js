@@ -11,7 +11,16 @@ const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
 const DB_NAME =
   process.env.MONGODB_DB || "haven_property_solutions";
+const MPESA_CONSUMER_KEY = process.env.MPESA_CONSUMER_KEY;
+const MPESA_CONSUMER_SECRET = process.env.MPESA_CONSUMER_SECRET;
+const MPESA_PASSKEY = process.env.MPESA_PASSKEY;
+const MPESA_SHORTCODE = process.env.MPESA_SHORTCODE || "174379";
+const MPESA_ENVIRONMENT = process.env.MPESA_ENVIRONMENT || "sandbox";
 
+const MPESA_BASE_URL =
+  MPESA_ENVIRONMENT === "production"
+    ? "https://api.safaricom.co.ke"
+    : "https://sandbox.safaricom.co.ke";
 app.use(cors({
   origin: "https://zphelly71-coder.github.io",
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
