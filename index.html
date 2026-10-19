@@ -439,9 +439,24 @@ const minBedroomsValue =
 const propertyTypeValue =
   document.getElementById("filter-property-type").value;
 const properties = allProperties.filter(property => {
-  const purposeMatches = selectedPurpose === "all" ||
-    String(property.listingPurpose || "").trim().toLowerCase()
-      === selectedPurpose;
+  const listingPurpose = String(
+  property.listingPurpose || ""
+).trim().toLowerCase();
+
+const purposeMatches =
+  selectedPurpose === "all" ||
+  (
+    selectedPurpose === "rent" &&
+    ["rent", "rental", "lease"].includes(listingPurpose)
+  ) ||
+  (
+    selectedPurpose === "sale" &&
+    ["sale", "sell", "for sale"].includes(listingPurpose)
+  ) ||
+  (
+    selectedPurpose === "short-stay" &&
+    ["short-stay", "short stay", "airbnb"].includes(listingPurpose)
+  );
 
   const searchableText = [
     property.title,
