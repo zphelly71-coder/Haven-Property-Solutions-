@@ -1063,7 +1063,12 @@ app.get("/api/admin/reports/monthly", requireAdmin, async (req, res) => {
         ]).toArray(),
 
         db.collection("enquiries").aggregate([
-          { $match: { createdAt: { $gte: startDate } } },
+          {
+  $match: {
+    createdAt: { $gte: startDate },
+    propertyId: { $exists: true, $nin: [null, ""] }
+  }
+},
           {
             $group: {
               _id: "$propertyId",
