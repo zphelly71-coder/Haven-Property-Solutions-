@@ -659,6 +659,79 @@ if (notificationUrl && notificationSecret) {
     });
   }
 });
+
+app.post("/api/contact", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Database not connected"
+      });
+    }
+
+    const body = req.body || {};
+    const name =
+      typeof body.name === "string" ? body.name.trim() : "";
+    const email =
+      typeof body.email === "string"
+        ? body.email.trim().toLowerCase()
+        : "";
+    const messageText =
+      typeof body.message === "string"
+        ? body.message.trim()
+        : "";
+
+    if (!name || name.length > 100) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter your name (maximum 100 characters)"
+      });
+    }
+
+    if (
+      !email ||
+      email.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter a valid email address"
+      });
+    }
+
+    if (!messageText || messageText.length > 2000) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter your message (maximum 2000 characters)"
+      });
+    }
+
+    await db.collection("enquiries").insertOne({
+      type: "general_contact",
+      propertyTitle: "General Website Contact",
+      propertyLocation: "Website contact form",
+      name,
+      email,
+      phone: "",
+      message: messageText,
+      status: "new",
+      createdAt: new Date()
+    });
+
+    return res.status(201).json({
+      status: "ok",
+      message: "Your message has been submitted successfully."
+    });
+  } catch (error) {
+    console.error("General contact submission failed:", error.message);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Unable to submit your message. Please try again."
+    });
+  }
+});
+
 app.get("/api/properties", async (req, res) => {
   try {
     if (!db) {
