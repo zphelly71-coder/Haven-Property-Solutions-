@@ -903,6 +903,66 @@ src="https://www.openstreetmap.org/export/embed.html?bbox=34.5%2C-0.5%2C35.5%2C1
       <textarea id="message" name="message"></textarea><br><br>
       <input type="submit" value="Send Message">
     </form>
+    
+<p id="contact-status" role="status" aria-live="polite"></p>
+
+<script>
+document.getElementById("contact-form")
+  .addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const form = this;
+    const button = form.querySelector('input[type="submit"]');
+    const status = document.getElementById("contact-status");
+
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const messageText = document.getElementById("message").value.trim();
+
+    if (!name || !email || !messageText) {
+      status.textContent = "Please fill in all three fields.";
+      return;
+    }
+
+    button.disabled = true;
+    status.textContent = "Sending your message...";
+
+    try {
+      const response = await fetch(
+        "https://haven-property-solutions-api.onrender.com/api/contact",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            message: messageText
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || "Unable to send your message."
+        );
+      }
+
+      status.textContent =
+        "Thank you! Your message has been submitted successfully.";
+      form.reset();
+    } catch (error) {
+      status.textContent =
+        error.message || "Unable to send your message. Please try again.";
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>
+
 
     <h2>Blog</h2>
     <ul>
