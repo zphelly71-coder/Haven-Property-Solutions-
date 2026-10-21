@@ -1011,30 +1011,45 @@ $("saveButton").addEventListener("click", async event => {
   const button = $("saveButton");
   button.disabled = true;
 
+ 
   const property = {
-  title: $("title").value.trim(),
-  description: $("description").value.trim(),
-  location: $("location").value.trim(),
-  price: Number($("price").value),
-  pricePeriod: $("pricePeriod").value,
-  propertyType: $("propertyType").value.trim(),
-  listingPurpose: $("listingPurpose").value,
-  status: $("status").value,
-  bedrooms: Number($("bedrooms").value),
-  bathrooms: Number($("bathrooms").value),
-  images: $("images").value.split("\n").map(s => s.trim()).filter(Boolean),
+    title: $("title").value.trim(),
+    description: $("description").value.trim(),
+    location: $("location").value.trim(),
+    price: Number($("price").value),
+    pricePeriod: $("pricePeriod").value,
+    propertyType: $("propertyType").value.trim(),
+    listingPurpose: $("listingPurpose").value,
+    status: $("status").value,
+    bedrooms: Number($("bedrooms").value),
+    bathrooms: Number($("bathrooms").value),
+    images: $("images").value
+      .split("\n")
+      .map(s => s.trim())
+      .filter(Boolean),
 
-  landSize: Number($("landSize").value) || 0,
-  landUnit: $("landUnit").value,
-  landUse: $("landUse").value,
-  titleDeed: $("titleDeed").value,
+    // Land details
+    landSize: Number($("landSize").value) || 0,
+    landUnit: $("landUnit").value,
+    landUse: $("landUse").value,
+    titleDeed: $("titleDeed").value,
 
-  nightlyRate: Number($("nightlyRate").value) || 0,
-  maxGuests: Number($("maxGuests").value) || 0,
-  minimumNights: Number($("minimumNights").value) || 1,
-  checkInTime: $("checkInTime").value,
-  checkOutTime: $("checkOutTime").value
-};
+    // Rental inventory
+    rentalArrangement: $("rentalArrangement").value,
+    totalRentalUnits: Number($("totalRentalUnits").value) || 0,
+    availableRentalUnits: Number($("availableRentalUnits").value) || 0,
+
+    // Airbnb / short-stay details
+    nightlyRate: Number($("nightlyRate").value) || 0,
+    maxGuests: Number($("maxGuests").value) || 0,
+    minimumNights: Number($("minimumNights").value) || 1,
+    checkInTime: $("checkInTime").value,
+    checkOutTime: $("checkOutTime").value,
+    guestCapacity: Number($("guestCapacity").value) || 0,
+    stayAmenities: $("stayAmenities").value.trim(),
+    checkInInfo: $("checkInInfo").value.trim()
+  };
+
   try {
     if (editingId) {
       await api("/api/properties/" + encodeURIComponent(editingId), {
