@@ -916,6 +916,7 @@ status.style.marginBottom = "12px";
     message(error.message);
   }
 }
+
 function beginEdit(property) {
   editingId = property._id;
   $("propertyId").value = editingId;
@@ -923,29 +924,43 @@ function beginEdit(property) {
   $("saveButton").textContent = "Update property";
   $("cancelEdit").hidden = false;
 
-  
-for (const field of [
-  "title", "description", "location", "price",
-"pricePeriod", "propertyType", "listingPurpose", "status",
-"bedrooms", "bathrooms",
-"landSize", "landUnit", "landUse", "titleDeed",
-"nightlyRate", "maxGuests", "minimumNights",
-"checkInTime", "checkOutTime"
-]) {
+  for (const field of [
+    "title", "description", "location", "price",
+    "pricePeriod", "propertyType", "listingPurpose", "status",
+    "bedrooms", "bathrooms",
 
+    // Land details
+    "landSize", "landUnit", "landUse", "titleDeed",
+
+    // Rental inventory
+    "rentalArrangement", "totalRentalUnits", "availableRentalUnits",
+
+    // Airbnb / short-stay details
+    "nightlyRate", "maxGuests", "minimumNights",
+    "checkInTime", "checkOutTime",
+    "guestCapacity", "stayAmenities", "checkInInfo"
+  ]) {
     $(field).value = property[field] ?? (
       field === "pricePeriod" ? "month" :
       field === "status" ? "published" :
-      ["price", "bedrooms", "bathrooms"].includes(field) ? 0 : ""
+      field === "rentalArrangement" ? "whole" :
+      ["price", "bedrooms", "bathrooms", "landSize",
+       "nightlyRate", "maxGuests", "guestCapacity"].includes(field) ? 0 :
+      field === "minimumNights" ||
+      field === "totalRentalUnits" ||
+      field === "availableRentalUnits" ? 1 : ""
     );
   }
+
   updatePropertyFields();
+
   $("images").value = Array.isArray(property.images)
     ? property.images.join("\n") : "";
 
   window.scrollTo({ top: 0, behavior: "smooth" });
   message("Editing " + (property.title || "property") + ".");
 }
+
 $("photoUpload").addEventListener("change", async () => {
   const files = Array.from($("photoUpload").files || []);
   const status = $("uploadStatus");
