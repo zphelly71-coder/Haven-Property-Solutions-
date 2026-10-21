@@ -1480,28 +1480,41 @@ app.patch("/api/properties/:id", requireAdmin, async (req, res) => {
     }
 
    
-    const allowed = [
-      "title",
-      "description",
-      "location",
-      "price",
-      "pricePeriod",
-      "propertyType",
-      "listingPurpose",
-      "bedrooms",
-      "bathrooms",
-      "images",
-      "status",
-      "landSize",
-      "landUnit",
-      "landUse",
-      "titleDeed",
-      "nightlyRate",
-      "maxGuests",
-      "minimumNights",
-      "checkInTime",
-      "checkOutTime"
-    ];
+    
+const allowed = [
+  "title",
+  "description",
+  "location",
+  "price",
+  "pricePeriod",
+  "propertyType",
+  "listingPurpose",
+  "bedrooms",
+  "bathrooms",
+  "images",
+  "status",
+
+  // Land details
+  "landSize",
+  "landUnit",
+  "landUse",
+  "titleDeed",
+
+  // Rental inventory
+  "rentalArrangement",
+  "totalRentalUnits",
+  "availableRentalUnits",
+
+  // Airbnb / short-stay details
+  "nightlyRate",
+  "maxGuests",
+  "minimumNights",
+  "checkInTime",
+  "checkOutTime",
+  "guestCapacity",
+  "stayAmenities",
+  "checkInInfo"
+];
 
 
     for (const key of Object.keys(changes)) {
