@@ -500,6 +500,7 @@ function logout(showMessage = true) {
   if (showMessage) message("You have logged out.");
 }
 
+
 function resetForm() {
   editingId = "";
   $("propertyForm").reset();
@@ -507,20 +508,32 @@ function resetForm() {
   $("formHeading").textContent = "Add a property";
   $("saveButton").textContent = "Save property";
   $("cancelEdit").hidden = true;
+
   $("bedrooms").value = 0;
   $("bathrooms").value = 0;
+
+  // Reset land details
   $("landSize").value = "";
-$("landUnit").selectedIndex = 0;
-$("landUse").selectedIndex = 0;
-$("titleDeed").selectedIndex = 0;
+  $("landUnit").selectedIndex = 0;
+  $("landUse").selectedIndex = 0;
+  $("titleDeed").selectedIndex = 0;
 
-$("nightlyRate").value = "";
-$("maxGuests").value = "";
-$("minimumNights").value = 1;
-$("checkInTime").value = "";
-$("checkOutTime").value = "";
+  // Reset rental inventory
+  $("rentalArrangement").value = "whole";
+  $("totalRentalUnits").value = 1;
+  $("availableRentalUnits").value = 1;
 
-updatePropertyFields();
+  // Reset Airbnb / short-stay details
+  $("nightlyRate").value = "";
+  $("maxGuests").value = "";
+  $("minimumNights").value = 1;
+  $("checkInTime").value = "";
+  $("checkOutTime").value = "";
+  $("guestCapacity").value = "";
+  $("stayAmenities").value = "";
+  $("checkInInfo").value = "";
+
+  updatePropertyFields();
 }
 
 
