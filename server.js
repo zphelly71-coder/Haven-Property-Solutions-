@@ -960,8 +960,8 @@ function validateProperty(data) {
 }
 
 
+
 function cleanProperty(data) {
-  
   const fields = [
     "title",
     "description",
@@ -974,15 +974,27 @@ function cleanProperty(data) {
     "bathrooms",
     "images",
     "status",
+
+    // Land details
     "landSize",
     "landUnit",
     "landUse",
     "titleDeed",
+
+    // Rental inventory
+    "rentalArrangement",
+    "totalRentalUnits",
+    "availableRentalUnits",
+
+    // Airbnb / short-stay details
     "nightlyRate",
     "maxGuests",
     "minimumNights",
     "checkInTime",
-    "checkOutTime"
+    "checkOutTime",
+    "guestCapacity",
+    "stayAmenities",
+    "checkInInfo"
   ];
 
   const result = {};
@@ -993,11 +1005,25 @@ function cleanProperty(data) {
     }
   }
 
-  if (typeof result.title === "string") result.title = result.title.trim();
-  if (typeof result.location === "string") result.location = result.location.trim();
+  if (typeof result.title === "string") {
+    result.title = result.title.trim();
+  }
+
+  if (typeof result.location === "string") {
+    result.location = result.location.trim();
+  }
+
+  if (typeof result.stayAmenities === "string") {
+    result.stayAmenities = result.stayAmenities.trim();
+  }
+
+  if (typeof result.checkInInfo === "string") {
+    result.checkInInfo = result.checkInInfo.trim();
+  }
 
   return result;
 }
+
 app.patch("/api/admin/enquiries/:id", requireAdmin, async (req, res) => {
   try {
     if (!db) {
