@@ -453,7 +453,16 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
     </button>
   </div>
 </section>
-  
+ 
+<div class="haven-sort-control" style="margin: 12px 0;">
+  <label for="haven-sort">Sort properties:</label>
+  <select id="haven-sort">
+    <option value="newest">Newest listings</option>
+    <option value="price-low">Price: lowest first</option>
+    <option value="price-high">Price: highest first</option>
+  </select>
+</div>
+
 <h2>Featured Properties</h2>
     <button id="favorites-filter-button" type="button" class="button">
   ♥ Show My Favourites
@@ -465,6 +474,7 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
 <script>
   let selectedPurpose = "all";
   let searchTerm = "";
+  let propertySortOrder = "newest";
   let showingFavorites = false;
   const HAVEN_FAVORITES_KEY = "havenFavoritePropertyIds";
 
@@ -590,6 +600,24 @@ const propertyTypeMatches =
   propertyTypeMatches &&
   (!showingFavorites ||
     havenGetFavorites().includes(havenPropertyKey(property)));
+});
+    const sortControl = document.getElementById("haven-sort");
+propertySortOrder = sortControl
+  ? sortControl.value
+  : propertySortOrder;
+
+properties.sort((a, b) => {
+  if (propertySortOrder === "price-low") {
+    return Number(a.price || 0) - Number(b.price || 0);
+  }
+
+  if (propertySortOrder === "price-high") {
+    return Number(b.price || 0) - Number(a.price || 0);
+  }
+
+  const dateA = new Date(a.createdAt || 0).getTime();
+  const dateB = new Date(b.createdAt || 0).getTime();
+  return dateB - dateA;
 });
     list.replaceChildren();
 
@@ -973,6 +1001,11 @@ document.getElementById("clear-advanced-filters")
 
     loadProperties();
   });
+  const sortControl = document.getElementById("haven-sort");
+
+if (sortControl) {
+  sortControl.addEventListener("change", loadProperties);
+}
 loadProperties();
 </script>
 
