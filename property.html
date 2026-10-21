@@ -313,13 +313,31 @@ async function loadPropertyDetails() {
     addDetail("Bedrooms", property.bedrooms);
     addDetail("Bathrooms", property.bathrooms);
     addDetail("Property type", property.propertyType);
+
+    // Land details
+    addDetail("Land size", property.landSize || "");
+    addDetail("Land measurement unit", property.landUnit);
+    addDetail("Land use", property.landUse);
+    addDetail("Title deed status", property.titleDeed);
+
+    // Rental inventory
+    addDetail("Rental arrangement", property.rentalArrangement);
+    addDetail("Total rooms or units",
+      property.totalRentalUnits ?? "");
+    addDetail("Available rooms or units",
+      property.availableRentalUnits ?? "");
+
+    // Airbnb / short-stay details
     addDetail("Nightly rate", property.nightlyRate
       ? "KSh " + Number(property.nightlyRate).toLocaleString("en-KE")
       : "");
-    addDetail("Maximum guests", property.maxGuests);
-    addDetail("Minimum nights", property.minimumNights);
+    addDetail("Maximum guests", property.maxGuests ?? "");
+    addDetail("Guest capacity", property.guestCapacity ?? "");
+    addDetail("Minimum nights", property.minimumNights ?? "");
     addDetail("Check-in", property.checkInTime);
     addDetail("Check-out", property.checkOutTime);
+    addDetail("Amenities", property.stayAmenities);
+    addDetail("Check-in information", property.checkInInfo);
 
     const backLink = document.createElement("a");
     backLink.href = "./";
