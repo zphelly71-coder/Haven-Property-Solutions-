@@ -523,14 +523,18 @@ $("checkOutTime").value = "";
 updatePropertyFields();
 }
 
+
 function updatePropertyFields() {
   const type = $("propertyType").value;
   const purpose = $("listingPurpose").value;
 
+  const isShortStay =
+    purpose === "short-stay" || purpose === "airbnb";
+
   $("landFields").hidden = type !== "Land / Plot";
 
-  $("airbnbFields").hidden =
-    purpose !== "short-stay" && purpose !== "airbnb";
+  $("airbnbFields").hidden = !isShortStay;
+  $("stayFields").hidden = !isShortStay;
 
   $("rentalInventoryFields").hidden =
     purpose !== "rent" && purpose !== "lease";
