@@ -288,26 +288,59 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
       "System connection: Unavailable";
   });
   </script><p>Explore exceptional homes for rent and premium properties for sale with Haven Property Solutions. From finding your next home to making a smart property investment, we help you discover a place that fits your lifestyle and ambitions.</p>
-    <h2>Search Properties</h2>
-    <form>
-      <input type="text" id="search-bar" placeholder="Search properties...">
-      <button type="submit">Search</button>
-    </form>
-    <div id="advanced-filters" style="margin: 16px 0; padding: 16px; border: 1px solid #e4d8bd; border-radius: 10px; background: #fff;">
-  <h3>Refine Your Search</h3>
+   
+<section id="advanced-filters" class="haven-search-panel"
+         aria-label="Search properties">
+  <h2>Find Your Ideal Property</h2>
+  <p>Buy, rent or book a short stay with Haven Property Solutions.</p>
 
-  <label for="filter-location">Location</label>
-  <input type="text" id="filter-location" placeholder="Enter town or area">
+  <label for="search-bar">Keywords</label>
+  <input type="text" id="search-bar"
+         placeholder="Search by property name or description">
+
+  <label for="filter-purpose">I'm looking to</label>
+  <select id="filter-purpose">
+    <option value="short-stay" selected>Short Stay / Airbnb</option>
+    <option value="rent">Rent a Property</option>
+    <option value="sale">Buy a Property</option>
+    <option value="all">All Properties</option>
+  </select>
+
+  <label for="filter-location">Location or neighbourhood</label>
+  <input type="text" id="filter-location"
+         placeholder="e.g. Nyali, Bamburi, Mikindani">
+
+  <label for="filter-property-type">Property type</label>
+  <select id="filter-property-type">
+    <option value="">All property types</option>
+    <option value="Apartment">Apartment</option>
+    <option value="Studio">Studio</option>
+    <option value="Bedsitter">Bedsitter</option>
+    <option value="House">House</option>
+    <option value="Bungalow">Bungalow</option>
+    <option value="Maisonette">Maisonette</option>
+    <option value="Townhouse">Townhouse</option>
+    <option value="Villa">Villa</option>
+    <option value="Land / Plot">Land / Plot</option>
+    <option value="Commercial Building">Commercial Building</option>
+    <option value="Office">Office</option>
+    <option value="Shop">Shop</option>
+    <option value="Warehouse">Warehouse</option>
+    <option value="Farm">Farm</option>
+  </select>
 
   <label for="filter-min-price">Minimum price (KSh)</label>
-  <input type="number" id="filter-min-price" min="0" placeholder="Minimum price">
+  <input type="number" id="filter-min-price" min="0"
+         placeholder="Minimum budget">
 
   <label for="filter-max-price">Maximum price (KSh)</label>
-  <input type="number" id="filter-max-price" min="0" placeholder="Maximum price">
+  <input type="number" id="filter-max-price" min="0"
+         placeholder="Maximum budget">
 
   <label for="filter-bedrooms">Minimum bedrooms</label>
   <select id="filter-bedrooms">
     <option value="">Any number</option>
+    <option value="0">Studio / Bedsitter</option>
     <option value="1">1 or more</option>
     <option value="2">2 or more</option>
     <option value="3">3 or more</option>
@@ -315,31 +348,23 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
     <option value="5">5 or more</option>
   </select>
 
- 
-<label for="filter-property-type">Property type</label>
-<select id="filter-property-type">
-  <option value="">All property types</option>
-  <option value="Apartment">Apartment</option>
-  <option value="Studio">Studio</option>
-  <option value="Bedsitter">Bedsitter</option>
-  <option value="House">House</option>
-  <option value="Bungalow">Bungalow</option>
-  <option value="Maisonette">Maisonette</option>
-  <option value="Townhouse">Townhouse</option>
-  <option value="Villa">Villa</option>
-  <option value="Land / Plot">Land / Plot</option>
-  <option value="Commercial Building">Commercial Building</option>
-  <option value="Office">Office</option>
-  <option value="Shop">Shop</option>
-  <option value="Warehouse">Warehouse</option>
-  <option value="Farm">Farm</option>
-</select>
+  <label for="haven-sort">Sort results</label>
+  <select id="haven-sort">
+    <option value="newest">Newest first</option>
+    <option value="price-low">Lowest price first</option>
+    <option value="price-high">Highest price first</option>
+  </select>
 
+  <div class="haven-search-actions">
+    <button type="button" id="haven-search-button" class="button">
+      Search Properties
+    </button>
+    <button type="button" id="clear-advanced-filters" class="button">
+      Reset Filters
+    </button>
+  </div>
+</section>
 
-  <button type="button" id="clear-advanced-filters" class="button">
-    Clear Filters
-  </button>
-</div>
     
 <div class="property-options">
     <a href="#properties-list" class="option-card">
@@ -374,95 +399,6 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
       <li>To contribute to the growth and development of our community.</li>
     </ul>
 
-  
-<section class="haven-search-panel" aria-label="Search properties">
-  <h2>Find Your Ideal Property</h2>
-  <p>Search properties by location, budget and property features.</p>
-
-  <div class="haven-search-grid">
-    <label>
-      Location or neighbourhood
-      <input
-        id="haven-location-filter"
-        type="text"
-        placeholder="e.g. Nyali, Bamburi, Mikindani"
-      >
-    </label>
-
-    <label>
-      Property type
-      <select id="haven-type-filter">
-        <option value="">All property types</option>
-        <option value="apartment">Apartment</option>
-        <option value="studio">Studio / Bedsitter</option>
-        <option value="house">House / Bungalow</option>
-        <option value="maisonette">Maisonette / Townhouse</option>
-        <option value="land">Land</option>
-        <option value="commercial">Commercial property</option>
-      </select>
-    </label>
-
-    <label>
-      Minimum price (KSh)
-      <input
-        id="haven-min-price"
-        type="number"
-        min="0"
-        placeholder="Minimum budget"
-      >
-    </label>
-
-    <label>
-      Maximum price (KSh)
-      <input
-        id="haven-max-price"
-        type="number"
-        min="0"
-        placeholder="Maximum budget"
-      >
-    </label>
-
-    <label>
-      Minimum bedrooms
-      <select id="haven-bedroom-filter">
-        <option value="">Any number</option>
-        <option value="0">Studio / Bedsitter</option>
-        <option value="1">1 bedroom or more</option>
-        <option value="2">2 bedrooms or more</option>
-        <option value="3">3 bedrooms or more</option>
-        <option value="4">4 bedrooms or more</option>
-      </select>
-    </label>
-
-    <label>
-      Sort results
-      <select id="haven-sort-filter">
-        <option value="newest">Newest first</option>
-        <option value="price-low">Price: lowest first</option>
-        <option value="price-high">Price: highest first</option>
-      </select>
-    </label>
-  </div>
-
-  <div class="haven-search-actions">
-    <button id="haven-search-button" type="button" class="button">
-      Search Properties
-    </button>
-    <button id="haven-reset-button" type="button" class="button">
-      Reset Filters
-    </button>
-  </div>
-</section>
- 
-<div class="haven-sort-control" style="margin: 12px 0;">
-  <label for="haven-sort">Sort properties:</label>
-  <select id="haven-sort">
-    <option value="newest">Newest listings</option>
-    <option value="price-low">Price: lowest first</option>
-    <option value="price-high">Price: highest first</option>
-  </select>
-</div>
-
 <h2>Featured Properties</h2>
     <button id="favorites-filter-button" type="button" class="button">
   ♥ Show My Favourites
@@ -472,7 +408,7 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
 <div class="properties" id="properties-list"></div>
 
 <script>
-  let selectedPurpose = "all";
+ let selectedPurpose = "short-stay";
   let searchTerm = "";
   let propertySortOrder = "newest";
   let showingFavorites = false;
@@ -524,19 +460,26 @@ async function loadProperties() {
    const allProperties = Array.isArray(data.properties)
   ? data.properties
   : [];
-const filterLocation = document
-  .getElementById("filter-location")
-  .value.trim().toLowerCase();
+const filterLocation = (
+  document.getElementById("haven-location-filter")?.value ||
+  document.getElementById("filter-location")?.value ||
+  ""
+).trim().toLowerCase();
 
 const minPriceValue =
-  document.getElementById("filter-min-price").value;
+  document.getElementById("haven-min-price")?.value ||
+  document.getElementById("filter-min-price")?.value ||
+  "";
 
 const maxPriceValue =
-  document.getElementById("filter-max-price").value;
+  document.getElementById("haven-max-price")?.value ||
+  document.getElementById("filter-max-price")?.value ||
+  "";
 
 const minBedroomsValue =
-  document.getElementById("filter-bedrooms").value;
-
+  document.getElementById("haven-bedroom-filter")?.value ||
+  document.getElementById("filter-bedrooms")?.value ||
+  "";
 const propertyTypeValue =
   document.getElementById("filter-property-type").value;
 const properties = allProperties.filter(property => {
@@ -915,27 +858,34 @@ document.querySelectorAll('.site-links a[data-purpose="short-stay"]')
   .forEach(link => {
     link.addEventListener("click", () => {
       selectedPurpose = "short-stay";
+      document.getElementById("filter-purpose").value = "short-stay";
       loadProperties();
     });
   });
-  document.querySelectorAll('.site-links a[data-purpose="all"]')
+
+document.querySelectorAll('.site-links a[data-purpose="all"]')
   .forEach(link => {
     link.addEventListener("click", () => {
       selectedPurpose = "all";
+      document.getElementById("filter-purpose").value = "all";
       loadProperties();
     });
   });
-  document.querySelectorAll('.site-links a[data-purpose="rent"]')
+
+document.querySelectorAll('.site-links a[data-purpose="rent"]')
   .forEach(link => {
     link.addEventListener("click", () => {
       selectedPurpose = "rent";
+      document.getElementById("filter-purpose").value = "rent";
       loadProperties();
     });
   });
-  document.querySelectorAll('.site-links a[data-purpose="sale"]')
+
+document.querySelectorAll('.site-links a[data-purpose="sale"]')
   .forEach(link => {
     link.addEventListener("click", () => {
       selectedPurpose = "sale";
+      document.getElementById("filter-purpose").value = "sale";
       loadProperties();
     });
   });
@@ -944,13 +894,15 @@ document.querySelectorAll('.site-links a[data-purpose="short-stay"]')
     searchTerm = event.target.value.trim().toLowerCase();
     loadProperties();
   });
-  document.getElementById("search-bar").form
-  .addEventListener("submit", event => {
-    event.preventDefault();
-    searchTerm = document.getElementById("search-bar")
-      .value.trim().toLowerCase();
+  const propertySearchButton = document.getElementById("haven-search-button");
+
+if (propertySearchButton) {
+  propertySearchButton.addEventListener("click", () => {
+    const searchInput = document.getElementById("search-bar");
+    searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : "";
     loadProperties();
   });
+}
   const favoritesFilterButton =
   document.getElementById("favorites-filter-button");
 
@@ -990,15 +942,38 @@ updateFavoritesFilterButton();
       loadProperties();
     });
   });
+const purposeFilter = document.getElementById("filter-purpose");
 
+if (purposeFilter) {
+  selectedPurpose = purposeFilter.value || "short-stay";
+
+  purposeFilter.addEventListener("change", () => {
+    selectedPurpose = purposeFilter.value;
+    loadProperties();
+  });
+}
 document.getElementById("clear-advanced-filters")
   .addEventListener("click", () => {
+    document.getElementById("search-bar").value = "";
     document.getElementById("filter-location").value = "";
     document.getElementById("filter-min-price").value = "";
     document.getElementById("filter-max-price").value = "";
     document.getElementById("filter-bedrooms").value = "";
     document.getElementById("filter-property-type").value = "";
 
+   const resetPurposeFilter = document.getElementById("filter-purpose");
+if (resetPurposeFilter) {
+  resetPurposeFilter.value = "short-stay";
+  selectedPurpose = "short-stay";
+}
+
+    const sortControl = document.getElementById("haven-sort");
+    if (sortControl) {
+      sortControl.value = "newest";
+    }
+
+    searchTerm = "";
+    propertySortOrder = "newest";
     loadProperties();
   });
   const sortControl = document.getElementById("haven-sort");
