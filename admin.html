@@ -98,6 +98,39 @@ button:disabled{opacity:.5}
     <option value="short-stay">Short Stay / Airbnb</option>
   </select>
 </div>
+          
+<div class="card" id="rentalInventoryFields" hidden>
+  <h3>Rental Inventory</h3>
+  <p class="muted">
+    Choose whether the whole property, separate units,
+    or individual rooms are being rented.
+  </p>
+
+  <label for="rentalArrangement">Rental arrangement</label>
+  <select id="rentalArrangement">
+    <option value="whole">Whole property</option>
+    <option value="units">Multiple units</option>
+    <option value="rooms">Individual rooms</option>
+  </select>
+
+  <div class="row">
+    <div>
+      <label for="totalRentalUnits">Total rooms or units</label>
+      <input id="totalRentalUnits"
+             type="number" min="1" step="1" value="1">
+    </div>
+    <div>
+      <label for="availableRentalUnits">Available rooms or units</label>
+      <input id="availableRentalUnits"
+             type="number" min="0" step="1" value="1">
+    </div>
+  </div>
+
+  <p class="muted">
+    Individual room or unit details will be added in the next step.
+  </p>
+</div>
+
 <div class="card" id="propertyDetails">
   <h3>Additional Property Details</h3>
 
@@ -491,6 +524,7 @@ $("checkOutTime").value = "";
 
 updatePropertyFields();
 }
+
 function updatePropertyFields() {
   const type = $("propertyType").value;
   const purpose = $("listingPurpose").value;
@@ -499,6 +533,9 @@ function updatePropertyFields() {
 
   $("airbnbFields").hidden =
     purpose !== "short-stay" && purpose !== "airbnb";
+
+  $("rentalInventoryFields").hidden =
+    purpose !== "rent" && purpose !== "lease";
 }
 
 $("propertyType").addEventListener("change", updatePropertyFields);
