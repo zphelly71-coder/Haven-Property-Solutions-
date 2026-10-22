@@ -741,50 +741,51 @@ app.get("/api/properties", async (req, res) => {
       });
     }
 
-    const properties = await db.collection("properties")
-      .find(
-        { status: "published" },
-        {
-         
-projection: {
-  title: 1,
-  description: 1,
-  location: 1,
-  price: 1,
-  pricePeriod: 1,
-  propertyType: 1,
-  bedrooms: 1,
-  bathrooms: 1,
-  images: 1,
-  createdAt: 1,
-  status: 1,
-  listingType: 1,
-  listingPurpose: 1,
+   
+const properties = await db.collection("properties")
+  .find(
+    { status: "published" },
+    {
+      projection: {
+        title: 1,
+        description: 1,
+        location: 1,
+        price: 1,
+        pricePeriod: 1,
+        propertyType: 1,
+        bedrooms: 1,
+        bathrooms: 1,
+        images: 1,
+        createdAt: 1,
+        status: 1,
+        listingType: 1,
+        listingPurpose: 1,
 
-  // Land details
-  landSize: 1,
-  landUnit: 1,
-  landUse: 1,
-  titleDeed: 1,
+        // Land details
+        landSize: 1,
+        landUnit: 1,
+        landUse: 1,
+        titleDeed: 1,
 
-  // Rental inventory
-  rentalArrangement: 1,
-  totalRentalUnits: 1,
-  availableRentalUnits: 1,
+        // Rental inventory
+        rentalArrangement: 1,
+        totalRentalUnits: 1,
+        availableRentalUnits: 1,
 
-  // Airbnb / short-stay details
-  nightlyRate: 1,
-  maxGuests: 1,
-  minimumNights: 1,
-  checkInTime: 1,
-  checkOutTime: 1,
-  guestCapacity: 1,
-  stayAmenities: 1,
-  checkInInfo: 1
-}
-
-      .sort({ createdAt: -1 })
-      .toArray();
+        // Airbnb / short-stay details
+        nightlyRate: 1,
+        maxGuests: 1,
+        minimumNights: 1,
+        checkInTime: 1,
+        checkOutTime: 1,
+        guestCapacity: 1,
+        stayAmenities: 1,
+        checkInInfo: 1
+      }
+    }
+  )
+  .sort({ createdAt: -1 })
+  .toArray();
 
     res.json({
       status: "ok",
