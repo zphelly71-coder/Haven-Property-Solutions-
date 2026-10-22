@@ -147,9 +147,9 @@
   </footer>
   
 <script>
-const API_URL =
-  "https://haven-property-solutions-api.onrender.com/api/properties";
-
+const API_URL = window.location.hostname.endsWith(".onrender.com")
+  ? "/api/properties"
+  : "https://haven-property-solutions-api.onrender.com/api/properties";
 const content = document.getElementById("property-content");
 
 function getPropertyId() {
