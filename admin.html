@@ -463,7 +463,9 @@ button:disabled{opacity:.5}
 <script>
 "use strict";
 
-const API = "https://haven-property-solutions-api.onrender.com";
+const API = window.location.hostname.endsWith(".onrender.com")
+  ? ""
+  : "https://haven-property-solutions-api.onrender.com";
 const TOKEN_KEY = "haven_admin_token";
 let editingId = "";
 
