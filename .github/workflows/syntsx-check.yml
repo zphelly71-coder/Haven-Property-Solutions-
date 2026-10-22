@@ -1,0 +1,47 @@
+
+name: Check JavaScript Syntax
+
+on:
+  workflow_dispatch:
+
+jobs:
+  syntax-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get repository code
+        uses: actions/checkout@v4
+        with:
+          ref: fix/property-form-details
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check server.js syntax
+        run: node --check server.js
+
+      - name: Check admin.html JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          html = Path("admin.html").read_text()
+          scripts = re.findall(r"<script\b[^>]*>(.*?)</script>", html, re.I | re.S)
+          Path("/tmp/admin-scripts.js").write_text("\n".join(scripts))
+          PY
+          node --check /tmp/admin-scripts.js
+
+      - name: Check property.html JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          html = Path("property.html").read_text()
+          scripts = re.findall(r"<script\b[^>]*>(.*?)</script>", html, re.I | re.S)
+          Path("/tmp/property-scripts.js").write_text("\n".join(scripts))
+          PY
+          node --check /tmp/property-scripts.js
