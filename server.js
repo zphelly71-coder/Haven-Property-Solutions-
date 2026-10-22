@@ -426,6 +426,9 @@ app.get("/", (req, res) => {
     status: "running"
   });
 });
+app.get("/property.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "property.html"));
+});
 app.get("/admin.html", (req, res) => {
   res.sendFile(path.join(__dirname, "admin.html"));
 });
