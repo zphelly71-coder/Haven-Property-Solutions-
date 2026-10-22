@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ObjectId } = require("mongodb");
 const crypto = require("crypto");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -424,6 +425,9 @@ app.get("/", (req, res) => {
     message: "Haven Property Solutions API",
     status: "running"
   });
+});
+app.get("/admin.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "admin.html"));
 });
 app.post("/api/admin/login", (req, res) => {
   const password = req.body?.password;
