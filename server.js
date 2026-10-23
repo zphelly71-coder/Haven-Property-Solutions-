@@ -35,7 +35,10 @@ let db;
 let mongoClient;
 const adminSessions = new Map();
 const SESSION_DURATION = 2 * 60 * 60 * 1000;
-
+const loginAttempts = new Map();
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
 function safeCompare(a, b) {
   const first = Buffer.from(String(a));
   const second = Buffer.from(String(b));
@@ -433,6 +436,25 @@ app.get("/admin.html", (req, res) => {
   res.sendFile(path.join(__dirname, "admin.html"));
 });
 app.post("/api/admin/login", (req, res) => {
+  const now = Date.now();
+const clientKey = req.ip || req.socket.remoteAddress || "unknown";
+let attempt = loginAttempts.get(clientKey);
+
+if (attempt && attempt.lockedUntil > now) {
+  return res.status(429).json({
+    status: "error",
+    message: "Too many failed login attempts. Try again in 15 minutes."
+  });
+}
+
+if (!attempt || now - attempt.windowStartedAt >= LOGIN_WINDOW_MS) {
+  attempt = {
+    count: 0,
+    windowStartedAt: now,
+    lockedUntil: 0
+  };
+  loginAttempts.set(clientKey, attempt);
+}
   const password = req.body?.password;
   const adminPassword = process.env.ADMIN_PASSWORD;
 
@@ -443,16 +465,24 @@ app.post("/api/admin/login", (req, res) => {
     });
   }
 
-  if (
-    typeof password !== "string" ||
-    !safeCompare(password, adminPassword)
-  ) {
-    return res.status(401).json({
-      status: "error",
-      message: "Invalid admin password"
-    });
+ if (
+  typeof password !== "string" ||
+  !safeCompare(password, adminPassword)
+) {
+  attempt.count += 1;
+
+  if (attempt.count >= MAX_LOGIN_ATTEMPTS) {
+    attempt.lockedUntil = Date.now() + LOGIN_LOCKOUT_MS;
   }
 
+  loginAttempts.set(clientKey, attempt);
+
+  return res.status(401).json({
+    status: "error",
+    message: "Invalid admin password"
+  });
+}
+  loginAttempts.delete(clientKey);
   const token = crypto.randomBytes(32).toString("hex");
 
   adminSessions.set(
