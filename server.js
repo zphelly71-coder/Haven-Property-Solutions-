@@ -9,21 +9,7 @@ const path = require("path");
 
 const app = express();
 app.set("trust proxy", 1);
-app.use((req, res, next) => {
-  if (req.path === "/api/admin/login") {
-    const forwardedFor = req.get("x-forwarded-for") || "";
 
-    console.log("Login proxy diagnostic:", {
-      forwardedForPresent: Boolean(forwardedFor),
-      forwardedForEntryCount: forwardedFor
-        ? forwardedFor.split(",").length
-        : 0,
-      expressIpPresent: Boolean(req.ip)
-    });
-  }
-
-  next();
-});
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
 const DB_NAME =
