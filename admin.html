@@ -463,7 +463,9 @@ button:disabled{opacity:.5}
 <script>
 "use strict";
 
-const API = "https://haven-property-solutions-api.onrender.com";
+const API = window.location.hostname.endsWith(".onrender.com")
+  ? ""
+  : "https://haven-property-solutions-api.onrender.com";
 const TOKEN_KEY = "haven_admin_token";
 let editingId = "";
 
@@ -500,6 +502,7 @@ function logout(showMessage = true) {
   if (showMessage) message("You have logged out.");
 }
 
+
 function resetForm() {
   editingId = "";
   $("propertyForm").reset();
@@ -507,30 +510,46 @@ function resetForm() {
   $("formHeading").textContent = "Add a property";
   $("saveButton").textContent = "Save property";
   $("cancelEdit").hidden = true;
+
   $("bedrooms").value = 0;
   $("bathrooms").value = 0;
+
+  // Reset land details
   $("landSize").value = "";
-$("landUnit").selectedIndex = 0;
-$("landUse").selectedIndex = 0;
-$("titleDeed").selectedIndex = 0;
+  $("landUnit").selectedIndex = 0;
+  $("landUse").selectedIndex = 0;
+  $("titleDeed").selectedIndex = 0;
 
-$("nightlyRate").value = "";
-$("maxGuests").value = "";
-$("minimumNights").value = 1;
-$("checkInTime").value = "";
-$("checkOutTime").value = "";
+  // Reset rental inventory
+  $("rentalArrangement").value = "whole";
+  $("totalRentalUnits").value = 1;
+  $("availableRentalUnits").value = 1;
 
-updatePropertyFields();
+  // Reset Airbnb / short-stay details
+  $("nightlyRate").value = "";
+  $("maxGuests").value = "";
+  $("minimumNights").value = 1;
+  $("checkInTime").value = "";
+  $("checkOutTime").value = "";
+  $("guestCapacity").value = "";
+  $("stayAmenities").value = "";
+  $("checkInInfo").value = "";
+
+  updatePropertyFields();
 }
+
 
 function updatePropertyFields() {
   const type = $("propertyType").value;
   const purpose = $("listingPurpose").value;
 
+  const isShortStay =
+    purpose === "short-stay" || purpose === "airbnb";
+
   $("landFields").hidden = type !== "Land / Plot";
 
-  $("airbnbFields").hidden =
-    purpose !== "short-stay" && purpose !== "airbnb";
+  $("airbnbFields").hidden = !isShortStay;
+  $("stayFields").hidden = !isShortStay;
 
   $("rentalInventoryFields").hidden =
     purpose !== "rent" && purpose !== "lease";
@@ -899,6 +918,7 @@ status.style.marginBottom = "12px";
     message(error.message);
   }
 }
+
 function beginEdit(property) {
   editingId = property._id;
   $("propertyId").value = editingId;
@@ -906,29 +926,43 @@ function beginEdit(property) {
   $("saveButton").textContent = "Update property";
   $("cancelEdit").hidden = false;
 
-  
-for (const field of [
-  "title", "description", "location", "price",
-"pricePeriod", "propertyType", "listingPurpose", "status",
-"bedrooms", "bathrooms",
-"landSize", "landUnit", "landUse", "titleDeed",
-"nightlyRate", "maxGuests", "minimumNights",
-"checkInTime", "checkOutTime"
-]) {
+  for (const field of [
+    "title", "description", "location", "price",
+    "pricePeriod", "propertyType", "listingPurpose", "status",
+    "bedrooms", "bathrooms",
 
+    // Land details
+    "landSize", "landUnit", "landUse", "titleDeed",
+
+    // Rental inventory
+    "rentalArrangement", "totalRentalUnits", "availableRentalUnits",
+
+    // Airbnb / short-stay details
+    "nightlyRate", "maxGuests", "minimumNights",
+    "checkInTime", "checkOutTime",
+    "guestCapacity", "stayAmenities", "checkInInfo"
+  ]) {
     $(field).value = property[field] ?? (
       field === "pricePeriod" ? "month" :
       field === "status" ? "published" :
-      ["price", "bedrooms", "bathrooms"].includes(field) ? 0 : ""
+      field === "rentalArrangement" ? "whole" :
+      ["price", "bedrooms", "bathrooms", "landSize",
+       "nightlyRate", "maxGuests", "guestCapacity"].includes(field) ? 0 :
+      field === "minimumNights" ||
+      field === "totalRentalUnits" ||
+      field === "availableRentalUnits" ? 1 : ""
     );
   }
+
   updatePropertyFields();
+
   $("images").value = Array.isArray(property.images)
     ? property.images.join("\n") : "";
 
   window.scrollTo({ top: 0, behavior: "smooth" });
   message("Editing " + (property.title || "property") + ".");
 }
+
 $("photoUpload").addEventListener("change", async () => {
   const files = Array.from($("photoUpload").files || []);
   const status = $("uploadStatus");
@@ -1007,30 +1041,45 @@ $("saveButton").addEventListener("click", async event => {
   const button = $("saveButton");
   button.disabled = true;
 
+ 
   const property = {
-  title: $("title").value.trim(),
-  description: $("description").value.trim(),
-  location: $("location").value.trim(),
-  price: Number($("price").value),
-  pricePeriod: $("pricePeriod").value,
-  propertyType: $("propertyType").value.trim(),
-  listingPurpose: $("listingPurpose").value,
-  status: $("status").value,
-  bedrooms: Number($("bedrooms").value),
-  bathrooms: Number($("bathrooms").value),
-  images: $("images").value.split("\n").map(s => s.trim()).filter(Boolean),
+    title: $("title").value.trim(),
+    description: $("description").value.trim(),
+    location: $("location").value.trim(),
+    price: Number($("price").value),
+    pricePeriod: $("pricePeriod").value,
+    propertyType: $("propertyType").value.trim(),
+    listingPurpose: $("listingPurpose").value,
+    status: $("status").value,
+    bedrooms: Number($("bedrooms").value),
+    bathrooms: Number($("bathrooms").value),
+    images: $("images").value
+      .split("\n")
+      .map(s => s.trim())
+      .filter(Boolean),
 
-  landSize: Number($("landSize").value) || 0,
-  landUnit: $("landUnit").value,
-  landUse: $("landUse").value,
-  titleDeed: $("titleDeed").value,
+    // Land details
+    landSize: Number($("landSize").value) || 0,
+    landUnit: $("landUnit").value,
+    landUse: $("landUse").value,
+    titleDeed: $("titleDeed").value,
 
-  nightlyRate: Number($("nightlyRate").value) || 0,
-  maxGuests: Number($("maxGuests").value) || 0,
-  minimumNights: Number($("minimumNights").value) || 1,
-  checkInTime: $("checkInTime").value,
-  checkOutTime: $("checkOutTime").value
-};
+    // Rental inventory
+    rentalArrangement: $("rentalArrangement").value,
+    totalRentalUnits: Number($("totalRentalUnits").value) || 0,
+    availableRentalUnits: Number($("availableRentalUnits").value) || 0,
+
+    // Airbnb / short-stay details
+    nightlyRate: Number($("nightlyRate").value) || 0,
+    maxGuests: Number($("maxGuests").value) || 0,
+    minimumNights: Number($("minimumNights").value) || 1,
+    checkInTime: $("checkInTime").value,
+    checkOutTime: $("checkOutTime").value,
+    guestCapacity: Number($("guestCapacity").value) || 0,
+    stayAmenities: $("stayAmenities").value.trim(),
+    checkInInfo: $("checkInInfo").value.trim()
+  };
+
   try {
     if (editingId) {
       await api("/api/properties/" + encodeURIComponent(editingId), {

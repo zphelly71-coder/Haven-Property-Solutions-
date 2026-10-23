@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ObjectId } = require("mongodb");
 const crypto = require("crypto");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -425,6 +426,12 @@ app.get("/", (req, res) => {
     status: "running"
   });
 });
+app.get("/property.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "property.html"));
+});
+app.get("/admin.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "admin.html"));
+});
 app.post("/api/admin/login", (req, res) => {
   const password = req.body?.password;
   const adminPassword = process.env.ADMIN_PASSWORD;
@@ -741,36 +748,51 @@ app.get("/api/properties", async (req, res) => {
       });
     }
 
-    const properties = await db.collection("properties")
-      .find(
-        { status: "published" },
-        {
-          projection: {
-            title: 1,
-            description: 1,
-            location: 1,
-            price: 1,
-            pricePeriod: 1,
-            propertyType: 1,
-            bedrooms: 1,
-            bathrooms: 1,
-            images: 1,
-            createdAt: 1,
-            status: 1,
-            listingType: 1,
-            
-            listingPurpose: 1,
-            nightlyRate: 1,
-            maxGuests: 1,
-            minimumNights: 1,
-            checkInTime: 1,
-            checkOutTime: 1
+   
+const properties = await db.collection("properties")
+  .find(
+    { status: "published" },
+    {
+      projection: {
+        title: 1,
+        description: 1,
+        location: 1,
+        price: 1,
+        pricePeriod: 1,
+        propertyType: 1,
+        bedrooms: 1,
+        bathrooms: 1,
+        images: 1,
+        createdAt: 1,
+        status: 1,
+        listingType: 1,
+        listingPurpose: 1,
 
-          }
-        }
-      )
-      .sort({ createdAt: -1 })
-      .toArray();
+        // Land details
+        landSize: 1,
+        landUnit: 1,
+        landUse: 1,
+        titleDeed: 1,
+
+        // Rental inventory
+        rentalArrangement: 1,
+        totalRentalUnits: 1,
+        availableRentalUnits: 1,
+
+        // Airbnb / short-stay details
+        nightlyRate: 1,
+        maxGuests: 1,
+        minimumNights: 1,
+        checkInTime: 1,
+        checkOutTime: 1,
+        guestCapacity: 1,
+        stayAmenities: 1,
+        checkInInfo: 1
+      }
+    }
+  )
+  .sort({ createdAt: -1 })
+  .toArray();
 
     res.json({
       status: "ok",
@@ -787,8 +809,8 @@ app.get("/api/properties", async (req, res) => {
 });
 
 
-function validateProperty(data) {
 
+function validateProperty(data) {
   const allowed = [
     "title",
     "description",
@@ -801,17 +823,28 @@ function validateProperty(data) {
     "bathrooms",
     "images",
     "status",
+
+    // Land details
     "landSize",
     "landUnit",
     "landUse",
     "titleDeed",
+
+    // Rental inventory
+    "rentalArrangement",
+    "totalRentalUnits",
+    "availableRentalUnits",
+
+    // Airbnb / short-stay details
     "nightlyRate",
     "maxGuests",
     "minimumNights",
     "checkInTime",
-    "checkOutTime"
+    "checkOutTime",
+    "guestCapacity",
+    "stayAmenities",
+    "checkInInfo"
   ];
-
 
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     return "Invalid property data";
@@ -882,11 +915,75 @@ function validateProperty(data) {
     return "Images must be a list of up to 10 image URLs";
   }
 
+  // Rental arrangement
+  if (
+    data.rentalArrangement !== undefined &&
+    !["whole", "units", "rooms"].includes(data.rentalArrangement)
+  ) {
+    return "Rental arrangement must be whole, units, or rooms";
+  }
+
+  // Rental inventory and guest capacity
+  for (const field of [
+    "totalRentalUnits",
+    "availableRentalUnits",
+    "guestCapacity"
+  ]) {
+    if (
+      data[field] !== undefined &&
+      (!Number.isInteger(data[field]) ||
+        data[field] < 0 ||
+        data[field] > 10000)
+    ) {
+      return field + " must be a whole number from 0 to 10000";
+    }
+  }
+
+  if (
+    Number.isInteger(data.totalRentalUnits) &&
+    Number.isInteger(data.availableRentalUnits) &&
+    data.totalRentalUnits > 0 &&
+    data.availableRentalUnits > data.totalRentalUnits
+  ) {
+    return "Available rental units cannot exceed total rental units";
+  }
+
+  // Short-stay numeric fields
+  for (const field of ["nightlyRate", "maxGuests", "minimumNights"]) {
+    if (
+      data[field] !== undefined &&
+      (typeof data[field] !== "number" ||
+        !Number.isFinite(data[field]) ||
+        data[field] < (field === "minimumNights" ? 1 : 0) ||
+        data[field] > 1000000)
+    ) {
+      return "Invalid value for " + field;
+    }
+  }
+
+  // Short-stay text fields
+  for (const field of [
+    "checkInTime",
+    "checkOutTime",
+    "stayAmenities",
+    "checkInInfo"
+  ]) {
+    if (
+      data[field] !== undefined &&
+      (typeof data[field] !== "string" ||
+        data[field].length > (field === "stayAmenities" ||
+          field === "checkInInfo" ? 2000 : 100))
+    ) {
+      return "Invalid text value for " + field;
+    }
+  }
+
   return null;
 }
 
+
+
 function cleanProperty(data) {
-  
   const fields = [
     "title",
     "description",
@@ -899,15 +996,27 @@ function cleanProperty(data) {
     "bathrooms",
     "images",
     "status",
+
+    // Land details
     "landSize",
     "landUnit",
     "landUse",
     "titleDeed",
+
+    // Rental inventory
+    "rentalArrangement",
+    "totalRentalUnits",
+    "availableRentalUnits",
+
+    // Airbnb / short-stay details
     "nightlyRate",
     "maxGuests",
     "minimumNights",
     "checkInTime",
-    "checkOutTime"
+    "checkOutTime",
+    "guestCapacity",
+    "stayAmenities",
+    "checkInInfo"
   ];
 
   const result = {};
@@ -918,11 +1027,25 @@ function cleanProperty(data) {
     }
   }
 
-  if (typeof result.title === "string") result.title = result.title.trim();
-  if (typeof result.location === "string") result.location = result.location.trim();
+  if (typeof result.title === "string") {
+    result.title = result.title.trim();
+  }
+
+  if (typeof result.location === "string") {
+    result.location = result.location.trim();
+  }
+
+  if (typeof result.stayAmenities === "string") {
+    result.stayAmenities = result.stayAmenities.trim();
+  }
+
+  if (typeof result.checkInInfo === "string") {
+    result.checkInInfo = result.checkInInfo.trim();
+  }
 
   return result;
 }
+
 app.patch("/api/admin/enquiries/:id", requireAdmin, async (req, res) => {
   try {
     if (!db) {
@@ -1365,28 +1488,41 @@ app.patch("/api/properties/:id", requireAdmin, async (req, res) => {
     }
 
    
-    const allowed = [
-      "title",
-      "description",
-      "location",
-      "price",
-      "pricePeriod",
-      "propertyType",
-      "listingPurpose",
-      "bedrooms",
-      "bathrooms",
-      "images",
-      "status",
-      "landSize",
-      "landUnit",
-      "landUse",
-      "titleDeed",
-      "nightlyRate",
-      "maxGuests",
-      "minimumNights",
-      "checkInTime",
-      "checkOutTime"
-    ];
+    
+const allowed = [
+  "title",
+  "description",
+  "location",
+  "price",
+  "pricePeriod",
+  "propertyType",
+  "listingPurpose",
+  "bedrooms",
+  "bathrooms",
+  "images",
+  "status",
+
+  // Land details
+  "landSize",
+  "landUnit",
+  "landUse",
+  "titleDeed",
+
+  // Rental inventory
+  "rentalArrangement",
+  "totalRentalUnits",
+  "availableRentalUnits",
+
+  // Airbnb / short-stay details
+  "nightlyRate",
+  "maxGuests",
+  "minimumNights",
+  "checkInTime",
+  "checkOutTime",
+  "guestCapacity",
+  "stayAmenities",
+  "checkInInfo"
+];
 
 
     for (const key of Object.keys(changes)) {
