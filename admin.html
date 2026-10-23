@@ -494,14 +494,38 @@ function showDashboard() {
   $("dashboard").hidden = false;
 }
 
-function logout(showMessage = true) {
+async function logout(showMessage = true) {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  let serverLogoutConfirmed = false;
+
+  if (token) {
+    try {
+      const response = await fetch(API + "/api/admin/logout", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token
+        }
+      });
+
+      serverLogoutConfirmed = response.ok;
+    } catch (error) {
+      console.error("Could not confirm server logout.");
+    }
+  }
+
   sessionStorage.removeItem(TOKEN_KEY);
   $("dashboard").hidden = true;
   $("loginPanel").hidden = false;
   resetForm();
-  if (showMessage) message("You have logged out.");
-}
 
+  if (showMessage) {
+    message(
+      serverLogoutConfirmed || !token
+        ? "You have logged out."
+        : "Logged out on this device, but the server could not confirm logout. Check your connection and try again."
+    );
+  }
+}
 
 function resetForm() {
   editingId = "";
