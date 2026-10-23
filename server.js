@@ -40,6 +40,17 @@ const loginAttempts = new Map();
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
+function cleanupLoginAttempts(now = Date.now()) {
+  for (const [clientKey, attempt] of loginAttempts) {
+    const expired =
+      attempt.lockedUntil <= now &&
+      now - attempt.windowStartedAt >= LOGIN_WINDOW_MS;
+
+    if (expired) {
+      loginAttempts.delete(clientKey);
+    }
+  }
+}
 function safeCompare(a, b) {
   const first = Buffer.from(String(a));
   const second = Buffer.from(String(b));
@@ -437,6 +448,7 @@ app.get("/admin.html", (req, res) => {
   res.sendFile(path.join(__dirname, "admin.html"));
 });
 app.post("/api/admin/login", (req, res) => {
+  cleanupLoginAttempts();
   const now = Date.now();
 const clientKey = req.ip || req.socket.remoteAddress || "unknown";
 let attempt = loginAttempts.get(clientKey);
