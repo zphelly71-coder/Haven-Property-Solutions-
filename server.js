@@ -466,7 +466,19 @@ app.post("/api/admin/login", (req, res) => {
     expiresIn: SESSION_DURATION
   });
 });
+app.post("/api/admin/logout", requireAdmin, (req, res) => {
+  const authorization = req.headers.authorization || "";
+  const token = authorization.startsWith("Bearer ")
+    ? authorization.slice(7)
+    : "";
 
+  adminSessions.delete(token);
+
+  return res.json({
+    status: "ok",
+    message: "Logged out successfully"
+  });
+});
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
