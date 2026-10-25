@@ -2800,6 +2800,15 @@ await mongoClient.connect();
 console.log("MongoDB Atlas connection established.");
 
   db = mongoClient.db(DB_NAME);
+  
+  await db.collection("admin_login_attempts").createIndex(
+    { expiresAt: 1 },
+    {
+      expireAfterSeconds: 0,
+      name: "ttl_admin_login_attempts"
+    }
+  );
+
   await db.collection("financial_payments").createIndex(
   { mpesaReceiptNumber: 1 },
   {
