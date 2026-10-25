@@ -37,21 +37,21 @@ let db;
 let mongoClient;
 const adminSessions = new Map();
 const SESSION_DURATION = 2 * 60 * 60 * 1000;
-const loginAttempts = new Map();
+
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
-function cleanupLoginAttempts(now = Date.now()) {
-  for (const [clientKey, attempt] of loginAttempts) {
-    const expired =
-      attempt.lockedUntil <= now &&
-      now - attempt.windowStartedAt >= LOGIN_WINDOW_MS;
+const LOGIN_ATTEMPTS_COLLECTION = "admin_login_attempts";
 
-    if (expired) {
-      loginAttempts.delete(clientKey);
-    }
-  }
+function getLoginClientKey(req, secret) {
+  const clientIp = req.ip || req.socket.remoteAddress || "unknown";
+
+  return crypto
+    .createHmac("sha256", secret)
+    .update(clientIp)
+    .digest("hex");
 }
+
 function safeCompare(a, b) {
   const first = Buffer.from(String(a));
   const second = Buffer.from(String(b));
@@ -448,27 +448,8 @@ app.get("/property.html", (req, res) => {
 app.get("/admin.html", (req, res) => {
   res.sendFile(path.join(__dirname, "admin.html"));
 });
-app.post("/api/admin/login", (req, res) => {
-  cleanupLoginAttempts();
-  const now = Date.now();
-const clientKey = req.ip || req.socket.remoteAddress || "unknown";
-let attempt = loginAttempts.get(clientKey);
 
-if (attempt && attempt.lockedUntil > now) {
-  return res.status(429).json({
-    status: "error",
-    message: "Too many failed login attempts. Try again in 15 minutes."
-  });
-}
-
-if (!attempt || now - attempt.windowStartedAt >= LOGIN_WINDOW_MS) {
-  attempt = {
-    count: 0,
-    windowStartedAt: now,
-    lockedUntil: 0
-  };
-  loginAttempts.set(clientKey, attempt);
-}
+app.post("/api/admin/login", async (req, res) => {
   const password = req.body?.password;
   const adminPassword = process.env.ADMIN_PASSWORD;
 
@@ -479,37 +460,143 @@ if (!attempt || now - attempt.windowStartedAt >= LOGIN_WINDOW_MS) {
     });
   }
 
- if (
-  typeof password !== "string" ||
-  !safeCompare(password, adminPassword)
-) {
-  attempt.count += 1;
-
-  if (attempt.count >= MAX_LOGIN_ATTEMPTS) {
-    attempt.lockedUntil = Date.now() + LOGIN_LOCKOUT_MS;
+  if (!db) {
+    return res.status(503).json({
+      status: "error",
+      message: "Login service temporarily unavailable"
+    });
   }
 
-  loginAttempts.set(clientKey, attempt);
+  const secret =
+    process.env.LOGIN_RATE_LIMIT_SECRET || adminPassword;
 
-  return res.status(401).json({
-    status: "error",
-    message: "Invalid admin password"
-  });
-}
-  loginAttempts.delete(clientKey);
-  const token = crypto.randomBytes(32).toString("hex");
+  const clientKey = getLoginClientKey(req, secret);
+  const attempts = db.collection(LOGIN_ATTEMPTS_COLLECTION);
+  const now = new Date();
 
-  adminSessions.set(
-    token,
-    Date.now() + SESSION_DURATION
-  );
+  try {
+    // Reject requests while this client is locked.
+    const activeLock = await attempts.findOne({
+      _id: clientKey,
+      lockedUntil: { $gt: now }
+    });
 
-  return res.json({
-    status: "ok",
-    token,
-    expiresIn: SESSION_DURATION
-  });
+    if (activeLock) {
+      return res.status(429).json({
+        status: "error",
+        message: "Too many failed login attempts. Try again in 15 minutes."
+      });
+    }
+
+    if (
+      typeof password !== "string" ||
+      !safeCompare(password, adminPassword)
+    ) {
+      const windowExpired = {
+        $or: [
+          {
+            $eq: [
+              { $type: "$windowStartedAt" },
+              "missing"
+            ]
+          },
+          {
+            $lte: [
+              "$windowStartedAt",
+              new Date(now.getTime() - LOGIN_WINDOW_MS)
+            ]
+          },
+          {
+            $lte: [
+              { $ifNull: ["$lockedUntil", new Date(0)] },
+              now
+            ]
+          }
+        ]
+      };
+
+      const nextCount = {
+        $add: [{ $ifNull: ["$count", 0] }, 1]
+      };
+
+      await attempts.findOneAndUpdate(
+        { _id: clientKey },
+        [
+          {
+            $set: {
+              count: {
+                $cond: [windowExpired, 1, nextCount]
+              },
+              windowStartedAt: {
+                $cond: [
+                  windowExpired,
+                  now,
+                  "$windowStartedAt"
+                ]
+              },
+              lockedUntil: {
+                $cond: [
+                  windowExpired,
+                  new Date(0),
+                  {
+                    $cond: [
+                      { $gte: [nextCount, MAX_LOGIN_ATTEMPTS] },
+                      new Date(now.getTime() + LOGIN_LOCKOUT_MS),
+                      { $ifNull: ["$lockedUntil", new Date(0)] }
+                    ]
+                  }
+                ]
+              },
+              expiresAt: {
+                $cond: [
+                  windowExpired,
+                  new Date(now.getTime() + LOGIN_WINDOW_MS),
+                  {
+                    $cond: [
+                      { $gte: [nextCount, MAX_LOGIN_ATTEMPTS] },
+                      new Date(now.getTime() + LOGIN_LOCKOUT_MS),
+                      "$expiresAt"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        { upsert: true }
+      );
+
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid admin password"
+      });
+    }
+
+    // Successful login clears this client's failed attempts.
+    await attempts.deleteOne({ _id: clientKey });
+
+    const token = crypto.randomBytes(32).toString("hex");
+
+    adminSessions.set(
+      token,
+      Date.now() + SESSION_DURATION
+    );
+
+    return res.json({
+      status: "ok",
+      token,
+      expiresIn: SESSION_DURATION
+    });
+  } catch (error) {
+    console.error("Admin login error:", error);
+
+    return res.status(503).json({
+      status: "error",
+      message: "Login service temporarily unavailable"
+    });
+  }
 });
+
 app.post("/api/admin/logout", requireAdmin, (req, res) => {
   const authorization = req.headers.authorization || "";
   const token = authorization.startsWith("Bearer ")
