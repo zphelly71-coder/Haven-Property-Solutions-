@@ -492,28 +492,39 @@ app.post("/api/admin/login", async (req, res) => {
       typeof password !== "string" ||
       !safeCompare(password, adminPassword)
     ) {
-      const windowExpired = {
-        $or: [
-          {
-            $eq: [
-              { $type: "$windowStartedAt" },
-              "missing"
-            ]
-          },
-          {
-            $lte: [
-              "$windowStartedAt",
-              new Date(now.getTime() - LOGIN_WINDOW_MS)
-            ]
-          },
-          {
-            $lte: [
-              { $ifNull: ["$lockedUntil", new Date(0)] },
-              now
-            ]
-          }
-        ]
-      };
+     
+const windowExpired = {
+  $or: [
+    {
+      $eq: [
+        { $type: "$windowStartedAt" },
+        "missing"
+      ]
+    },
+    {
+      $lte: [
+        "$windowStartedAt",
+        new Date(now.getTime() - LOGIN_WINDOW_MS)
+      ]
+    },
+    {
+      $and: [
+        {
+          $gte: [
+            { $ifNull: ["$count", 0] },
+            MAX_LOGIN_ATTEMPTS
+          ]
+        },
+        {
+          $lte: [
+            { $ifNull: ["$lockedUntil", new Date(0)] },
+            now
+          ]
+        }
+      ]
+    }
+  ]
+};
 
       const nextCount = {
         $add: [{ $ifNull: ["$count", 0] }, 1]
