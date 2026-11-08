@@ -37,6 +37,7 @@ let db;
 let mongoClient;
 const adminSessions = new Map();
 const landlordSessions = new Map();
+const superAdminSessions = new Map();
 const SESSION_DURATION = 2 * 60 * 60 * 1000;
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
