@@ -651,6 +651,41 @@ const windowExpired = {
   }
 });
 
+app.post("/api/super-admin/login", async (req, res) => {
+  const password = req.body?.password;
+  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD;
+
+  if (!superAdminPassword) {
+    return res.status(503).json({
+      status: "error",
+      message: "Super Admin login is not configured"
+    });
+  }
+
+  if (
+    typeof password !== "string" ||
+    !safeCompare(password, superAdminPassword)
+  ) {
+    return res.status(401).json({
+      status: "error",
+      message: "Invalid Super Admin password"
+    });
+  }
+
+  const token = crypto.randomBytes(32).toString("hex");
+
+  superAdminSessions.set(
+    token,
+    Date.now() + SESSION_DURATION
+  );
+
+  return res.json({
+    status: "ok",
+    token,
+    expiresIn: SESSION_DURATION
+  });
+});
+
 app.post("/api/admin/logout", requireAdmin, (req, res) => {
   const authorization = req.headers.authorization || "";
   const token = authorization.startsWith("Bearer ")
