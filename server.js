@@ -36,6 +36,7 @@ app.use(express.json());
 let db;
 let mongoClient;
 const adminSessions = new Map();
+const landlordSessions = new Map();
 const SESSION_DURATION = 2 * 60 * 60 * 1000;
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -232,6 +233,29 @@ function requireAdmin(req, res, next) {
 
   next();
 }
+
+function requireLandlord(req, res, next) {
+  const authorization = req.headers.authorization || "";
+  const token = authorization.startsWith("Bearer ")
+    ? authorization.slice(7)
+    : "";
+
+  const session = landlordSessions.get(token);
+
+  if (!token || !session || session.expiresAt < Date.now()) {
+    landlordSessions.delete(token);
+
+    return res.status(401).json({
+      status: "error",
+      message: "Landlord login required"
+    });
+  }
+
+  req.landlordId = session.landlordId;
+
+  next();
+}
+
 
 app.post(
   "/api/admin/mpesa/stk-push",
