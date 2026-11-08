@@ -256,7 +256,25 @@ function requireLandlord(req, res, next) {
 
   next();
 }
+function requireSuperAdmin(req, res, next) {
+  const authorization = req.headers.authorization || "";
+  const token = authorization.startsWith("Bearer ")
+    ? authorization.slice(7)
+    : "";
 
+  const expiresAt = superAdminSessions.get(token);
+
+  if (!token || !expiresAt || expiresAt < Date.now()) {
+    superAdminSessions.delete(token);
+
+    return res.status(401).json({
+      status: "error",
+      message: "Super Admin login required"
+    });
+  }
+
+  next();
+}
 
 app.post(
   "/api/admin/mpesa/stk-push",
