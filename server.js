@@ -776,6 +776,75 @@ app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
     });
   }
 });
+app.patch(
+  "/api/super-admin/properties/:propertyId/assign-landlord",
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
+
+      const propertyId = req.params.propertyId;
+      const landlordId = req.body?.landlordId;
+
+      if (
+        !ObjectId.isValid(propertyId) ||
+        !ObjectId.isValid(landlordId)
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "A valid property ID and landlord ID are required"
+        });
+      }
+
+      const landlord = await db.collection("landlords").findOne({
+        _id: new ObjectId(landlordId),
+        status: "active"
+      });
+
+      if (!landlord) {
+        return res.status(404).json({
+          status: "error",
+          message: "Active landlord not found"
+        });
+      }
+
+      const result = await db.collection("properties").updateOne(
+        { _id: new ObjectId(propertyId) },
+        {
+          $set: {
+            landlordId: landlord._id,
+            updatedAt: new Date()
+          }
+        }
+      );
+
+      if (result.matchedCount === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Property not found"
+        });
+      }
+
+      return res.json({
+        status: "ok",
+        message: "Property assigned to landlord successfully",
+        propertyId,
+        landlord: {
+          id: landlord._id,
+          name: landlord.name,
+          email: landlord.email
+        }
+      });
+    } catch (error) {
+      console.error("Assign landlord error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to assign property to landlord"
+      });
+    }
+  }
+);
 
 app.post("/api/admin/logout", requireAdmin, (req, res) => {
   const authorization = req.headers.authorization || "";
