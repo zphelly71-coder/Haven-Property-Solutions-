@@ -26,8 +26,19 @@ const MPESA_BASE_URL =
   MPESA_ENVIRONMENT === "production"
     ? "https://api.safaricom.co.ke"
     : "https://sandbox.safaricom.co.ke";
+const allowedOrigins = [
+  "https://zphelly71-coder.github.io",
+  "https://hoppscotch.io"
+];
+
 app.use(cors({
-  origin: "https://zphelly71-coder.github.io",
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Origin not allowed by CORS"));
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   optionsSuccessStatus: 204
