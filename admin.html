@@ -1584,7 +1584,9 @@ $("paymentDealId").addEventListener("change", async () => {
 
 $("financialPaymentForm").addEventListener("submit", async event => {
   event.preventDefault();
-
+if ($("savePaymentButton").disabled) {
+  return;
+}
   const button = $("savePaymentButton");
   const status = $("paymentStatus");
   const dealId = $("paymentDealId").value;
