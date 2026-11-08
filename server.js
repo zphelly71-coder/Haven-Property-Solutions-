@@ -686,6 +686,85 @@ app.post("/api/super-admin/login", async (req, res) => {
     expiresIn: SESSION_DURATION
   });
 });
+app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
+  try {
+    const name = req.body?.name?.trim();
+    const email = req.body?.email?.trim().toLowerCase();
+    const password = req.body?.password;
+
+    if (!name || !email || typeof password !== "string") {
+      return res.status(400).json({
+        status: "error",
+        message: "Name, email and password are required"
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        status: "error",
+        message: "Password must be at least 8 characters long"
+      });
+    }
+
+    const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    if (!emailIsValid) {
+      return res.status(400).json({
+        status: "error",
+        message: "Please provide a valid email address"
+      });
+    }
+
+    const existingLandlord = await db.collection("landlords").findOne({
+      email
+    });
+
+    if (existingLandlord) {
+      return res.status(409).json({
+        status: "error",
+        message: "A landlord with this email already exists"
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const landlord = {
+      name,
+      email,
+      passwordHash,
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const result = await db.collection("landlords").insertOne(landlord);
+
+    return res.status(201).json({
+      status: "ok",
+      message: "Landlord account created successfully",
+      landlord: {
+        id: result.insertedId,
+        name: landlord.name,
+        email: landlord.email,
+        status: landlord.status
+      }
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        status: "error",
+        message: "A landlord with this email already exists"
+      });
+    }
+
+    console.error("Create landlord error:", error);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Unable to create landlord account"
+    });
+  }
+});
 
 app.post("/api/admin/logout", requireAdmin, (req, res) => {
   const authorization = req.headers.authorization || "";
