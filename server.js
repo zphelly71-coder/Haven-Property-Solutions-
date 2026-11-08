@@ -6,6 +6,7 @@ const cors = require("cors");
 const { MongoClient, ObjectId } = require("mongodb");
 const crypto = require("crypto");
 const path = require("path");
+const bcrypt = require("bcryptjs");
 
 const app = express();
 app.set("trust proxy", 1);
