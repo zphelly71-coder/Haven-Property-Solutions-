@@ -837,6 +837,65 @@ app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
   }
 });
 app.patch(
+  "/api/super-admin/landlords/:landlordId/password",
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
+
+      const landlordId = req.params.landlordId;
+      const password = req.body?.password;
+
+      if (!ObjectId.isValid(landlordId)) {
+        return res.status(400).json({
+          status: "error",
+          message: "A valid landlord ID is required"
+        });
+      }
+
+      if (typeof password !== "string" || password.length < 8) {
+        return res.status(400).json({
+          status: "error",
+          message: "Password must be at least 8 characters long"
+        });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 12);
+
+      const result = await db.collection("landlords").updateOne(
+        {
+          _id: new ObjectId(landlordId)
+        },
+        {
+          $set: {
+            passwordHash,
+            updatedAt: new Date()
+          }
+        }
+      );
+
+      if (result.matchedCount === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Landlord not found"
+        });
+      }
+
+      return res.json({
+        status: "ok",
+        message: "Landlord password updated successfully"
+      });
+    } catch (error) {
+      console.error("Update landlord password error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to update landlord password"
+      });
+    }
+  }
+);
+app.patch(
   "/api/super-admin/properties/:propertyId/assign-landlord",
   requireSuperAdmin,
   async (req, res) => {
