@@ -697,6 +697,66 @@ app.post("/api/super-admin/login", async (req, res) => {
     expiresIn: SESSION_DURATION
   });
 });
+app.post("/api/landlord/login", async (req, res) => {
+  try {
+    const email = req.body?.email?.trim().toLowerCase();
+    const password = req.body?.password;
+
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !email ||
+      !password
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Email and password are required"
+      });
+    }
+
+    const landlord = await db.collection("landlords").findOne({
+      email,
+      status: "active"
+    });
+
+    if (
+      !landlord ||
+      !landlord.passwordHash ||
+      !(await bcrypt.compare(password, landlord.passwordHash))
+    ) {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid email or password"
+      });
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+
+    landlordSessions.set(token, {
+      landlordId: landlord._id.toString(),
+      expiresAt: Date.now() + SESSION_DURATION
+    });
+
+    return res.json({
+      status: "ok",
+      message: "Landlord login successful",
+      token,
+      expiresIn: SESSION_DURATION,
+      landlord: {
+        id: landlord._id,
+        name: landlord.name,
+        email: landlord.email
+      }
+    });
+  } catch (error) {
+    console.error("Landlord login error:", error);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Unable to log in"
+    });
+  }
+});
 app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
   try {
     const name = req.body?.name?.trim();
