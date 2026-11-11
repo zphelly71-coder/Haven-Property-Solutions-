@@ -1191,6 +1191,116 @@ app.patch(
   }
 );
 
+app.post(
+  "/api/landlord/tenants/:tenantId/removal-request",
+  requireLandlord,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
+
+      const tenantId = req.params.tenantId;
+      const reason = req.body?.reason;
+      const proposedEndDate = req.body?.proposedEndDate;
+
+      if (!ObjectId.isValid(tenantId)) {
+        return res.status(400).json({
+          status: "error",
+          message: "A valid tenant ID is required"
+        });
+      }
+
+      if (
+        typeof reason !== "string" ||
+        !reason.trim() ||
+        reason.trim().length < 5
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Please provide a valid removal reason"
+        });
+      }
+
+      if (!proposedEndDate) {
+        return res.status(400).json({
+          status: "error",
+          message: "A proposed tenancy end date is required"
+        });
+      }
+
+      const endDate = new Date(proposedEndDate);
+
+      if (Number.isNaN(endDate.getTime())) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid proposed end date"
+        });
+      }
+
+      const landlordObjectId = new ObjectId(req.landlordId);
+      const tenantObjectId = new ObjectId(tenantId);
+
+      const tenant = await db.collection("tenants").findOne({
+        _id: tenantObjectId,
+        landlordId: landlordObjectId,
+        status: "active"
+      });
+
+      if (!tenant) {
+        return res.status(404).json({
+          status: "error",
+          message: "Active tenant not found under your account"
+        });
+      }
+
+      const existingRequest = await db.collection("tenantRemovalRequests")
+        .findOne({
+          tenantId: tenantObjectId,
+          status: "pending"
+        });
+
+      if (existingRequest) {
+        return res.status(409).json({
+          status: "error",
+          message: "A pending removal request already exists"
+        });
+      }
+
+      const removalRequest = {
+        tenantId: tenantObjectId,
+        landlordId: landlordObjectId,
+        propertyId: tenant.propertyId,
+        reason: reason.trim(),
+        proposedEndDate: endDate,
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const result = await db.collection("tenantRemovalRequests")
+        .insertOne(removalRequest);
+
+      return res.status(201).json({
+        status: "ok",
+        message: "Tenant removal request submitted for Super Admin approval",
+        request: {
+          id: result.insertedId,
+          tenantId: tenantObjectId,
+          status: "pending",
+          proposedEndDate: endDate
+        }
+      });
+
+    } catch (error) {
+      console.error("Tenant removal request error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to submit tenant removal request"
+      });
+    }
+  }
+);
+
 app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
   try {
     const name = req.body?.name?.trim();
