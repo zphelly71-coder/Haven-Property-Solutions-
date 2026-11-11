@@ -1024,6 +1024,172 @@ app.post(
   }
 );
 
+app.patch(
+  "/api/landlord/tenants/:tenantId",
+  requireLandlord,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
+
+      const tenantId = req.params.tenantId;
+
+      if (!ObjectId.isValid(tenantId)) {
+        return res.status(400).json({
+          status: "error",
+          message: "A valid tenant ID is required"
+        });
+      }
+
+      const allowedFields = [
+        "name",
+        "email",
+        "phone",
+        "unitNumber",
+        "monthlyRent",
+        "deposit"
+      ];
+
+      const updates = {};
+
+      for (const field of allowedFields) {
+        if (req.body?.[field] !== undefined) {
+          updates[field] = req.body[field];
+        }
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({
+          status: "error",
+          message: "No valid tenant details supplied"
+        });
+      }
+
+      if (
+        updates.name !== undefined &&
+        (typeof updates.name !== "string" || !updates.name.trim())
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Tenant name cannot be empty"
+        });
+      }
+
+      if (updates.email !== undefined) {
+        if (typeof updates.email !== "string") {
+          return res.status(400).json({
+            status: "error",
+            message: "Invalid email address"
+          });
+        }
+
+        updates.email = updates.email.trim().toLowerCase();
+
+        if (
+          updates.email &&
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)
+        ) {
+          return res.status(400).json({
+            status: "error",
+            message: "Invalid email address"
+          });
+        }
+      }
+
+      if (updates.phone !== undefined) {
+        if (
+          typeof updates.phone !== "string" ||
+          !updates.phone.trim()
+        ) {
+          return res.status(400).json({
+            status: "error",
+            message: "A valid phone number is required"
+          });
+        }
+
+        updates.phone = updates.phone.trim();
+      }
+
+      if (updates.name !== undefined) {
+        updates.name = updates.name.trim();
+      }
+
+      if (updates.unitNumber !== undefined) {
+        if (typeof updates.unitNumber !== "string") {
+          return res.status(400).json({
+            status: "error",
+            message: "Invalid unit number"
+          });
+        }
+
+        updates.unitNumber = updates.unitNumber.trim();
+      }
+
+      if (updates.monthlyRent !== undefined) {
+        updates.monthlyRent = Number(updates.monthlyRent);
+
+        if (
+          !Number.isFinite(updates.monthlyRent) ||
+          updates.monthlyRent <= 0
+        ) {
+          return res.status(400).json({
+            status: "error",
+            message: "Monthly rent must be greater than zero"
+          });
+        }
+      }
+
+      if (updates.deposit !== undefined) {
+        updates.deposit = Number(updates.deposit);
+
+        if (
+          !Number.isFinite(updates.deposit) ||
+          updates.deposit < 0
+        ) {
+          return res.status(400).json({
+            status: "error",
+            message: "Deposit cannot be negative"
+          });
+        }
+      }
+
+      const landlordObjectId = new ObjectId(req.landlordId);
+
+      const result = await db.collection("tenants").updateOne(
+        {
+          _id: new ObjectId(tenantId),
+          landlordId: landlordObjectId,
+          status: "active"
+        },
+        {
+          $set: {
+            ...updates,
+            updatedAt: new Date()
+          }
+        }
+      );
+
+      if (result.matchedCount === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Active tenant not found under your account"
+        });
+      }
+
+      return res.json({
+        status: "ok",
+        message: "Tenant details updated successfully"
+      });
+
+    } catch (error) {
+      console.error("Update tenant error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to update tenant details"
+      });
+    }
+  }
+);
 
 app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
   try {
