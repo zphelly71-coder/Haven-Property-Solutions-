@@ -1796,6 +1796,447 @@ if (error.message === "EFFECTIVE_DATE_CONFLICT") {
 );
 
 
+app.post(
+  "/api/super-admin/rent-invoices/generate",
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const {
+        billingMonth,
+        billingYear,
+        issueDate,
+        dueDate,
+        scope,
+        propertyId,
+        tenantIds
+      } = req.body || {};
+
+      const month = Number(billingMonth);
+      const year = Number(billingYear);
+
+      if (
+        !Number.isInteger(month) ||
+        month < 1 ||
+        month > 12 ||
+        !Number.isInteger(year) ||
+        year < 2000 ||
+        year > 2100
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Enter a valid billing month and year"
+        });
+      }
+
+      if (!["all", "property", "tenants"].includes(scope)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Select all tenants, one property, or selected tenants"
+        });
+      }
+
+      if (
+        scope === "property" &&
+        (typeof propertyId !== "string" || !ObjectId.isValid(propertyId))
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "A valid property ID is required"
+        });
+      }
+
+      if (
+        scope === "tenants" &&
+        (
+          !Array.isArray(tenantIds) ||
+          tenantIds.length === 0 ||
+          tenantIds.length > 500 ||
+          !tenantIds.every(
+            id => typeof id === "string" && ObjectId.isValid(id)
+          )
+        )
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Select between 1 and 500 valid tenant IDs"
+        });
+      }
+
+      function parseDateOnly(value) {
+        if (
+          typeof value !== "string" ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(value)
+        ) {
+          return null;
+        }
+
+        const date = new Date(`${value}T00:00:00.000Z`);
+
+        return !Number.isNaN(date.getTime()) &&
+          date.toISOString().slice(0, 10) === value
+          ? date
+          : null;
+      }
+
+      const invoiceDate = parseDateOnly(issueDate);
+      const defaultDueDate =
+        `${year}-${String(month).padStart(2, "0")}-05`;
+      const paymentDueDate = parseDateOnly(dueDate || defaultDueDate);
+
+      if (!invoiceDate || !paymentDueDate) {
+        return res.status(400).json({
+          status: "error",
+          message: "Valid issue and due dates are required (YYYY-MM-DD)"
+        });
+      }
+
+      if (paymentDueDate < invoiceDate) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invoice due date cannot be earlier than its issue date"
+        });
+      }
+
+      const tenantFilter = {
+        status: { $in: ["active", "ended"] }
+      };
+
+      if (scope === "property") {
+        tenantFilter.propertyId = new ObjectId(propertyId);
+      }
+
+      if (scope === "tenants") {
+        tenantFilter._id = {
+          $in: tenantIds.map(id => new ObjectId(id))
+        };
+      }
+
+      const selectedTenants = await db.collection("tenants")
+        .find(tenantFilter)
+        .toArray();
+
+      const billingStart = new Date(Date.UTC(year, month - 1, 1));
+      const billingEndExclusive = new Date(Date.UTC(year, month, 1));
+      const lastBillingDay = new Date(
+        billingEndExclusive.getTime() - 86400000
+      );
+
+      const daysInMonth = Math.round(
+        (billingEndExclusive - billingStart) / 86400000
+      );
+
+      function toUtcDateOnly(value) {
+        if (!value) return null;
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) return null;
+
+        return new Date(Date.UTC(
+          date.getUTCFullYear(),
+          date.getUTCMonth(),
+          date.getUTCDate()
+        ));
+      }
+
+      const eligibleTenants = selectedTenants.filter(tenant => {
+        const start = toUtcDateOnly(tenant.tenancyStartDate);
+        const end = tenant.tenancyEndDate
+          ? toUtcDateOnly(tenant.tenancyEndDate)
+          : null;
+
+        if (!start || (tenant.tenancyEndDate && !end)) return false;
+        if (end && end < start) return false;
+        if (start >= billingEndExclusive) return false;
+        if (end && end < billingStart) return false;
+
+        return true;
+      });
+
+      const eligibleIds = eligibleTenants.map(tenant => tenant._id);
+
+      const approvedSchedules = eligibleIds.length
+        ? await db.collection("rentSchedules")
+            .find({
+              tenantId: { $in: eligibleIds },
+              status: "approved",
+              effectiveDate: { $lt: billingEndExclusive }
+            })
+            .sort({ effectiveDate: 1, approvedAt: 1 })
+            .toArray()
+        : [];
+
+      const schedulesByTenant = new Map();
+
+      for (const schedule of approvedSchedules) {
+        const effectiveDate = toUtcDateOnly(schedule.effectiveDate);
+        const newRent = Number(schedule.newRent);
+
+        if (
+          !effectiveDate ||
+          !Number.isFinite(newRent) ||
+          newRent <= 0
+        ) {
+          throw new Error("INVALID_APPROVED_RENT_SCHEDULE");
+        }
+
+        const key = schedule.tenantId.toString();
+
+        if (!schedulesByTenant.has(key)) {
+          schedulesByTenant.set(key, []);
+        }
+
+        schedulesByTenant.get(key).push({
+          scheduleId: schedule._id,
+          effectiveDate,
+          newRent
+        });
+      }
+
+      const calculatedInvoices = [];
+
+      for (const tenant of eligibleTenants) {
+        const startDate = toUtcDateOnly(tenant.tenancyStartDate);
+        const endDate = tenant.tenancyEndDate
+          ? toUtcDateOnly(tenant.tenancyEndDate)
+          : lastBillingDay;
+
+        const chargeStart = startDate > billingStart
+          ? startDate
+          : billingStart;
+
+        const chargeEnd = endDate < lastBillingDay
+          ? endDate
+          : lastBillingDay;
+
+        let currentRent = Number(tenant.monthlyRent);
+
+        if (!Number.isFinite(currentRent) || currentRent <= 0) {
+          continue;
+        }
+
+        const schedules =
+          schedulesByTenant.get(tenant._id.toString()) || [];
+
+        let scheduleIndex = 0;
+        let totalRent = 0;
+        let chargeableDays = 0;
+        const appliedRentScheduleIds = [];
+
+        for (
+          let day = new Date(chargeStart);
+          day <= chargeEnd;
+          day.setUTCDate(day.getUTCDate() + 1)
+        ) {
+          while (
+            scheduleIndex < schedules.length &&
+            schedules[scheduleIndex].effectiveDate <= day
+          ) {
+            currentRent = schedules[scheduleIndex].newRent;
+            appliedRentScheduleIds.push(
+              schedules[scheduleIndex].scheduleId
+            );
+            scheduleIndex++;
+          }
+
+          totalRent += currentRent / daysInMonth;
+          chargeableDays++;
+        }
+
+        if (chargeableDays === 0) continue;
+
+        calculatedInvoices.push({
+          tenant,
+          amountDue: Math.round(
+            (totalRent + Number.EPSILON) * 100
+          ) / 100,
+          chargeableDays,
+          appliedRentScheduleIds
+        });
+      }
+
+      const propertyIds = [
+        ...new Map(
+          calculatedInvoices.map(item => [
+            item.tenant.propertyId.toString(),
+            item.tenant.propertyId
+          ])
+        ).values()
+      ];
+
+      const properties = propertyIds.length
+        ? await db.collection("properties")
+            .find(
+              { _id: { $in: propertyIds } },
+              { projection: { title: 1, location: 1 } }
+            )
+            .toArray()
+        : [];
+
+      const propertyMap = new Map(
+        properties.map(property => [
+          property._id.toString(),
+          property
+        ])
+      );
+
+      const existingInvoices = calculatedInvoices.length
+        ? await db.collection("rentInvoices")
+            .find({
+              tenantId: {
+                $in: calculatedInvoices.map(item => item.tenant._id)
+              },
+              billingYear: year,
+              billingMonth: month
+            })
+            .project({ tenantId: 1 })
+            .toArray()
+        : [];
+
+      const existingTenantIds = new Set(
+        existingInvoices.map(invoice => invoice.tenantId.toString())
+      );
+
+      const invoicesToCreate = calculatedInvoices.filter(
+        item => !existingTenantIds.has(item.tenant._id.toString())
+      );
+
+      const generatedInvoices = [];
+      let duplicateCount = calculatedInvoices.length -
+        invoicesToCreate.length;
+      let skippedMissingProperty = 0;
+
+      for (const item of invoicesToCreate) {
+        const tenant = item.tenant;
+        const property = propertyMap.get(
+          tenant.propertyId.toString()
+        );
+
+        if (!property) {
+          skippedMissingProperty++;
+          continue;
+        }
+
+        const invoiceId = new ObjectId();
+        const billingPeriod =
+          `${year}-${String(month).padStart(2, "0")}`;
+
+        const invoice = {
+          _id: invoiceId,
+          invoiceNumber: "",
+          tenantId: tenant._id,
+          landlordId: tenant.landlordId,
+          propertyId: tenant.propertyId,
+          tenantName: tenant.name,
+          tenantEmail: tenant.email || "",
+          tenantPhone: tenant.phone || "",
+          unitNumber: tenant.unitNumber || "",
+          propertyTitle: property.title || "Property",
+          propertyLocation: property.location || "",
+          billingYear: year,
+          billingMonth: month,
+          billingPeriod,
+          periodStart: billingStart,
+          periodEnd: lastBillingDay,
+          monthlyRent: Number(tenant.monthlyRent),
+          chargeableDays: item.chargeableDays,
+          daysInMonth,
+          amountDue: item.amountDue,
+          amountPaid: 0,
+          balance: item.amountDue,
+          paymentStatus: "unpaid",
+          issueDate: invoiceDate,
+          dueDate: paymentDueDate,
+          appliedRentScheduleIds: item.appliedRentScheduleIds,
+          generatedByRole: req.superAdmin.role,
+          generationScope: scope,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
+        let inserted = false;
+        let duplicateTenant = false;
+
+        for (let attempt = 0; attempt < 3 && !inserted; attempt++) {
+          invoice.invoiceNumber =
+            `HPS-${year}${String(month).padStart(2, "0")}-` +
+            crypto.randomBytes(4).toString("hex").toUpperCase();
+
+          try {
+            await db.collection("rentInvoices").insertOne(invoice);
+
+            generatedInvoices.push({
+              invoiceId: invoiceId.toString(),
+              invoiceNumber: invoice.invoiceNumber,
+              tenantName: tenant.name,
+              amountDue: item.amountDue,
+              chargeableDays: item.chargeableDays
+            });
+
+            inserted = true;
+          } catch (error) {
+            if (
+              error.code === 11000 &&
+              error.keyPattern &&
+              error.keyPattern.tenantId
+            ) {
+              duplicateCount++;
+              duplicateTenant = true;
+              break;
+            }
+
+            if (
+              error.code === 11000 &&
+              error.keyPattern &&
+              error.keyPattern.invoiceNumber
+            ) {
+              continue;
+            }
+
+            throw error;
+          }
+        }
+
+        if (!inserted && !duplicateTenant) {
+          throw new Error("INVOICE_NUMBER_GENERATION_FAILED");
+        }
+      }
+
+      return res.json({
+        status: "ok",
+        message: "Invoice generation completed",
+        billingPeriod:
+          `${year}-${String(month).padStart(2, "0")}`,
+        scope,
+        summary: {
+          selectedTenants: selectedTenants.length,
+          eligibleTenants: eligibleTenants.length,
+          calculatedInvoices: calculatedInvoices.length,
+          generated: generatedInvoices.length,
+          skippedDuplicates: duplicateCount,
+          skippedMissingProperty,
+          skippedInvalidRent:
+            eligibleTenants.length - calculatedInvoices.length
+        },
+        totalAmountGenerated: Math.round(
+          generatedInvoices.reduce(
+            (total, invoice) => total + invoice.amountDue,
+            0
+          ) * 100
+        ) / 100,
+        invoices: generatedInvoices
+      });
+    } catch (error) {
+      console.error("Generate rent invoices error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to process invoice generation"
+      });
+    }
+  }
+);
+
 app.get(
   "/api/super-admin/tenant-removal-requests",
   requireSuperAdmin,
