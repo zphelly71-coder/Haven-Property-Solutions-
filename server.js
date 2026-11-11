@@ -1398,6 +1398,146 @@ app.get(
   }
 );
 
+app.patch(
+  "/api/super-admin/tenant-removal-requests/:requestId",
+  requireSuperAdmin,
+  async (req, res) => {
+    const { ObjectId } = require("mongodb");
+    const requestId = req.params.requestId;
+    const decision = req.body?.decision;
+    const rejectionReason = req.body?.rejectionReason;
+
+    if (!ObjectId.isValid(requestId)) {
+      return res.status(400).json({
+        status: "error",
+        message: "A valid request ID is required"
+      });
+    }
+
+    if (!["approved", "rejected"].includes(decision)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Decision must be approved or rejected"
+      });
+    }
+
+    if (
+      decision === "rejected" &&
+      (typeof rejectionReason !== "string" ||
+        !rejectionReason.trim())
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "A rejection reason is required"
+      });
+    }
+
+    const session = db.client?.startSession();
+
+    try {
+      const requestObjectId = new ObjectId(requestId);
+      const now = new Date();
+
+      const request = await db.collection("tenantRemovalRequests")
+        .findOne({
+          _id: requestObjectId,
+          status: "pending"
+        });
+
+      if (!request) {
+        return res.status(404).json({
+          status: "error",
+          message: "Pending removal request not found"
+        });
+      }
+
+      if (decision === "approved") {
+        const endDate = new Date(request.proposedEndDate);
+
+        if (
+          Number.isNaN(endDate.getTime()) ||
+          endDate > now
+        ) {
+          return res.status(400).json({
+            status: "error",
+            message: "The proposed end date must not be in the future"
+          });
+        }
+
+        const result = await db.collection("tenants").updateOne(
+          {
+            _id: request.tenantId,
+            landlordId: request.landlordId,
+            propertyId: request.propertyId,
+            status: "active"
+          },
+          {
+            $set: {
+              status: "ended",
+              tenancyEndDate: endDate,
+              updatedAt: now
+            }
+          }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(409).json({
+            status: "error",
+            message: "Tenant is no longer active or does not match this request"
+          });
+        }
+      }
+
+      const update = await db.collection("tenantRemovalRequests")
+        .updateOne(
+          {
+            _id: requestObjectId,
+            status: "pending"
+          },
+          {
+            $set: {
+              status: decision,
+              rejectionReason: decision === "rejected"
+                ? rejectionReason.trim()
+                : "",
+              reviewedAt: now,
+              updatedAt: now
+            }
+          }
+        );
+
+      if (update.modifiedCount === 0) {
+        return res.status(409).json({
+          status: "error",
+          message: "Request has already been reviewed"
+        });
+      }
+
+      return res.json({
+        status: "ok",
+        message: decision === "approved"
+          ? "Tenant removal approved and tenancy ended"
+          : "Tenant removal request rejected",
+        requestId,
+        status: decision
+      });
+
+    } catch (error) {
+      console.error("Review tenant removal request error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to review tenant removal request"
+      });
+    } finally {
+      if (session) {
+        await session.endSession();
+      }
+    }
+  }
+);
+
+
 app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
   try {
     const name = req.body?.name?.trim();
