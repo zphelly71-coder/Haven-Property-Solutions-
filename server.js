@@ -1358,12 +1358,38 @@ app.post(
         });
       }
 
-      if (proposedRent <= tenant.monthlyRent) {
-        return res.status(400).json({
-          status: "error",
-          message: "Proposed rent must be higher than the current rent"
-        });
+      const latestRentSchedule = await db.collection("rentSchedules")
+  .findOne(
+    {
+      tenantId: tenantObjectId,
+      landlordId: landlordObjectId,
+      status: "approved"
+    },
+    {
+      sort: {
+        effectiveDate: -1,
+        approvedAt: -1
       }
+    }
+  );
+
+const currentRent = latestRentSchedule
+  ? Number(latestRentSchedule.newRent)
+  : Number(tenant.monthlyRent);
+
+if (!Number.isFinite(currentRent) || currentRent <= 0) {
+  return res.status(500).json({
+    status: "error",
+    message: "Unable to determine the tenant's current rent"
+  });
+}
+
+if (proposedRent <= currentRent) {
+  return res.status(400).json({
+    status: "error",
+    message: "Proposed rent must be higher than the latest approved rent"
+  });
+}
 
       const existingRequest = await db.collection("rentIncreaseRequests")
         .findOne({
@@ -1382,7 +1408,7 @@ app.post(
         tenantId: tenantObjectId,
         landlordId: landlordObjectId,
         propertyId: tenant.propertyId,
-        currentRent: tenant.monthlyRent,
+        currentRent: currentRent,
         proposedRent,
         reason: reason.trim(),
         status: "pending",
@@ -1619,17 +1645,51 @@ app.patch(
           }
 
           if (decision === "approved") {
-            if (tenant.monthlyRent !== request.currentRent) {
-              throw new Error("CURRENT_RENT_CHANGED");
-            }
+            const latestRentSchedule = await db.collection("rentSchedules")
+  .findOne(
+    {
+      tenantId: request.tenantId,
+      landlordId: request.landlordId,
+      status: "approved"
+    },
+    {
+      sort: {
+        effectiveDate: -1,
+        approvedAt: -1
+      },
+      session
+    }
+  );
 
+const currentRent = latestRentSchedule
+  ? Number(latestRentSchedule.newRent)
+  : Number(tenant.monthlyRent);
+
+if (
+  !Number.isFinite(currentRent) ||
+  currentRent <= 0 ||
+  currentRent !== Number(request.currentRent)
+) {
+  throw new Error("CURRENT_RENT_CHANGED");
+}
+
+if (Number(request.proposedRent) <= currentRent) {
+  throw new Error("PROPOSED_RENT_NOT_HIGHER");
+}
+
+if (
+  latestRentSchedule &&
+  effectiveDate <= new Date(latestRentSchedule.effectiveDate)
+) {
+  throw new Error("EFFECTIVE_DATE_CONFLICT");
+}
             const scheduleResult = await db.collection("rentSchedules")
               .insertOne(
                 {
                   tenantId: request.tenantId,
                   landlordId: request.landlordId,
                   propertyId: request.propertyId,
-                  previousRent: request.currentRent,
+                  previousRent: currentRent,
                   newRent: request.proposedRent,
                   effectiveDate,
                   status: "approved",
@@ -1705,7 +1765,19 @@ app.patch(
           message: "Tenant rent has changed. Review the request again"
         });
       }
+if (error.message === "PROPOSED_RENT_NOT_HIGHER") {
+  return res.status(400).json({
+    status: "error",
+    message: "The proposed rent must be higher than the latest approved rent"
+  });
+}
 
+if (error.message === "EFFECTIVE_DATE_CONFLICT") {
+  return res.status(409).json({
+    status: "error",
+    message: "The effective date must be later than the latest approved rent schedule"
+  });
+}
       if (error.message === "RENT_REQUEST_ALREADY_REVIEWED") {
         return res.status(409).json({
           status: "error",
