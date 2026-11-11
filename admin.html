@@ -44,6 +44,37 @@ button:disabled{opacity:.5}
       <button type="submit">Sign in</button>
     </form>
   </section>
+  <div class="card" id="superAdminInvoiceCard">
+  <h2>Super Admin — Rent Invoice Management</h2>
+  <p class="muted">
+    Sign in separately with your Super Admin password
+    to access manual rent invoice generation.
+  </p>
+
+  <form id="superAdminLoginForm">
+    <label for="superAdminPassword">Super Admin password</label>
+    <input
+      id="superAdminPassword"
+      type="password"
+      autocomplete="current-password"
+      required
+    >
+    <button type="submit" id="superAdminLoginButton">
+      Super Admin Sign In
+    </button>
+  </form>
+
+  <div id="superAdminInvoicePanel" hidden>
+    <p id="superAdminStatus" class="muted">
+      Super Admin authenticated.
+    </p>
+    <button type="button" id="superAdminLogoutButton"
+      class="secondary">
+      Super Admin Log Out
+    </button>
+  </div>
+</div>
+
 
   <section id="dashboard" hidden>
     <div class="card">
@@ -291,6 +322,8 @@ button:disabled{opacity:.5}
 <div id="enquiryList">Enquiries will appear here.</div>
 </div>
     
+
+    
 <div class="card" id="financialManagementCard">
   <h2>Financial Management</h2>
   <p class="muted">
@@ -467,6 +500,8 @@ const API = window.location.hostname.endsWith(".onrender.com")
   ? ""
   : "https://haven-property-solutions-api.onrender.com";
 const TOKEN_KEY = "haven_admin_token";
+const SUPER_ADMIN_TOKEN_KEY = "haven_super_admin_token";
+
 let editingId = "";
 
 const $ = id => document.getElementById(id);
@@ -486,6 +521,36 @@ async function api(path, options = {}) {
     throw new Error(data.message || "Session expired. Please sign in again.");
   }
   if (!response.ok) throw new Error(data.message || "Request failed.");
+  return data;
+}
+  async function superAdminApi(path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  const token = sessionStorage.getItem(SUPER_ADMIN_TOKEN_KEY);
+
+  if (token) {
+    headers.Authorization = "Bearer " + token;
+  }
+
+  if (options.body) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const response = await fetch(API + path, {
+    ...options,
+    headers
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (response.status === 401) {
+    sessionStorage.removeItem(SUPER_ADMIN_TOKEN_KEY);
+    throw new Error("Super Admin session expired. Please sign in again.");
+  }
+
+  if (!response.ok) {
+    throw new Error(data.message || "Super Admin request failed.");
+  }
+
   return data;
 }
 
@@ -605,6 +670,50 @@ $("loginForm").addEventListener("submit", async event => {
     button.disabled = false;
   }
 });
+  
+$("superAdminLoginForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const button = $("superAdminLoginButton");
+  button.disabled = true;
+
+  try {
+    const result = await superAdminApi("/api/super-admin/login", {
+      method: "POST",
+      body: JSON.stringify({
+        password: $("superAdminPassword").value
+      })
+    });
+
+    sessionStorage.setItem(
+      SUPER_ADMIN_TOKEN_KEY,
+      result.token
+    );
+
+    $("superAdminPassword").value = "";
+    $("superAdminLoginForm").hidden = true;
+    $("superAdminInvoicePanel").hidden = false;
+
+    $("superAdminStatus").textContent =
+      "Super Admin authenticated successfully.";
+
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+$("superAdminLogoutButton").addEventListener("click", () => {
+  sessionStorage.removeItem(SUPER_ADMIN_TOKEN_KEY);
+
+  $("superAdminLoginForm").hidden = false;
+  $("superAdminInvoicePanel").hidden = true;
+
+  $("superAdminStatus").textContent =
+    "Super Admin logged out.";
+});
+
 
 async function loadProperties() {
   $("propertyList").textContent = "Loading listings...";
