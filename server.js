@@ -900,6 +900,130 @@ app.get(
   }
 );
 
+app.post(
+  "/api/landlord/tenants",
+  requireLandlord,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
+
+      const {
+        propertyId,
+        name,
+        email,
+        phone,
+        unitNumber,
+        monthlyRent,
+        deposit,
+        tenancyStartDate
+      } = req.body || {};
+
+      if (!ObjectId.isValid(propertyId)) {
+        return res.status(400).json({
+          status: "error",
+          message: "A valid property ID is required"
+        });
+      }
+
+      if (
+        typeof name !== "string" ||
+        !name.trim() ||
+        typeof phone !== "string" ||
+        !phone.trim()
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Tenant name and phone number are required"
+        });
+      }
+
+      const rent = Number(monthlyRent);
+      const securityDeposit = Number(deposit);
+
+      if (
+        !Number.isFinite(rent) ||
+        rent <= 0 ||
+        !Number.isFinite(securityDeposit) ||
+        securityDeposit < 0
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Enter a valid monthly rent and deposit"
+        });
+      }
+
+      const startDate = tenancyStartDate
+        ? new Date(tenancyStartDate)
+        : new Date();
+
+      if (Number.isNaN(startDate.getTime())) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid tenancy start date"
+        });
+      }
+
+      const landlordObjectId = new ObjectId(req.landlordId);
+      const propertyObjectId = new ObjectId(propertyId);
+
+      const property = await db.collection("properties").findOne({
+        _id: propertyObjectId,
+        landlordId: landlordObjectId
+      });
+
+      if (!property) {
+        return res.status(403).json({
+          status: "error",
+          message: "This property is not assigned to your account"
+        });
+      }
+
+      const tenant = {
+        propertyId: propertyObjectId,
+        landlordId: landlordObjectId,
+        name: name.trim(),
+        email: typeof email === "string"
+          ? email.trim().toLowerCase()
+          : "",
+        phone: phone.trim(),
+        unitNumber: typeof unitNumber === "string"
+          ? unitNumber.trim()
+          : "",
+        monthlyRent: rent,
+        deposit: securityDeposit,
+        tenancyStartDate: startDate,
+        tenancyEndDate: null,
+        status: "active",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const result = await db.collection("tenants").insertOne(tenant);
+
+      return res.status(201).json({
+        status: "ok",
+        message: "Tenant added successfully",
+        tenant: {
+          id: result.insertedId,
+          name: tenant.name,
+          phone: tenant.phone,
+          propertyId: tenant.propertyId,
+          monthlyRent: tenant.monthlyRent,
+          status: tenant.status
+        }
+      });
+
+    } catch (error) {
+      console.error("Add landlord tenant error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to add tenant"
+      });
+    }
+  }
+);
+
 
 app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
   try {
