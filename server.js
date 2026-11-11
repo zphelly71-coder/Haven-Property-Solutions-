@@ -824,6 +824,83 @@ app.get(
   }
 );
 
+app.get(
+  "/api/landlord/tenants",
+  requireLandlord,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
+
+      const landlordObjectId = new ObjectId(req.landlordId);
+
+      const landlordProperties = await db.collection("properties")
+        .find(
+          { landlordId: landlordObjectId },
+          { projection: { _id: 1, title: 1 } }
+        )
+        .toArray();
+
+      const propertyIds = landlordProperties.map(
+        property => property._id
+      );
+
+      if (propertyIds.length === 0) {
+        return res.json({
+          status: "ok",
+          count: 0,
+          tenants: []
+        });
+      }
+
+      const tenants = await db.collection("tenants")
+        .find({
+          propertyId: { $in: propertyIds }
+        })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      const propertyMap = new Map(
+        landlordProperties.map(property => [
+          property._id.toString(),
+          property.title
+        ])
+      );
+
+      const safeTenants = tenants.map(tenant => ({
+        id: tenant._id,
+        name: tenant.name,
+        email: tenant.email || "",
+        phone: tenant.phone || "",
+        propertyId: tenant.propertyId,
+        propertyTitle:
+          propertyMap.get(tenant.propertyId.toString()) || "",
+        unitNumber: tenant.unitNumber || "",
+        monthlyRent: tenant.monthlyRent || 0,
+        deposit: tenant.deposit || 0,
+        tenancyStartDate: tenant.tenancyStartDate || null,
+        tenancyEndDate: tenant.tenancyEndDate || null,
+        status: tenant.status || "active",
+        createdAt: tenant.createdAt
+      }));
+
+      return res.json({
+        status: "ok",
+        count: safeTenants.length,
+        tenants: safeTenants
+      });
+
+    } catch (error) {
+      console.error("Load landlord tenants error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load tenants"
+      });
+    }
+  }
+);
+
+
 app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
   try {
     const name = req.body?.name?.trim();
