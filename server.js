@@ -1309,6 +1309,116 @@ if (
   }
 );
 
+app.post(
+  "/api/landlord/tenants/:tenantId/rent-increase-request",
+  requireLandlord,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
+
+      const tenantId = req.params.tenantId;
+      const proposedRent = Number(req.body?.proposedRent);
+      const reason = req.body?.reason;
+
+      if (!ObjectId.isValid(tenantId)) {
+        return res.status(400).json({
+          status: "error",
+          message: "A valid tenant ID is required"
+        });
+      }
+
+      if (!Number.isFinite(proposedRent) || proposedRent <= 0) {
+        return res.status(400).json({
+          status: "error",
+          message: "Proposed rent must be greater than zero"
+        });
+      }
+
+      if (
+        typeof reason !== "string" ||
+        reason.trim().length < 5
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Please provide a valid reason"
+        });
+      }
+
+      const landlordObjectId = new ObjectId(req.landlordId);
+      const tenantObjectId = new ObjectId(tenantId);
+
+      const tenant = await db.collection("tenants").findOne({
+        _id: tenantObjectId,
+        landlordId: landlordObjectId,
+        status: "active"
+      });
+
+      if (!tenant) {
+        return res.status(404).json({
+          status: "error",
+          message: "Active tenant not found under your account"
+        });
+      }
+
+      if (proposedRent <= tenant.monthlyRent) {
+        return res.status(400).json({
+          status: "error",
+          message: "Proposed rent must be higher than the current rent"
+        });
+      }
+
+      const existingRequest = await db.collection("rentIncreaseRequests")
+        .findOne({
+          tenantId: tenantObjectId,
+          status: "pending"
+        });
+
+      if (existingRequest) {
+        return res.status(409).json({
+          status: "error",
+          message: "A pending rent increase request already exists"
+        });
+      }
+
+      const request = {
+        tenantId: tenantObjectId,
+        landlordId: landlordObjectId,
+        propertyId: tenant.propertyId,
+        currentRent: tenant.monthlyRent,
+        proposedRent,
+        reason: reason.trim(),
+        status: "pending",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const result = await db.collection("rentIncreaseRequests")
+        .insertOne(request);
+
+      return res.status(201).json({
+        status: "ok",
+        message: "Rent increase request submitted for Super Admin approval",
+        request: {
+          id: result.insertedId,
+          tenantId: tenantObjectId,
+          currentRent: request.currentRent,
+          proposedRent: request.proposedRent,
+          status: request.status
+        }
+      });
+
+    } catch (error) {
+      console.error("Rent increase request error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to submit rent increase request"
+      });
+    }
+  }
+);
+
+
 app.get(
   "/api/super-admin/tenant-removal-requests",
   requireSuperAdmin,
