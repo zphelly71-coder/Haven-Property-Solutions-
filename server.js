@@ -4554,6 +4554,17 @@ console.log("MongoDB Atlas connection established.");
     name: "rent_schedule_effective_date"
   }
 );
+  await db.collection("rentInvoices").createIndex(
+  {
+    tenantId: 1,
+    billingYear: 1,
+    billingMonth: 1
+  },
+  {
+    unique: true,
+    name: "unique_tenant_monthly_invoice"
+  }
+);
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Haven API listening on port ${PORT}`);
