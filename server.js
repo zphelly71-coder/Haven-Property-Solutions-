@@ -3346,6 +3346,15 @@ console.log("MongoDB Atlas connection established.");
       name: "uniq_landlord_email"
     }
   );
+  await db.collection("tenants").createIndex(
+  {
+    propertyId: 1,
+    status: 1
+  },
+  {
+    name: "tenant_property_status"
+  }
+);
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Haven API listening on port ${PORT}`);
