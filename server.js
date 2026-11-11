@@ -757,6 +757,73 @@ app.post("/api/landlord/login", async (req, res) => {
     });
   }
 });
+
+app.get(
+  "/api/landlord/properties",
+  requireLandlord,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
+
+      const landlordObjectId = new ObjectId(req.landlordId);
+
+      const properties = await db.collection("properties")
+        .find(
+          {
+            landlordId: landlordObjectId
+          },
+          {
+            projection: {
+              title: 1,
+              description: 1,
+              location: 1,
+              price: 1,
+              pricePeriod: 1,
+              propertyType: 1,
+              bedrooms: 1,
+              bathrooms: 1,
+              images: 1,
+              status: 1,
+              listingType: 1,
+              listingPurpose: 1,
+              landSize: 1,
+              landUnit: 1,
+              landUse: 1,
+              titleDeed: 1,
+              rentalArrangement: 1,
+              totalRentalUnits: 1,
+              availableRentalUnits: 1,
+              nightlyRate: 1,
+              maxGuests: 1,
+              minimumNights: 1,
+              checkInTime: 1,
+              checkOutTime: 1,
+              guestCapacity: 1,
+              stayAmenities: 1,
+              checkInInfo: 1,
+              createdAt: 1
+            }
+          }
+        )
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      return res.json({
+        status: "ok",
+        count: properties.length,
+        properties
+      });
+    } catch (error) {
+      console.error("Landlord properties error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load assigned properties"
+      });
+    }
+  }
+);
+
 app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
   try {
     const name = req.body?.name?.trim();
