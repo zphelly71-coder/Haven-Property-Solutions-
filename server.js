@@ -1301,6 +1301,103 @@ app.post(
   }
 );
 
+app.get(
+  "/api/super-admin/tenant-removal-requests",
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const requests = await db.collection("tenantRemovalRequests")
+        .aggregate([
+          {
+            $match: {
+              status: "pending"
+            }
+          },
+          {
+            $lookup: {
+              from: "tenants",
+              localField: "tenantId",
+              foreignField: "_id",
+              as: "tenant"
+            }
+          },
+          {
+            $unwind: {
+              path: "$tenant",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $lookup: {
+              from: "properties",
+              localField: "propertyId",
+              foreignField: "_id",
+              as: "property"
+            }
+          },
+          {
+            $unwind: {
+              path: "$property",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $lookup: {
+              from: "landlords",
+              localField: "landlordId",
+              foreignField: "_id",
+              as: "landlord"
+            }
+          },
+          {
+            $unwind: {
+              path: "$landlord",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $project: {
+              tenantId: 1,
+              landlordId: 1,
+              propertyId: 1,
+              reason: 1,
+              proposedEndDate: 1,
+              status: 1,
+              createdAt: 1,
+              "tenant.name": 1,
+              "tenant.phone": 1,
+              "tenant.unitNumber": 1,
+              "property.title": 1,
+              "property.location": 1,
+              "landlord.name": 1,
+              "landlord.email": 1
+            }
+          },
+          {
+            $sort: {
+              createdAt: -1
+            }
+          }
+        ])
+        .toArray();
+
+      return res.json({
+        status: "ok",
+        count: requests.length,
+        requests
+      });
+
+    } catch (error) {
+      console.error("Load tenant removal requests error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load tenant removal requests"
+      });
+    }
+  }
+);
+
 app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
   try {
     const name = req.body?.name?.trim();
