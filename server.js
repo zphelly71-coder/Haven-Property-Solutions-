@@ -1227,14 +1227,21 @@ app.post(
         });
       }
 
-      const endDate = new Date(proposedEndDate);
+      
+const endDate = new Date(proposedEndDate);
+const startDate = new Date(tenant.tenancyStartDate);
 
-      if (Number.isNaN(endDate.getTime())) {
-        return res.status(400).json({
-          status: "error",
-          message: "Invalid proposed end date"
-        });
-      }
+if (
+  Number.isNaN(endDate.getTime()) ||
+  Number.isNaN(startDate.getTime()) ||
+  endDate < startDate
+) {
+  return res.status(400).json({
+    status: "error",
+    message: "The proposed end date cannot be earlier than the tenancy start date"
+  });
+}
+
 
       const landlordObjectId = new ObjectId(req.landlordId);
       const tenantObjectId = new ObjectId(tenantId);
@@ -1267,6 +1274,7 @@ app.post(
 
       const removalRequest = {
         tenantId: tenantObjectId,
+        tenantStartDate: tenant.tenancyStartDate,
         landlordId: landlordObjectId,
         propertyId: tenant.propertyId,
         reason: reason.trim(),
@@ -1467,11 +1475,16 @@ app.patch(
 
         if (decision === "approved") {
           const endDate = new Date(request.proposedEndDate);
+const startDate = new Date(request.tenantStartDate);
 
-          if (
-            Number.isNaN(endDate.getTime()) ||
-            endDate > now
-          ) {
+if (
+  Number.isNaN(endDate.getTime()) ||
+  Number.isNaN(startDate.getTime()) ||
+  endDate < startDate ||
+  endDate > now
+) {
+  throw new Error("INVALID_TERMINATION_DATE");
+}
             throw new Error("INVALID_TERMINATION_DATE");
           }
 
