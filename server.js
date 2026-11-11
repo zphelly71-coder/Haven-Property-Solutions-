@@ -1041,14 +1041,12 @@ app.patch(
       }
 
       const allowedFields = [
-        "name",
-        "email",
-        "phone",
-        "unitNumber",
-        "monthlyRent",
-        "deposit"
-      ];
-
+  "name",
+  "email",
+  "phone",
+  "unitNumber",
+  "deposit"
+];
       const updates = {};
 
       for (const field of allowedFields) {
