@@ -1516,6 +1516,215 @@ app.get(
   }
 );
 
+app.patch(
+  "/api/super-admin/rent-increase-requests/:requestId",
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
+
+      const requestId = req.params.requestId;
+      const decision = req.body?.decision;
+      const effectiveDateInput = req.body?.effectiveDate;
+      const rejectionReason = req.body?.rejectionReason;
+
+      if (!ObjectId.isValid(requestId)) {
+        return res.status(400).json({
+          status: "error",
+          message: "A valid request ID is required"
+        });
+      }
+
+      if (!["approved", "rejected"].includes(decision)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Decision must be approved or rejected"
+        });
+      }
+
+      if (
+        decision === "rejected" &&
+        (
+          typeof rejectionReason !== "string" ||
+          !rejectionReason.trim()
+        )
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "A rejection reason is required"
+        });
+      }
+
+      let effectiveDate = null;
+
+      if (decision === "approved") {
+        if (!effectiveDateInput) {
+          return res.status(400).json({
+            status: "error",
+            message: "An effective date is required"
+          });
+        }
+
+        effectiveDate = new Date(effectiveDateInput);
+
+        if (
+          Number.isNaN(effectiveDate.getTime()) ||
+          effectiveDate <= new Date()
+        ) {
+          return res.status(400).json({
+            status: "error",
+            message: "The effective date must be in the future"
+          });
+        }
+      }
+
+      const client = mongoClient;
+
+      if (!client || typeof client.startSession !== "function") {
+        return res.status(503).json({
+          status: "error",
+          message: "Database transaction support is unavailable"
+        });
+      }
+
+      const session = client.startSession();
+
+      try {
+        let resultData = null;
+
+        await session.withTransaction(async () => {
+          const request = await db.collection("rentIncreaseRequests")
+            .findOne(
+              {
+                _id: new ObjectId(requestId),
+                status: "pending"
+              },
+              { session }
+            );
+
+          if (!request) {
+            throw new Error("RENT_REQUEST_NOT_FOUND");
+          }
+
+          const tenant = await db.collection("tenants").findOne(
+            {
+              _id: request.tenantId,
+              landlordId: request.landlordId,
+              propertyId: request.propertyId,
+              status: "active"
+            },
+            { session }
+          );
+
+          if (!tenant) {
+            throw new Error("ACTIVE_TENANT_NOT_FOUND");
+          }
+
+          if (decision === "approved") {
+            if (tenant.monthlyRent !== request.currentRent) {
+              throw new Error("CURRENT_RENT_CHANGED");
+            }
+
+            const scheduleResult = await db.collection("rentSchedules")
+              .insertOne(
+                {
+                  tenantId: request.tenantId,
+                  landlordId: request.landlordId,
+                  propertyId: request.propertyId,
+                  previousRent: request.currentRent,
+                  newRent: request.proposedRent,
+                  effectiveDate,
+                  status: "approved",
+                  approvedAt: new Date(),
+                  createdAt: new Date()
+                },
+                { session }
+              );
+
+            resultData = {
+              scheduleId: scheduleResult.insertedId,
+              effectiveDate
+            };
+          }
+
+          const requestResult = await db.collection("rentIncreaseRequests")
+            .updateOne(
+              {
+                _id: new ObjectId(requestId),
+                status: "pending"
+              },
+              {
+                $set: {
+                  status: decision,
+                  effectiveDate,
+                  rejectionReason: decision === "rejected"
+                    ? rejectionReason.trim()
+                    : "",
+                  reviewedAt: new Date(),
+                  updatedAt: new Date()
+                }
+              },
+              { session }
+            );
+
+          if (requestResult.modifiedCount !== 1) {
+            throw new Error("RENT_REQUEST_ALREADY_REVIEWED");
+          }
+        });
+
+        return res.json({
+          status: "ok",
+          message: decision === "approved"
+            ? "Rent increase approved and scheduled"
+            : "Rent increase request rejected",
+          requestId,
+          decision,
+          ...(resultData || {})
+        });
+
+      } finally {
+        await session.endSession();
+      }
+
+    } catch (error) {
+      if (error.message === "RENT_REQUEST_NOT_FOUND") {
+        return res.status(404).json({
+          status: "error",
+          message: "Pending rent increase request not found"
+        });
+      }
+
+      if (error.message === "ACTIVE_TENANT_NOT_FOUND") {
+        return res.status(409).json({
+          status: "error",
+          message: "Active tenant not found for this request"
+        });
+      }
+
+      if (error.message === "CURRENT_RENT_CHANGED") {
+        return res.status(409).json({
+          status: "error",
+          message: "Tenant rent has changed. Review the request again"
+        });
+      }
+
+      if (error.message === "RENT_REQUEST_ALREADY_REVIEWED") {
+        return res.status(409).json({
+          status: "error",
+          message: "Rent increase request has already been reviewed"
+        });
+      }
+
+      console.error("Review rent increase error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to review rent increase request"
+      });
+    }
+  }
+);
+
 
 app.get(
   "/api/super-admin/tenant-removal-requests",
@@ -4336,6 +4545,15 @@ console.log("MongoDB Atlas connection established.");
   },
   {
     name: "rent_increase_tenant_status"
+  }
+);
+  await db.collection("rentSchedules").createIndex(
+  {
+    tenantId: 1,
+    effectiveDate: 1
+  },
+  {
+    name: "rent_schedule_effective_date"
   }
 );
 
