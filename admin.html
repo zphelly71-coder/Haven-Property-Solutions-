@@ -72,6 +72,70 @@ button:disabled{opacity:.5}
       class="secondary">
       Super Admin Log Out
     </button>
+    
+    <hr>
+    <h3>Generate Rent Invoices</h3>
+    <p class="muted">Create monthly rent invoices. Existing invoices will not be duplicated.</p>
+
+    <form id="rentInvoiceForm">
+      <div class="row">
+        <div>
+          <label for="invoiceBillingMonth">Billing month</label>
+          <select id="invoiceBillingMonth" required>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+        </div>
+        <div>
+          <label for="invoiceBillingYear">Billing year</label>
+          <input id="invoiceBillingYear" type="number" min="2000" max="2100" required>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="invoiceIssueDate">Issue date</label>
+          <input id="invoiceIssueDate" type="date" required>
+        </div>
+        <div>
+          <label for="invoiceDueDate">Due date</label>
+          <input id="invoiceDueDate" type="date" required>
+        </div>
+      </div>
+
+      <label for="invoiceScope">Who should receive invoices?</label>
+      <select id="invoiceScope" required>
+        <option value="all">All tenants</option>
+        <option value="property">Tenants in one property</option>
+        <option value="tenants">Selected tenants</option>
+      </select>
+
+      <div id="invoicePropertyFields" hidden>
+        <label for="invoicePropertyId">Property ID</label>
+        <input id="invoicePropertyId" type="text">
+      </div>
+
+      <div id="invoiceTenantFields" hidden>
+        <label for="invoiceTenantIds">Tenant IDs (separate multiple IDs with commas)</label>
+        <textarea id="invoiceTenantIds"></textarea>
+      </div>
+
+      <button type="submit" id="generateInvoicesButton">
+        Generate Rent Invoices
+      </button>
+      <p id="invoiceGenerationMessage" class="muted" role="status"></p>
+    </form>
+
   </div>
 </div>
 
@@ -1797,6 +1861,113 @@ if (sessionStorage.getItem(TOKEN_KEY)) {
     console.error("Financial records loading failed:", error)
   );
 }
+  
+
+
+// Show the correct selection fields
+$("invoiceScope").addEventListener("change", () => {
+  const scope = $("invoiceScope").value;
+
+  $("invoicePropertyFields").hidden = scope !== "property";
+  $("invoiceTenantFields").hidden = scope !== "tenants";
+});
+
+// Set default billing month, year and dates
+(function setInvoiceDefaults() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+  const dateString = date =>
+    date.getFullYear() + "-" +
+    String(date.getMonth() + 1).padStart(2, "0") + "-" +
+    String(date.getDate()).padStart(2, "0");
+
+  $("invoiceBillingMonth").value = String(month);
+  $("invoiceBillingYear").value = String(year);
+  $("invoiceIssueDate").value = dateString(today);
+  const due = new Date(year, month - 1, 5);
+if (today > due) {
+  due.setMonth(due.getMonth() + 1);
+}
+$("invoiceDueDate").value = dateString(due);
+})();
+
+// Generate invoices
+$("rentInvoiceForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const button = $("generateInvoicesButton");
+  const status = $("invoiceGenerationMessage");
+  const scope = $("invoiceScope").value;
+
+  const payload = {
+    billingMonth: Number($("invoiceBillingMonth").value),
+    billingYear: Number($("invoiceBillingYear").value),
+    issueDate: $("invoiceIssueDate").value,
+    dueDate: $("invoiceDueDate").value,
+    scope
+  };
+
+  if (scope === "property") {
+    payload.propertyId = $("invoicePropertyId").value.trim();
+  }
+
+  if (scope === "tenants") {
+    payload.tenantIds = $("invoiceTenantIds").value
+      .split(",")
+      .map(id => id.trim())
+      .filter(Boolean);
+  }
+
+  if (
+    !payload.issueDate ||
+    !payload.dueDate ||
+    payload.dueDate < payload.issueDate
+  ) {
+    status.textContent =
+      "Please enter valid dates. The due date cannot be before the issue date.";
+    return;
+  }
+
+  if (
+    scope === "property" &&
+    !payload.propertyId
+  ) {
+    status.textContent = "Please enter the property ID.";
+    return;
+  }
+
+  if (
+    scope === "tenants" &&
+    (!payload.tenantIds || payload.tenantIds.length === 0)
+  ) {
+    status.textContent = "Please enter at least one tenant ID.";
+    return;
+  }
+
+  button.disabled = true;
+  status.textContent = "Generating invoices. Please wait...";
+
+  try {
+    const result = await superAdminApi(
+      "/api/super-admin/rent-invoices/generate",
+      {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }
+    );
+
+    status.textContent =
+      result.message ||
+      "Invoice generation completed. Review the result before generating again.";
+  } catch (error) {
+    status.textContent =
+      error.message || "Unable to generate invoices.";
+  } finally {
+    button.disabled = false;
+  }
+});
+
 </script>
 </body>
 </html>
