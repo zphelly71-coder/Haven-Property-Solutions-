@@ -2413,8 +2413,7 @@ if (
 ) {
   throw new Error("INVALID_TERMINATION_DATE");
 }
-            throw new Error("INVALID_TERMINATION_DATE");
-          }
+           
 
           const tenantResult = await db.collection("tenants").updateOne(
             {
