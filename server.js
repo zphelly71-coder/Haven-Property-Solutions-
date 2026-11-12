@@ -2655,6 +2655,49 @@ app.patch(
     }
   }
 );
+
+app.get(
+  "/api/super-admin/properties",
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const properties = await db.collection("properties")
+        .find(
+          {},
+          {
+            projection: {
+              title: 1,
+              location: 1,
+              propertyType: 1,
+              landlordId: 1
+            }
+          }
+        )
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      return res.json({
+        status: "ok",
+        count: properties.length,
+        properties: properties.map(property => ({
+          id: property._id,
+          title: property.title || "Untitled property",
+          location: property.location || "",
+          propertyType: property.propertyType || "",
+          landlordId: property.landlordId || null
+        }))
+      });
+    } catch (error) {
+      console.error("Super Admin property list error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load properties"
+      });
+    }
+  }
+);
+
 app.patch(
   "/api/super-admin/properties/:propertyId/assign-landlord",
   requireSuperAdmin,
