@@ -284,7 +284,7 @@ function requireSuperAdmin(req, res, next) {
       message: "Super Admin login required"
     });
   }
-
+  req.superAdmin = { role: "super_admin" };
   next();
 }
 
