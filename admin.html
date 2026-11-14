@@ -136,6 +136,41 @@ button:disabled{opacity:.5}
       <p id="invoiceGenerationMessage" class="muted" role="status"></p>
     </form>
 
+    <hr>
+
+    <h3>Tenant Removal Requests</h3>
+    <p class="muted">
+      Review landlord requests to end tenant agreements.
+    </p>
+
+    <button type="button" id="refreshRemovalRequestsAdmin">
+      Refresh Removal Requests
+    </button>
+
+    <p id="adminRemovalRequestMessage" class="muted" role="status">
+      Removal requests will appear here.
+    </p>
+
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Tenant</th>
+            <th>Landlord</th>
+            <th>Property / Unit</th>
+            <th>Reason</th>
+            <th>Proposed End Date</th>
+            <th>Decision</th>
+          </tr>
+        </thead>
+        <tbody id="adminRemovalRequestList">
+          <tr>
+            <td colspan="6">No requests loaded yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
   </div>
 </div>
 
