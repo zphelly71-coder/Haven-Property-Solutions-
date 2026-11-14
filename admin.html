@@ -881,6 +881,71 @@ $("superAdminLoginForm").addEventListener("submit", async (event) => {
   }
 });
 
+$("adminRemovalRequestList").addEventListener("click", async (event) => {
+  const approveButton = event.target.closest(".approveRemovalButton");
+  const rejectButton = event.target.closest(".rejectRemovalButton");
+
+  if (!approveButton && !rejectButton) return;
+
+  const button = approveButton || rejectButton;
+  const requestId = button.dataset.requestId;
+
+  let decision = "";
+  let rejectionReason = "";
+
+  if (approveButton) {
+    const confirmed = confirm(
+      "Are you sure you want to approve this tenant removal request?"
+    );
+
+    if (!confirmed) return;
+
+    decision = "approved";
+  }
+
+  if (rejectButton) {
+    rejectionReason = prompt(
+      "Enter the reason for rejecting this request:"
+    );
+
+    if (!rejectionReason || !rejectionReason.trim()) {
+      alert("A rejection reason is required.");
+      return;
+    }
+
+    decision = "rejected";
+  }
+
+  button.disabled = true;
+
+  try {
+    const result = await superAdminApi(
+      `/api/super-admin/tenant-removal-requests/${encodeURIComponent(requestId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          decision,
+          rejectionReason
+        })
+      }
+    );
+
+    $("adminRemovalRequestMessage").textContent =
+      result.message || "Request reviewed successfully.";
+
+    await loadAdminRemovalRequests();
+
+  } catch (error) {
+    alert(error.message);
+    button.disabled = false;
+  }
+});
+
+$("refreshRemovalRequestsAdmin").addEventListener(
+  "click",
+  loadAdminRemovalRequests
+);
+
 $("superAdminLogoutButton").addEventListener("click", () => {
   sessionStorage.removeItem(SUPER_ADMIN_TOKEN_KEY);
 
