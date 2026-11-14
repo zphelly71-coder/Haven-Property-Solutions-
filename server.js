@@ -2294,6 +2294,166 @@ app.get(
     }
   }
 );
+app.post(
+  "/api/super-admin/rent-invoices/:invoiceId/payments",
+  requireSuperAdmin,
+  async (req, res) => {
+    const session = mongoClient.startSession();
+
+    try {
+      const { ObjectId } = require("mongodb");
+      const { invoiceId } = req.params;
+      const { amount, paymentDate, notes } = req.body || {};
+
+      if (!ObjectId.isValid(invoiceId)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid invoice ID"
+        });
+      }
+
+      if (
+        typeof amount !== "number" ||
+        !Number.isFinite(amount) ||
+        amount <= 0
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Enter a valid payment amount"
+        });
+      }
+
+      if (
+        typeof paymentDate !== "string" ||
+        Number.isNaN(new Date(paymentDate).getTime())
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Enter a valid payment date"
+        });
+      }
+
+      let invoiceMissing = false;
+      let balanceExceeded = false;
+      let updatedInvoice = null;
+      let insertedPaymentId = null;
+
+      await session.withTransaction(async () => {
+        invoiceMissing = false;
+        balanceExceeded = false;
+        updatedInvoice = null;
+        insertedPaymentId = null;
+
+        const invoices = db.collection("rentInvoices");
+        const payments = db.collection("rentPayments");
+
+        const invoice = await invoices.findOne(
+          { _id: new ObjectId(invoiceId) },
+          { session }
+        );
+
+        if (!invoice) {
+          invoiceMissing = true;
+          return;
+        }
+
+        const balance = Number(invoice.balance);
+
+        if (!Number.isFinite(balance) || amount > balance) {
+          balanceExceeded = true;
+          return;
+        }
+
+        const amountPaid = Number(invoice.amountPaid || 0) + amount;
+        const remainingBalance = Math.round(
+          (balance - amount + Number.EPSILON) * 100
+        ) / 100;
+
+        const payment = {
+          invoiceId: invoice._id,
+          tenantId: invoice.tenantId,
+          landlordId: invoice.landlordId,
+          propertyId: invoice.propertyId,
+          amount,
+          paymentDate: new Date(paymentDate),
+          paymentMethod: "manual_test",
+          paymentReference: `TEST-${crypto.randomBytes(6).toString("hex").toUpperCase()}`,
+          notes: typeof notes === "string"
+            ? notes.trim().slice(0, 500)
+            : "",
+          recordedByRole: "super_admin",
+          createdAt: new Date()
+        };
+
+        const result = await payments.insertOne(payment, { session });
+        insertedPaymentId = result.insertedId;
+
+        const updateResult = await invoices.updateOne(
+          {
+            _id: invoice._id,
+            balance: invoice.balance
+          },
+          {
+            $set: {
+              amountPaid,
+              balance: remainingBalance,
+              paymentStatus: remainingBalance === 0
+                ? "paid"
+                : "partially_paid",
+              updatedAt: new Date()
+            }
+          },
+          { session }
+        );
+
+        if (!updateResult.matchedCount) {
+          throw new Error("INVOICE_UPDATE_CONFLICT");
+        }
+
+        updatedInvoice = {
+          invoiceNumber: invoice.invoiceNumber,
+          amountDue: invoice.amountDue,
+          amountPaid,
+          balance: remainingBalance,
+          paymentStatus: remainingBalance === 0
+            ? "paid"
+            : "partially_paid"
+        };
+      });
+
+      if (invoiceMissing) {
+        return res.status(404).json({
+          status: "error",
+          message: "Invoice not found"
+        });
+      }
+
+      if (balanceExceeded) {
+        return res.status(400).json({
+          status: "error",
+          message: "Payment exceeds the outstanding balance"
+        });
+      }
+
+      return res.status(201).json({
+        status: "ok",
+        message: "Simulated rent payment recorded successfully",
+        paymentId: insertedPaymentId,
+        invoice: updatedInvoice
+      });
+
+    } catch (error) {
+      console.error("Record rent payment error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to record rent payment"
+      });
+    } finally {
+      await session.endSession();
+    }
+  }
+);
 
 app.get(
   "/api/super-admin/tenant-removal-requests",
