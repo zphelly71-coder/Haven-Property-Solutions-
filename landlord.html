@@ -247,6 +247,38 @@ th,td {
     properties or one selected property.
   </p>
 </div>
+      <div class="card">
+  <h3>Tenant Removal Requests</h3>
+
+  <button type="button" id="refreshRemovalRequests">
+    Refresh Requests
+  </button>
+
+  <div class="tableWrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Tenant</th>
+          <th>Property / Unit</th>
+          <th>Reason</th>
+          <th>Proposed End Date</th>
+          <th>Status</th>
+          <th>Review Details</th>
+        </tr>
+      </thead>
+      <tbody id="removalRequestList">
+        <tr>
+          <td colspan="6">Loading removal requests...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p id="removalHistoryMessage"
+     role="status"
+     aria-live="polite">
+  </p>
+</div>
       <p class="muted">
         Tenant records belonging to your assigned properties.
       </p>
