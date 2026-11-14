@@ -343,8 +343,10 @@ function logout(showNotice = true) {
   }
 }
 
-async function loadDashboard() {
+async function loadDashboard(showStatus = true) {
+ if (showStatus) {
   showMessage("Loading your landlord dashboard...");
+}
 
   try {
     const [propertyData, tenantData] = await Promise.all([
@@ -417,10 +419,14 @@ $("tenantProperty").innerHTML =
       `).join("")
       : '<tr><td colspan="5">No tenants found for your assigned properties.</td></tr>';
 
-    showMessage("Dashboard updated successfully.");
+    if (showStatus) {
+  showMessage("Dashboard updated successfully.");
+}
 
   } catch (error) {
-    showMessage(error.message, true);
+    if (showStatus) {
+  showMessage(error.message, true);
+}
   }
 }
 
@@ -449,7 +455,7 @@ $("loginForm").addEventListener("submit", async event => {
     $("password").value = "";
 
     showDashboard(result.landlord || {});
-    await loadDashboard();
+    await loadDashboard(false);
 showMessage("Tenant registered successfully.");
 
   } catch (error) {
