@@ -900,6 +900,7 @@ app.get(
   }
 );
 
+
 app.post(
   "/api/landlord/tenants",
   requireLandlord,
@@ -915,7 +916,9 @@ app.post(
         unitNumber,
         monthlyRent,
         deposit,
-        tenancyStartDate
+        tenancyStartDate,
+        identificationType,
+        identificationNumber
       } = req.body || {};
 
       if (!ObjectId.isValid(propertyId)) {
@@ -934,6 +937,40 @@ app.post(
         return res.status(400).json({
           status: "error",
           message: "Tenant name and phone number are required"
+        });
+      }
+
+      if (!["national_id", "passport"].includes(identificationType)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Select National ID or Passport"
+        });
+      }
+
+      if (
+        typeof identificationNumber !== "string" ||
+        !identificationNumber.trim()
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Identification number is required"
+        });
+      }
+
+      const normalizedId = identificationNumber
+        .trim()
+        .toUpperCase();
+
+      const existingIdentification = await db.collection("tenants")
+        .findOne({
+          identificationType,
+          identificationNumber: normalizedId
+        });
+
+      if (existingIdentification) {
+        return res.status(409).json({
+          status: "error",
+          message: "This identification number is already registered"
         });
       }
 
@@ -986,6 +1023,8 @@ app.post(
           ? email.trim().toLowerCase()
           : "",
         phone: phone.trim(),
+        identificationType,
+        identificationNumber: normalizedId,
         unitNumber: typeof unitNumber === "string"
           ? unitNumber.trim()
           : "",
