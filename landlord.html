@@ -445,6 +445,7 @@ $("loginForm").addEventListener("submit", async event => {
 
     showDashboard(result.landlord || {});
     await loadDashboard();
+showMessage("Tenant registered successfully.");
 
   } catch (error) {
     showMessage(error.message, true);
