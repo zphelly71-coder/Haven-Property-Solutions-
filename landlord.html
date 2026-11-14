@@ -227,6 +227,26 @@ th,td {
 </div>
 
       <h2>My Tenants</h2>
+      <div class="card">
+  <h3>Generate Tenant Register</h3>
+
+  <label for="registerProperty">
+    Select Property
+  </label>
+
+  <select id="registerProperty">
+    <option value="all">All My Properties</option>
+  </select>
+
+  <button type="button" id="generateTenantRegister">
+    Generate / Print Tenant Register
+  </button>
+
+  <p class="muted">
+    Generate a printable tenant register for all assigned
+    properties or one selected property.
+  </p>
+</div>
       <p class="muted">
         Tenant records belonging to your assigned properties.
       </p>
@@ -413,13 +433,19 @@ async function loadDashboard(showStatus = true) {
     landlordTenants = tenants;
 
     
+const propertyOptions = properties.map(property => `
+  <option value="${escapeHtml(property._id)}">
+    ${escapeHtml(property.title || "Untitled property")}
+  </option>
+`).join("");
+
 $("tenantProperty").innerHTML =
   '<option value="">Select property</option>' +
-  properties.map(property => `
-    <option value="${escapeHtml(property._id)}">
-      ${escapeHtml(property.title || "Untitled property")}
-    </option>
-  `).join("");
+  propertyOptions;
+
+$("registerProperty").innerHTML =
+  '<option value="all">All My Properties</option>' +
+  propertyOptions;
 
 
     $("propertyCount").textContent =
@@ -694,6 +720,128 @@ message.style.color = "#17664e";
   } finally {
     button.disabled = false;
   }
+});
+
+  $("generateTenantRegister").addEventListener("click", () => {
+  const selectedProperty = $("registerProperty").value;
+
+  const selectedTenants = landlordTenants.filter(tenant =>
+    selectedProperty === "all" ||
+    String(tenant.propertyId) === selectedProperty
+  );
+
+  if (selectedTenants.length === 0) {
+    showMessage("No tenants found for the selected property.", true);
+    return;
+  }
+
+  const formatDate = value => {
+    if (!value) return "—";
+
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+      ? "—"
+      : date.toLocaleDateString("en-KE");
+  };
+
+  const rows = selectedTenants.map(tenant => `
+    <tr>
+      <td>${escapeHtml(tenant.name)}</td>
+      <td>${escapeHtml(tenant.identificationType || "—")}</td>
+      <td>${escapeHtml(tenant.identificationNumber || "—")}</td>
+      <td>${escapeHtml(tenant.phone || "—")}</td>
+      <td>${escapeHtml(tenant.email || "—")}</td>
+      <td>${escapeHtml(tenant.propertyTitle || "—")}</td>
+      <td>${escapeHtml(tenant.unitNumber || "—")}</td>
+      <td>${money(tenant.monthlyRent)}</td>
+      <td>${money(tenant.deposit)}</td>
+      <td>${formatDate(tenant.tenancyStartDate)}</td>
+      <td>${formatDate(tenant.tenancyEndDate)}</td>
+      <td>${escapeHtml(tenant.status || "Active")}</td>
+    </tr>
+  `).join("");
+
+  const propertyTitle = selectedProperty === "all"
+    ? "All Assigned Properties"
+    : $("registerProperty").selectedOptions[0].textContent;
+
+  const printWindow = window.open("", "_blank");
+
+  if (!printWindow) {
+    showMessage("Please allow pop-ups to print the tenant register.", true);
+    return;
+  }
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Haven Property Solutions - Tenant Register</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          padding: 20px;
+          color: #18332c;
+        }
+        h1, h2, p {
+          text-align: center;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 10px;
+        }
+        th, td {
+          border: 1px solid #555;
+          padding: 6px;
+          text-align: left;
+        }
+        th {
+          background: #e7eee9;
+        }
+        @page {
+          size: A4 landscape;
+          margin: 10mm;
+        }
+        @media print {
+          body { padding: 0; }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>HAVEN PROPERTY SOLUTIONS</h1>
+      <h2>TENANT REGISTER</h2>
+      <p><strong>Property:</strong> ${escapeHtml(propertyTitle)}</p>
+      <p><strong>Date generated:</strong> ${new Date().toLocaleDateString("en-KE")}</p>
+      <p><strong>Total tenants:</strong> ${selectedTenants.length}</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Full Name</th>
+            <th>ID Type</th>
+            <th>ID / Passport Number</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Property</th>
+            <th>Unit</th>
+            <th>Monthly Rent</th>
+            <th>Deposit</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
 });
    
 // Restore an existing landlord session.
