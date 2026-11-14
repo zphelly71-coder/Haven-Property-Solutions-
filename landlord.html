@@ -245,7 +245,7 @@ th,td {
           </thead>
           <tbody id="tenantList">
             <tr>
-              <td colspan="5">Loading tenants...</td>
+              <td colspan="6">Loading tenants...</td>
             </tr>
           </tbody>
         </table>
@@ -469,7 +469,10 @@ $("tenantProperty").innerHTML =
           </td>
           <td>${money(tenant.monthlyRent)}</td>
           <td>${escapeHtml(tenant.phone || "—")}</td>
-         <td>
+<td>
+  <strong>${escapeHtml(tenant.status || "Active")}</strong>
+</td>
+<td>
   <button type="button"
     class="editTenantButton"
     data-tenant-id="${escapeHtml(tenant._id || tenant.id)}">
@@ -478,7 +481,7 @@ $("tenantProperty").innerHTML =
 </td>
         </tr>
       `).join("")
-      : '<tr><td colspan="5">No tenants found for your assigned properties.</td></tr>';
+      : '<tr><td colspan="6">No tenants found for your assigned properties.</td></tr>';
 
     if (showStatus) {
   showMessage("Dashboard updated successfully.");
