@@ -605,7 +605,43 @@ $("editIdentificationLabel").textContent =
     block: "start"
   });
 });
+  
+$("tenantList").addEventListener("click", event => {
+  const button = event.target.closest(".requestRemovalButton");
+  if (!button) return;
 
+  const tenant = landlordTenants.find(
+    t => String(t._id || t.id) === button.dataset.tenantId
+  );
+
+  if (!tenant) {
+    showMessage("Tenant record could not be found.", true);
+    return;
+  }
+
+  if (tenant.status !== "active") {
+    showMessage("Only active tenants can have removal requests.", true);
+    return;
+  }
+
+  $("removalTenantId").value = tenant._id || tenant.id;
+  $("removalTenantName").textContent = tenant.name || "";
+  $("removalReason").value = "";
+  $("proposedEndDate").value = "";
+  $("removalRequestMessage").textContent = "";
+
+  $("removalRequestPanel").hidden = false;
+
+  $("removalRequestPanel").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+});
+
+$("cancelRemovalRequest").addEventListener("click", () => {
+  $("removalRequestPanel").hidden = true;
+  $("removalRequestForm").reset();
+});
 $("cancelTenantEdit").addEventListener("click", () => {
   $("editTenantPanel").hidden = true;
   $("editTenantForm").reset();
