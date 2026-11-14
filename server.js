@@ -2456,6 +2456,75 @@ app.post(
 );
 
 app.get(
+  "/api/super-admin/rent-invoices/:invoiceId/payments",
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
+      const { invoiceId } = req.params;
+
+      if (!ObjectId.isValid(invoiceId)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid invoice ID"
+        });
+      }
+
+      const invoice = await db.collection("rentInvoices").findOne(
+        { _id: new ObjectId(invoiceId) },
+        {
+          projection: {
+            invoiceNumber: 1,
+            tenantName: 1,
+            amountDue: 1,
+            amountPaid: 1,
+            balance: 1,
+            paymentStatus: 1
+          }
+        }
+      );
+
+      if (!invoice) {
+        return res.status(404).json({
+          status: "error",
+          message: "Invoice not found"
+        });
+      }
+
+      const payments = await db.collection("rentPayments")
+        .find({ invoiceId: invoice._id })
+        .sort({ paymentDate: -1, createdAt: -1 })
+        .project({
+          amount: 1,
+          paymentDate: 1,
+          paymentMethod: 1,
+          paymentReference: 1,
+          notes: 1,
+          recordedByRole: 1,
+          createdAt: 1
+        })
+        .toArray();
+
+      return res.json({
+        status: "ok",
+        invoice,
+        count: payments.length,
+        payments
+      });
+
+    } catch (error) {
+      console.error("Load rent payment history error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load rent payment history"
+      });
+    }
+  }
+);
+
+
+app.get(
   "/api/super-admin/tenant-removal-requests",
   requireSuperAdmin,
   async (req, res) => {
