@@ -591,6 +591,7 @@ $("registerProperty").innerHTML =
     if (showStatus) {
   showMessage("Dashboard updated successfully.");
 }
+    await loadRemovalRequests();
 
   } catch (error) {
     if (showStatus) {
@@ -811,6 +812,14 @@ showMessage("Tenant registered successfully.");
 
 $("refreshButton").addEventListener(
   "click", loadDashboard
+);
+  $("refreshRemovalRequests").addEventListener(
+  "click",
+  loadRemovalRequests
+);
+  $("refreshRemovalRequests").addEventListener(
+  "click",
+  loadRemovalRequests
 );
 
 $("logoutButton").addEventListener(
