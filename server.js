@@ -901,7 +901,89 @@ identificationNumber: tenant.identificationNumber || "",
     }
   }
 );
+app.get(
+  "/api/landlord/tenant-removal-requests",
+  requireLandlord,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
 
+      const landlordObjectId = new ObjectId(req.landlordId);
+
+      const requests = await db.collection("tenantRemovalRequests")
+        .aggregate([
+          {
+            $match: {
+              landlordId: landlordObjectId
+            }
+          },
+          {
+            $lookup: {
+              from: "tenants",
+              localField: "tenantId",
+              foreignField: "_id",
+              as: "tenant"
+            }
+          },
+          {
+            $unwind: {
+              path: "$tenant",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $lookup: {
+              from: "properties",
+              localField: "propertyId",
+              foreignField: "_id",
+              as: "property"
+            }
+          },
+          {
+            $unwind: {
+              path: "$property",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $project: {
+              tenantId: 1,
+              propertyId: 1,
+              reason: 1,
+              proposedEndDate: 1,
+              status: 1,
+              rejectionReason: 1,
+              createdAt: 1,
+              reviewedAt: 1,
+              "tenant.name": 1,
+              "tenant.unitNumber": 1,
+              "property.title": 1
+            }
+          },
+          {
+            $sort: {
+              createdAt: -1
+            }
+          }
+        ])
+        .toArray();
+
+      return res.json({
+        status: "ok",
+        count: requests.length,
+        requests
+      });
+
+    } catch (error) {
+      console.error("Load landlord removal requests error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load tenant removal requests"
+      });
+    }
+  }
+);
 
 app.post(
   "/api/landlord/tenants",
