@@ -526,7 +526,7 @@ $("tenantForm").addEventListener("submit", async event => {
     $("identificationLabel").textContent =
       "National ID or Passport Number";
 
-    await loadDashboard();
+   await loadDashboard(false);
 
     message.textContent = "Tenant registered successfully.";
     message.style.color = "#17664e";
