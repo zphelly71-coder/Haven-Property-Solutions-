@@ -1,0 +1,413 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haven Property Solutions | Landlord Portal</title>
+<style>
+:root {
+  font-family: Arial, sans-serif;
+  color: #18332c;
+  background: #f3f6f4;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+header {
+  background: #123e32;
+  color: white;
+  padding: 20px;
+}
+main {
+  max-width: 1100px;
+  margin: 24px auto;
+  padding: 16px;
+}
+.card {
+  background: white;
+  padding: 20px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  box-shadow: 0 2px 9px #0001;
+}
+h1,h2,h3 { margin-top: 0; }
+label {
+  display: block;
+  font-weight: bold;
+  margin: 12px 0 5px;
+}
+input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #bbc9c2;
+  border-radius: 7px;
+  font: inherit;
+}
+button {
+  padding: 11px 15px;
+  border: 0;
+  border-radius: 7px;
+  background: #17664e;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 6px 5px 6px 0;
+}
+button.secondary { background: #56665f; }
+button:disabled { opacity: .5; }
+.muted { color: #61716a; font-size: .92rem; }
+#message { white-space: pre-wrap; margin: 12px 0; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(230px,1fr));
+  gap: 14px;
+}
+.item {
+  border: 1px solid #dbe3de;
+  padding: 14px;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.stat { font-size: 1.6rem; font-weight: bold; }
+table { width: 100%; border-collapse: collapse; }
+th,td {
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid #e2e8e4;
+  vertical-align: top;
+}
+.tableWrap { overflow-x: auto; }
+[hidden] { display: none !important; }
+@media(max-width:600px) {
+  main { padding: 10px; }
+  .card { padding: 15px; }
+  th,td { padding: 8px; font-size: .9rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Haven Property Solutions</h1>
+  <p>Landlord Portal</p>
+</header>
+
+<main>
+  <div id="message" role="status" aria-live="polite"></div>
+
+  <section class="card" id="loginPanel">
+    <h2>Landlord Sign In</h2>
+    <p class="muted">
+      Sign in using the email address and password provided
+      by Haven Property Solutions.
+    </p>
+
+    <form id="loginForm">
+      <label for="email">Email address</label>
+      <input id="email" type="email"
+        autocomplete="username" required>
+
+      <label for="password">Password</label>
+      <input id="password" type="password"
+        autocomplete="current-password" required>
+
+      <button type="submit" id="loginButton">
+        Sign In
+      </button>
+    </form>
+  </section>
+
+  <section id="dashboard" hidden>
+
+    <div class="card">
+      <h2 id="welcomeHeading">Landlord Dashboard</h2>
+      <p class="muted">
+        Your information is limited to properties and tenants
+        assigned to your landlord account.
+      </p>
+
+      <button type="button" id="refreshButton">
+        Refresh Dashboard
+      </button>
+
+      <button type="button" class="secondary"
+        id="logoutButton">
+        Log Out
+      </button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="muted">Assigned Properties</div>
+        <div class="stat" id="propertyCount">0</div>
+      </div>
+
+      <div class="card">
+        <div class="muted">Tenants</div>
+        <div class="stat" id="tenantCount">0</div>
+      </div>
+
+      <div class="card">
+        <div class="muted">Active Tenants</div>
+        <div class="stat" id="activeTenantCount">0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>My Properties</h2>
+      <div id="propertyList" class="grid">
+        Loading properties...
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>My Tenants</h2>
+      <p class="muted">
+        Tenant records belonging to your assigned properties.
+      </p>
+
+      <div class="tableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tenant</th>
+              <th>Property / Unit</th>
+              <th>Monthly Rent</th>
+              <th>Phone</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tenantList">
+            <tr>
+              <td colspan="5">Loading tenants...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<script>
+const API_BASE =
+  "https://haven-property-solutions-api.onrender.com";
+
+const TOKEN_KEY = "haven_landlord_token";
+const LANDLORD_KEY = "haven_landlord_profile";
+
+const $ = id => document.getElementById(id);
+
+function showMessage(message, isError = false) {
+  $("message").textContent = message || "";
+  $("message").style.color =
+    isError ? "#a62929" : "#17664e";
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+
+function money(value) {
+  return "KSh " +
+    Number(value || 0).toLocaleString("en-KE");
+}
+
+function getToken() {
+  return localStorage.getItem(TOKEN_KEY) || "";
+}
+
+async function api(path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+
+  if (options.body) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (getToken()) {
+    headers.Authorization = "Bearer " + getToken();
+  }
+
+  const response = await fetch(API_BASE + path, {
+    ...options,
+    headers
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (response.status === 401) {
+    logout(false);
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
+  if (!response.ok || data.status === "error") {
+    throw new Error(
+      data.message || "The request could not be completed."
+    );
+  }
+
+  return data;
+}
+
+function showDashboard(profile) {
+  $("loginPanel").hidden = true;
+  $("dashboard").hidden = false;
+
+  $("welcomeHeading").textContent =
+    "Welcome, " + (profile?.name || "Landlord");
+}
+
+function logout(showNotice = true) {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(LANDLORD_KEY);
+
+  $("dashboard").hidden = true;
+  $("loginPanel").hidden = false;
+  $("password").value = "";
+
+  if (showNotice) {
+    showMessage("You have been logged out.");
+  }
+}
+
+async function loadDashboard() {
+  showMessage("Loading your landlord dashboard...");
+
+  try {
+    const [propertyData, tenantData] = await Promise.all([
+      api("/api/landlord/properties"),
+      api("/api/landlord/tenants")
+    ]);
+
+    const properties = propertyData.properties || [];
+    const tenants = tenantData.tenants || [];
+
+    $("propertyCount").textContent =
+      propertyData.count ?? properties.length;
+
+    $("tenantCount").textContent =
+      tenantData.count ?? tenants.length;
+
+    $("activeTenantCount").textContent =
+      tenants.filter(t => t.status === "active").length;
+
+    $("propertyList").innerHTML = properties.length
+      ? properties.map(property => `
+        <article class="item">
+          <h3>${escapeHtml(property.title || "Untitled property")}</h3>
+          <p>${escapeHtml(property.location || "Location not provided")}</p>
+          <p>
+            <strong>${money(property.price)}</strong>
+            ${escapeHtml(property.pricePeriod
+              ? "per " + property.pricePeriod : "")}
+          </p>
+          <p class="muted">
+            ${escapeHtml(property.propertyType || "")}
+            · ${escapeHtml(property.listingPurpose || "")}
+          </p>
+          <p class="muted">
+            Status: ${escapeHtml(property.status || "—")}
+          </p>
+        </article>
+      `).join("")
+      : '<p class="muted">No properties are currently assigned to your account.</p>';
+
+    $("tenantList").innerHTML = tenants.length
+      ? tenants.map(tenant => `
+        <tr>
+          <td>
+            <strong>${escapeHtml(tenant.name)}</strong><br>
+            <span class="muted">
+              ${escapeHtml(tenant.email || "")}
+            </span>
+          </td>
+          <td>
+            ${escapeHtml(tenant.propertyTitle || "")}<br>
+            <span class="muted">
+              Unit: ${escapeHtml(tenant.unitNumber || "—")}
+            </span>
+          </td>
+          <td>${money(tenant.monthlyRent)}</td>
+          <td>${escapeHtml(tenant.phone || "—")}</td>
+          <td>${escapeHtml(tenant.status || "—")}</td>
+        </tr>
+      `).join("")
+      : '<tr><td colspan="5">No tenants found for your assigned properties.</td></tr>';
+
+    showMessage("Dashboard updated successfully.");
+
+  } catch (error) {
+    showMessage(error.message, true);
+  }
+}
+
+$("loginForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  $("loginButton").disabled = true;
+  showMessage("Signing in...");
+
+  try {
+    const result = await api("/api/landlord/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: $("email").value.trim(),
+        password: $("password").value
+      })
+    });
+
+    localStorage.setItem(TOKEN_KEY, result.token);
+
+    localStorage.setItem(
+      LANDLORD_KEY,
+      JSON.stringify(result.landlord || {})
+    );
+
+    $("password").value = "";
+
+    showDashboard(result.landlord || {});
+    await loadDashboard();
+
+  } catch (error) {
+    showMessage(error.message, true);
+
+  } finally {
+    $("loginButton").disabled = false;
+  }
+});
+
+$("refreshButton").addEventListener(
+  "click", loadDashboard
+);
+
+$("logoutButton").addEventListener(
+  "click", () => logout()
+);
+
+// Restore an existing landlord session.
+const savedToken = getToken();
+
+if (savedToken) {
+  let profile = {};
+
+  try {
+    profile = JSON.parse(
+      localStorage.getItem(LANDLORD_KEY) || "{}"
+    );
+  } catch {}
+
+  showDashboard(profile);
+  loadDashboard();
+}
+</script>
+
+</body>
+</html>
