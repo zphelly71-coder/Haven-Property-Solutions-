@@ -867,6 +867,8 @@ app.get(
       );
 
       const safeTenants = tenants.map(tenant => ({
+        identificationType: tenant.identificationType || "",
+identificationNumber: tenant.identificationNumber || "",
         id: tenant._id,
         name: tenant.name,
         email: tenant.email || "",
