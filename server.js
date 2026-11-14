@@ -2236,6 +2236,64 @@ app.post(
     }
   }
 );
+app.get(
+  "/api/super-admin/rent-invoices",
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
+
+      const { tenantId, billingMonth, billingYear } = req.query;
+
+      if (!ObjectId.isValid(tenantId || "")) {
+        return res.status(400).json({
+          status: "error",
+          message: "A valid tenant ID is required"
+        });
+      }
+
+      const month = Number(billingMonth);
+      const year = Number(billingYear);
+
+      if (
+        !Number.isInteger(month) ||
+        month < 1 ||
+        month > 12 ||
+        !Number.isInteger(year) ||
+        year < 2000 ||
+        year > 2100
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Enter a valid billing month and year"
+        });
+      }
+
+      const invoices = await db.collection("rentInvoices")
+        .find({
+          tenantId: new ObjectId(tenantId),
+          billingMonth: month,
+          billingYear: year
+        })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      return res.json({
+        status: "ok",
+        count: invoices.length,
+        invoices
+      });
+
+    } catch (error) {
+      console.error("Load rent invoices error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load rent invoices"
+      });
+    }
+  }
+);
 
 app.get(
   "/api/super-admin/tenant-removal-requests",
