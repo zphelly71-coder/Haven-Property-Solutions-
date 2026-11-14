@@ -239,7 +239,8 @@ th,td {
               <th>Property / Unit</th>
               <th>Monthly Rent</th>
               <th>Phone</th>
-              <th>Status</th>
+<th>Status</th>
+<th>Actions</th>
             </tr>
           </thead>
           <tbody id="tenantList">
@@ -248,6 +249,42 @@ th,td {
             </tr>
           </tbody>
         </table>
+        <div id="editTenantPanel" class="card" hidden>
+  <h2>Edit Tenant Details</h2>
+
+  <form id="editTenantForm">
+    <input type="hidden" id="editTenantId">
+
+    <label for="editTenantName">Full Name</label>
+    <input id="editTenantName" type="text" required>
+
+    <label for="editTenantPhone">Phone Number</label>
+    <input id="editTenantPhone" type="tel" required>
+
+    <label for="editTenantEmail">Email Address</label>
+    <input id="editTenantEmail" type="email">
+
+    <label for="editTenantUnit">Unit Number</label>
+    <input id="editTenantUnit" type="text">
+
+    <label for="editTenantRent">Monthly Rent (KSh)</label>
+    <input id="editTenantRent" type="number" min="1" step="0.01" required>
+
+    <label for="editTenantDeposit">Security Deposit (KSh)</label>
+    <input id="editTenantDeposit" type="number" min="0" step="0.01" required>
+
+    <button type="submit" id="updateTenantButton">
+      Update Tenant
+    </button>
+
+    <button type="button" class="secondary"
+      id="cancelTenantEdit">
+      Cancel
+    </button>
+
+    <p id="editTenantMessage" role="status" aria-live="polite"></p>
+  </form>
+</div>
       </div>
     </div>
 
@@ -262,6 +299,8 @@ const TOKEN_KEY = "haven_landlord_token";
 const LANDLORD_KEY = "haven_landlord_profile";
 
 const $ = id => document.getElementById(id);
+
+  let landlordTenants = [];
 
 function showMessage(message, isError = false) {
   $("message").textContent = message || "";
@@ -356,6 +395,7 @@ async function loadDashboard(showStatus = true) {
 
     const properties = propertyData.properties || [];
     const tenants = tenantData.tenants || [];
+    landlordTenants = tenants;
 
     
 $("tenantProperty").innerHTML =
@@ -414,7 +454,13 @@ $("tenantProperty").innerHTML =
           </td>
           <td>${money(tenant.monthlyRent)}</td>
           <td>${escapeHtml(tenant.phone || "—")}</td>
-          <td>${escapeHtml(tenant.status || "—")}</td>
+         <td>
+  <button type="button"
+    class="editTenantButton"
+    data-tenant-id="${escapeHtml(tenant._id || tenant.id)}">
+    Edit
+  </button>
+</td>
         </tr>
       `).join("")
       : '<tr><td colspan="5">No tenants found for your assigned properties.</td></tr>';
@@ -429,7 +475,41 @@ $("tenantProperty").innerHTML =
 }
   }
 }
+$("tenantList").addEventListener("click", event => {
+  const button = event.target.closest(".editTenantButton");
+  if (!button) return;
 
+  const tenant = landlordTenants.find(
+    t => String(t._id || t.id) === button.dataset.tenantId
+  );
+
+  if (!tenant) {
+    showMessage("Tenant record could not be found.", true);
+    return;
+  }
+
+  $("editTenantId").value = tenant._id || tenant.id;
+  $("editTenantName").value = tenant.name || "";
+  $("editTenantPhone").value = tenant.phone || "";
+  $("editTenantEmail").value = tenant.email || "";
+  $("editTenantUnit").value = tenant.unitNumber || "";
+  $("editTenantRent").value = tenant.monthlyRent || "";
+  $("editTenantDeposit").value = tenant.deposit ?? 0;
+
+  $("editTenantMessage").textContent = "";
+  $("editTenantPanel").hidden = false;
+
+  $("editTenantPanel").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+});
+
+$("cancelTenantEdit").addEventListener("click", () => {
+  $("editTenantPanel").hidden = true;
+  $("editTenantForm").reset();
+});
+  
 $("loginForm").addEventListener("submit", async event => {
   event.preventDefault();
 
@@ -540,6 +620,44 @@ $("tenantForm").addEventListener("submit", async event => {
   }
 });
 
+  $("editTenantForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const button = $("updateTenantButton");
+  const message = $("editTenantMessage");
+  const tenantId = $("editTenantId").value;
+
+  button.disabled = true;
+  message.textContent = "Updating tenant...";
+  message.style.color = "#17664e";
+
+  try {
+    await api(`/api/landlord/tenants/${encodeURIComponent(tenantId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        name: $("editTenantName").value.trim(),
+        phone: $("editTenantPhone").value.trim(),
+        email: $("editTenantEmail").value.trim(),
+        unitNumber: $("editTenantUnit").value.trim(),
+        monthlyRent: $("editTenantRent").value,
+        deposit: $("editTenantDeposit").value
+      })
+    });
+
+    await loadDashboard(false);
+
+    $("editTenantPanel").hidden = true;
+    $("editTenantForm").reset();
+    showMessage("Tenant details updated successfully.");
+
+  } catch (error) {
+    message.textContent = error.message;
+    message.style.color = "#a62929";
+
+  } finally {
+    button.disabled = false;
+  }
+});
    
 // Restore an existing landlord session.
 const savedToken = getToken();
