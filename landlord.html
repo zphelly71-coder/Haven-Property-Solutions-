@@ -598,6 +598,62 @@ $("registerProperty").innerHTML =
 }
   }
 }
+  async function loadRemovalRequests() {
+  const list = $("removalRequestList");
+  const message = $("removalHistoryMessage");
+
+  list.innerHTML =
+    '<tr><td colspan="6">Loading removal requests...</td></tr>';
+
+  try {
+    const data = await api(
+      "/api/landlord/tenant-removal-requests"
+    );
+
+    const requests = data.requests || [];
+
+    if (requests.length === 0) {
+      list.innerHTML =
+        '<tr><td colspan="6">No removal requests found.</td></tr>';
+      message.textContent = "";
+      return;
+    }
+
+    const formatDate = value => {
+      if (!value) return "—";
+
+      const date = new Date(value);
+
+      return Number.isNaN(date.getTime())
+        ? "—"
+        : date.toLocaleDateString("en-KE");
+    };
+
+    list.innerHTML = requests.map(request => `
+      <tr>
+        <td>${escapeHtml(request.tenant?.name || "Tenant")}</td>
+        <td>
+          ${escapeHtml(request.property?.title || "Property")}
+          <br>
+          Unit: ${escapeHtml(request.tenant?.unitNumber || "—")}
+        </td>
+        <td>${escapeHtml(request.reason || "—")}</td>
+        <td>${formatDate(request.proposedEndDate)}</td>
+        <td><strong>${escapeHtml(request.status || "—")}</strong></td>
+        <td>${escapeHtml(request.rejectionReason || "—")}</td>
+      </tr>
+    `).join("");
+
+    message.textContent =
+      `${requests.length} removal request(s) found.`;
+
+  } catch (error) {
+    list.innerHTML =
+      '<tr><td colspan="6">Unable to load removal requests.</td></tr>';
+
+    message.textContent = error.message;
+  }
+}
 $("tenantList").addEventListener("click", event => {
   const button = event.target.closest(".editTenantButton");
   if (!button) return;
