@@ -646,10 +646,8 @@ $("tenantForm").addEventListener("submit", async event => {
 
     await loadDashboard(false);
 
-    $("editTenantPanel").hidden = true;
-    $("editTenantForm").reset();
-    showMessage("Tenant details updated successfully.");
-
+message.textContent = "Tenant details updated successfully.";
+message.style.color = "#17664e";
   } catch (error) {
     message.textContent = error.message;
     message.style.color = "#a62929";
