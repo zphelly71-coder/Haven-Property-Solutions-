@@ -1084,6 +1084,7 @@ app.patch(
   "email",
   "phone",
   "unitNumber",
+  "monthlyRent",
   "deposit"
 ];
       const updates = {};
