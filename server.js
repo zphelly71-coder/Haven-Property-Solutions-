@@ -1079,13 +1079,15 @@ app.patch(
         });
       }
 
-      const allowedFields = [
+     const allowedFields = [
   "name",
   "email",
   "phone",
   "unitNumber",
   "monthlyRent",
-  "deposit"
+  "deposit",
+  "identificationType",
+  "identificationNumber"
 ];
       const updates = {};
 
@@ -1094,6 +1096,40 @@ app.patch(
           updates[field] = req.body[field];
         }
       }
+      if (
+  updates.identificationType !== undefined ||
+  updates.identificationNumber !== undefined
+) {
+  if (
+    !["national_id", "passport"].includes(
+      updates.identificationType
+    ) ||
+    typeof updates.identificationNumber !== "string" ||
+    !updates.identificationNumber.trim()
+  ) {
+    return res.status(400).json({
+      status: "error",
+      message: "A valid identification type and number are required"
+    });
+  }
+
+  updates.identificationNumber =
+    updates.identificationNumber.trim().toUpperCase();
+
+  const existingIdentification = await db.collection("tenants")
+    .findOne({
+      identificationType: updates.identificationType,
+      identificationNumber: updates.identificationNumber,
+      _id: { $ne: new ObjectId(tenantId) }
+    });
+
+  if (existingIdentification) {
+    return res.status(409).json({
+      status: "error",
+      message: "This identification number is already registered"
+    });
+  }
+}
 
       if (Object.keys(updates).length === 0) {
         return res.status(400).json({
