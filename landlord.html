@@ -217,6 +217,11 @@ th,td {
     <button type="submit" id="saveTenantButton">
       Save Tenant
     </button>
+    <p id="tenantFormMessage"
+   role="status"
+   aria-live="polite"
+   style="margin-top:10px;font-weight:bold;">
+</p>
 
   </form>
 </div>
@@ -482,12 +487,16 @@ $("identificationType").addEventListener("change", () => {
         : "";
 });
 
+
 $("tenantForm").addEventListener("submit", async event => {
   event.preventDefault();
 
   const button = $("saveTenantButton");
+  const message = $("tenantFormMessage");
+
   button.disabled = true;
-  showMessage("Saving tenant...");
+  message.textContent = "Saving tenant...";
+  message.style.color = "#17664e";
 
   try {
     await api("/api/landlord/tenants", {
@@ -507,22 +516,25 @@ $("tenantForm").addEventListener("submit", async event => {
     });
 
     $("tenantForm").reset();
+
     $("identificationLabel").textContent =
       "National ID or Passport Number";
 
-    showMessage("Tenant registered successfully.");
-
     await loadDashboard();
 
+    message.textContent = "Tenant registered successfully.";
+    message.style.color = "#17664e";
+
   } catch (error) {
-    showMessage(error.message, true);
+    message.textContent = error.message;
+    message.style.color = "#a62929";
 
   } finally {
     button.disabled = false;
   }
 });
 
-
+   
 // Restore an existing landlord session.
 const savedToken = getToken();
 
