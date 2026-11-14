@@ -653,6 +653,83 @@ async function api(path, options = {}) {
   return data;
 }
 
+  
+async function loadAdminRemovalRequests() {
+  const list = $("adminRemovalRequestList");
+  const message = $("adminRemovalRequestMessage");
+
+  list.innerHTML =
+    '<tr><td colspan="6">Loading requests...</td></tr>';
+
+  try {
+    const result = await superAdminApi(
+      "/api/super-admin/tenant-removal-requests"
+    );
+
+    const requests = result.requests || [];
+
+    if (requests.length === 0) {
+      list.innerHTML =
+        '<tr><td colspan="6">No pending tenant removal requests.</td></tr>';
+      message.textContent = "No pending requests.";
+      return;
+    }
+
+    const escapeHtml = value =>
+      String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+
+    list.innerHTML = requests.map(request => `
+      <tr>
+        <td>${escapeHtml(request.tenant?.name || "Unknown")}</td>
+        <td>
+          ${escapeHtml(request.landlord?.name || "Unknown")}
+          <br>
+          ${escapeHtml(request.landlord?.email || "")}
+        </td>
+        <td>
+          ${escapeHtml(request.property?.title || "Unknown")}
+          <br>
+          Unit: ${escapeHtml(request.tenant?.unitNumber || "N/A")}
+        </td>
+        <td>${escapeHtml(request.reason || "")}</td>
+        <td>
+          ${request.proposedEndDate
+            ? new Date(request.proposedEndDate).toLocaleDateString()
+            : "N/A"}
+        </td>
+        <td>
+          <button type="button"
+            class="approveRemovalButton"
+            data-request-id="${escapeHtml(request._id)}">
+            Approve
+          </button>
+
+          <button type="button"
+            class="rejectRemovalButton"
+            data-request-id="${escapeHtml(request._id)}">
+            Reject
+          </button>
+        </td>
+      </tr>
+    `).join("");
+
+    message.textContent =
+      `${requests.length} pending removal request(s) loaded.`;
+
+  } catch (error) {
+    list.innerHTML =
+      '<tr><td colspan="6">Unable to load requests.</td></tr>';
+    message.textContent = error.message;
+  }
+}
+
+
 function showDashboard() {
   $("loginPanel").hidden = true;
   $("dashboard").hidden = false;
