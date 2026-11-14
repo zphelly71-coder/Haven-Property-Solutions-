@@ -642,6 +642,44 @@ $("cancelRemovalRequest").addEventListener("click", () => {
   $("removalRequestPanel").hidden = true;
   $("removalRequestForm").reset();
 });
+  $("removalRequestForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const button = $("submitRemovalRequest");
+  const message = $("removalRequestMessage");
+  const tenantId = $("removalTenantId").value;
+
+  button.disabled = true;
+  message.textContent = "Submitting removal request...";
+  message.style.color = "#17664e";
+
+  try {
+    const result = await api(
+      `/api/landlord/tenants/${encodeURIComponent(tenantId)}/removal-request`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          reason: $("removalReason").value.trim(),
+          proposedEndDate: $("proposedEndDate").value
+        })
+      }
+    );
+
+    message.textContent =
+      result.message || "Removal request submitted successfully.";
+    message.style.color = "#17664e";
+
+    $("removalRequestForm").reset();
+    await loadDashboard(false);
+
+  } catch (error) {
+    message.textContent = error.message;
+    message.style.color = "#a62929";
+
+  } finally {
+    button.disabled = false;
+  }
+});
 $("cancelTenantEdit").addEventListener("click", () => {
   $("editTenantPanel").hidden = true;
   $("editTenantForm").reset();
