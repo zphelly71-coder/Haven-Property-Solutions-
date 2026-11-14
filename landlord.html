@@ -161,6 +161,66 @@ th,td {
     </div>
 
     <div class="card">
+      
+<div class="card">
+  <h2>Add New Tenant</h2>
+  <p class="muted">
+    Register a tenant under one of your assigned properties.
+    Identification details are required.
+  </p>
+
+  <form id="tenantForm">
+
+    <label for="tenantProperty">Property</label>
+    <select id="tenantProperty" required>
+      <option value="">Select property</option>
+    </select>
+
+    <label for="tenantName">Full Name</label>
+    <input id="tenantName" type="text" required>
+
+    <label for="identificationType">Identification Type</label>
+    <select id="identificationType" required>
+      <option value="">Select identification type</option>
+      <option value="national_id">Kenyan National ID</option>
+      <option value="passport">Passport</option>
+    </select>
+
+    <label for="identificationNumber" id="identificationLabel">
+      National ID or Passport Number
+    </label>
+    <input
+      id="identificationNumber"
+      type="text"
+      autocomplete="off"
+      required
+    >
+
+    <label for="tenantPhone">Phone Number</label>
+    <input id="tenantPhone" type="tel" required>
+
+    <label for="tenantEmail">Email Address</label>
+    <input id="tenantEmail" type="email">
+
+    <label for="tenantUnit">Unit Number</label>
+    <input id="tenantUnit" type="text">
+
+    <label for="tenantRent">Monthly Rent (KSh)</label>
+    <input id="tenantRent" type="number" min="1" step="0.01" required>
+
+    <label for="tenantDeposit">Security Deposit (KSh)</label>
+    <input id="tenantDeposit" type="number" min="0" step="0.01" required>
+
+    <label for="tenancyStartDate">Tenancy Start Date</label>
+    <input id="tenancyStartDate" type="date" required>
+
+    <button type="submit" id="saveTenantButton">
+      Save Tenant
+    </button>
+
+  </form>
+</div>
+
       <h2>My Tenants</h2>
       <p class="muted">
         Tenant records belonging to your assigned properties.
@@ -290,6 +350,16 @@ async function loadDashboard() {
     const properties = propertyData.properties || [];
     const tenants = tenantData.tenants || [];
 
+    
+$("tenantProperty").innerHTML =
+  '<option value="">Select property</option>' +
+  properties.map(property => `
+    <option value="${escapeHtml(property._id)}">
+      ${escapeHtml(property.title || "Untitled property")}
+    </option>
+  `).join("");
+
+
     $("propertyCount").textContent =
       propertyData.count ?? properties.length;
 
@@ -391,6 +461,66 @@ $("refreshButton").addEventListener(
 $("logoutButton").addEventListener(
   "click", () => logout()
 );
+
+  
+$("identificationType").addEventListener("change", () => {
+  const type = $("identificationType").value;
+
+  $("identificationLabel").textContent =
+    type === "passport"
+      ? "Passport Number"
+      : type === "national_id"
+        ? "National ID Number"
+        : "National ID or Passport Number";
+
+  $("identificationNumber").placeholder =
+    type === "passport"
+      ? "Enter passport number"
+      : type === "national_id"
+        ? "Enter National ID number"
+        : "";
+});
+
+$("tenantForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const button = $("saveTenantButton");
+  button.disabled = true;
+  showMessage("Saving tenant...");
+
+  try {
+    await api("/api/landlord/tenants", {
+      method: "POST",
+      body: JSON.stringify({
+        propertyId: $("tenantProperty").value,
+        name: $("tenantName").value.trim(),
+        identificationType: $("identificationType").value,
+        identificationNumber: $("identificationNumber").value.trim(),
+        phone: $("tenantPhone").value.trim(),
+        email: $("tenantEmail").value.trim(),
+        unitNumber: $("tenantUnit").value.trim(),
+        monthlyRent: $("tenantRent").value,
+        deposit: $("tenantDeposit").value,
+        tenancyStartDate: $("tenancyStartDate").value
+      })
+    });
+
+    $("tenantForm").reset();
+    $("identificationLabel").textContent =
+      "National ID or Passport Number";
+
+    showMessage("Tenant registered successfully.");
+
+    await loadDashboard();
+
+  } catch (error) {
+    showMessage(error.message, true);
+
+  } finally {
+    button.disabled = false;
+  }
+});
+
 
 // Restore an existing landlord session.
 const savedToken = getToken();
