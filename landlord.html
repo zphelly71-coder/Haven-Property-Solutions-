@@ -320,6 +320,47 @@ th,td {
     <p id="editTenantMessage" role="status" aria-live="polite"></p>
   </form>
 </div>
+        <div id="removalRequestPanel" class="card" hidden>
+  <h2>Request Tenant Removal</h2>
+
+  <form id="removalRequestForm">
+    <input type="hidden" id="removalTenantId">
+
+    <p>
+      Tenant: <strong id="removalTenantName"></strong>
+    </p>
+
+    <label for="removalReason">Reason for Removal</label>
+    <textarea
+      id="removalReason"
+      rows="4"
+      required
+      minlength="5"
+      placeholder="Explain why removal is being requested">
+    </textarea>
+
+    <label for="proposedEndDate">Proposed Tenancy End Date</label>
+    <input
+      id="proposedEndDate"
+      type="date"
+      required
+    >
+
+    <button type="submit" id="submitRemovalRequest">
+      Submit Removal Request
+    </button>
+
+    <button type="button" class="secondary"
+      id="cancelRemovalRequest">
+      Cancel
+    </button>
+
+    <p id="removalRequestMessage"
+       role="status"
+       aria-live="polite">
+    </p>
+  </form>
+</div>
       </div>
     </div>
 
