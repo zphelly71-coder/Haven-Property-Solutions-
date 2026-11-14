@@ -872,6 +872,7 @@ $("superAdminLoginForm").addEventListener("submit", async (event) => {
 
     $("superAdminStatus").textContent =
       "Super Admin authenticated successfully.";
+    await loadAdminRemovalRequests();
 
   } catch (error) {
     alert(error.message);
