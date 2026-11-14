@@ -257,6 +257,21 @@ th,td {
 
     <label for="editTenantName">Full Name</label>
     <input id="editTenantName" type="text" required>
+    <label for="editIdentificationType">Identification Type</label>
+<select id="editIdentificationType" required>
+  <option value="national_id">Kenyan National ID</option>
+  <option value="passport">Passport</option>
+</select>
+
+<label for="editIdentificationNumber" id="editIdentificationLabel">
+  National ID or Passport Number
+</label>
+<input
+  id="editIdentificationNumber"
+  type="text"
+  autocomplete="off"
+  required
+>
 
     <label for="editTenantPhone">Phone Number</label>
     <input id="editTenantPhone" type="tel" required>
@@ -495,6 +510,16 @@ $("tenantList").addEventListener("click", event => {
   $("editTenantUnit").value = tenant.unitNumber || "";
   $("editTenantRent").value = tenant.monthlyRent || "";
   $("editTenantDeposit").value = tenant.deposit ?? 0;
+  $("editIdentificationType").value =
+  tenant.identificationType || "national_id";
+
+$("editIdentificationNumber").value =
+  tenant.identificationNumber || "";
+
+$("editIdentificationLabel").textContent =
+  tenant.identificationType === "passport"
+    ? "Passport Number"
+    : "National ID Number";
 
   $("editTenantMessage").textContent = "";
   $("editTenantPanel").hidden = false;
@@ -620,6 +645,15 @@ $("tenantForm").addEventListener("submit", async event => {
   }
 });
 
+  $("editIdentificationType").addEventListener("change", () => {
+  const type = $("editIdentificationType").value;
+
+  $("editIdentificationLabel").textContent =
+    type === "passport"
+      ? "Passport Number"
+      : "National ID Number";
+});
+
   $("editTenantForm").addEventListener("submit", async event => {
   event.preventDefault();
 
@@ -640,7 +674,9 @@ $("tenantForm").addEventListener("submit", async event => {
         email: $("editTenantEmail").value.trim(),
         unitNumber: $("editTenantUnit").value.trim(),
         monthlyRent: $("editTenantRent").value,
-        deposit: $("editTenantDeposit").value
+deposit: $("editTenantDeposit").value,
+identificationType: $("editIdentificationType").value,
+identificationNumber: $("editIdentificationNumber").value.trim()
       })
     });
 
