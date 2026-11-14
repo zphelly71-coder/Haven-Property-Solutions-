@@ -1304,19 +1304,7 @@ app.post(
       }
 
       
-const endDate = new Date(proposedEndDate);
-const startDate = new Date(tenant.tenancyStartDate);
 
-if (
-  Number.isNaN(endDate.getTime()) ||
-  Number.isNaN(startDate.getTime()) ||
-  endDate < startDate
-) {
-  return res.status(400).json({
-    status: "error",
-    message: "The proposed end date cannot be earlier than the tenancy start date"
-  });
-}
 
 
       const landlordObjectId = new ObjectId(req.landlordId);
@@ -1334,6 +1322,19 @@ if (
           message: "Active tenant not found under your account"
         });
       }
+      const endDate = new Date(proposedEndDate);
+const startDate = new Date(tenant.tenancyStartDate);
+
+if (
+  Number.isNaN(endDate.getTime()) ||
+  Number.isNaN(startDate.getTime()) ||
+  endDate < startDate
+) {
+  return res.status(400).json({
+    status: "error",
+    message: "The proposed end date cannot be earlier than the tenancy start date"
+  });
+}
 
       const existingRequest = await db.collection("tenantRemovalRequests")
         .findOne({
