@@ -1057,6 +1057,107 @@ async function loadEndedTenants() {
   }
 }
 
+  
+async function loadRentInvoiceRegister() {
+  const list = $("rentInvoiceRegisterList");
+  const message = $("rentInvoiceRegisterMessage");
+
+  const month = Number($("registerBillingMonth").value);
+  const year = Number($("registerBillingYear").value);
+
+  if (
+    !Number.isInteger(month) || month < 1 || month > 12 ||
+    !Number.isInteger(year) || year < 2000 || year > 2100
+  ) {
+    message.textContent = "Please select a valid billing month and year.";
+    return;
+  }
+
+  list.innerHTML =
+    '<tr><td colspan="9">Loading invoices...</td></tr>';
+  message.textContent = "Retrieving invoice records...";
+
+  try {
+    const result = await superAdminApi(
+      `/api/super-admin/rent-invoices/register?billingMonth=${month}&billingYear=${year}`
+    );
+
+    const invoices = result.invoices || [];
+
+    if (invoices.length === 0) {
+      list.innerHTML =
+        '<tr><td colspan="9">No invoices found for this billing period.</td></tr>';
+      message.textContent = "No invoices found.";
+      return;
+    }
+
+    const escapeHtml = value =>
+      String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+
+    const money = value =>
+      "KSh " + Number(value || 0).toLocaleString("en-KE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+
+    const formatDate = value =>
+      value ? new Date(value).toLocaleDateString() : "N/A";
+
+    list.innerHTML = invoices.map(invoice => `
+      <tr>
+        <td>${escapeHtml(invoice.invoiceNumber || "N/A")}</td>
+        <td>
+          ${escapeHtml(invoice.tenantName || "Unknown")}
+          <br>
+          ${escapeHtml(invoice.tenantPhone || "")}
+        </td>
+        <td>
+          ${escapeHtml(invoice.landlord?.name || "Unknown")}
+          <br>
+          ${escapeHtml(invoice.landlord?.email || "")}
+        </td>
+        <td>
+          ${escapeHtml(invoice.propertyTitle || "Unknown")}
+          <br>
+          Unit: ${escapeHtml(invoice.unitNumber || "N/A")}
+        </td>
+        <td>${money(invoice.amountDue)}</td>
+        <td>${money(invoice.amountPaid)}</td>
+        <td>${money(invoice.balance)}</td>
+        <td>${escapeHtml(invoice.paymentStatus || "Unknown")}</td>
+        <td>${formatDate(invoice.dueDate)}</td>
+      </tr>
+    `).join("");
+
+    const totalDue = invoices.reduce(
+      (sum, invoice) => sum + Number(invoice.amountDue || 0), 0
+    );
+    const totalPaid = invoices.reduce(
+      (sum, invoice) => sum + Number(invoice.amountPaid || 0), 0
+    );
+    const totalBalance = invoices.reduce(
+      (sum, invoice) => sum + Number(invoice.balance || 0), 0
+    );
+
+    message.textContent =
+      `${invoices.length} invoice(s) found. ` +
+      `Total due: ${money(totalDue)} | ` +
+      `Total paid: ${money(totalPaid)} | ` +
+      `Outstanding: ${money(totalBalance)}`;
+
+  } catch (error) {
+    list.innerHTML =
+      '<tr><td colspan="9">Unable to load invoices.</td></tr>';
+    message.textContent = error.message;
+  }
+}
+
 async function loadReinstatementHistory() {
   const list = $("reinstatementHistoryList");
   const message = $("reinstatementHistoryMessage");
@@ -2744,6 +2845,10 @@ $("rentInvoiceForm").addEventListener("submit", async event => {
     button.disabled = false;
   }
 });
+ $("loadRentInvoiceRegister").addEventListener(
+  "click",
+  loadRentInvoiceRegister
+); 
 
 </script>
 </body>
