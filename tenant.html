@@ -298,6 +298,9 @@
     
 <div class="card">
   <h2>My Rent Account</h2>
+  <button type="button" id="downloadRentStatement">
+  Print / Download Rent Statement
+</button>
   <p>View your rent charges, payments and outstanding balance.</p>
 
   <div class="details">
@@ -681,6 +684,207 @@ async function loadRentAccount() {
     showMessage("rentAccountMessage", error.message);
   }
 }
+  
+
+async function printRentStatement() {
+  const printWindow = window.open("", "_blank");
+
+  if (!printWindow) {
+    alert("Please allow pop-ups to print your rent statement.");
+    return;
+  }
+
+  printWindow.document.write(
+    "<p style='font-family:Arial;padding:30px'>Preparing your rent statement...</p>"
+  );
+
+  try {
+    const [profileData, rentData] = await Promise.all([
+      apiRequest("/api/tenant/profile"),
+      apiRequest("/api/tenant/rent-account")
+    ]);
+
+    const tenant = profileData.tenant || {};
+    const property = profileData.property || {};
+    const invoices = rentData.invoices || [];
+    const payments = rentData.payments || [];
+    const summary = rentData.summary || {};
+
+    const invoiceRows = invoices.map(invoice => `
+      <tr>
+        <td>${escapeHtml(invoice.invoiceNumber || "—")}</td>
+        <td>${escapeHtml(invoice.billingPeriod || "—")}</td>
+        <td>${formatMoney(invoice.amountDue)}</td>
+        <td>${formatMoney(invoice.amountPaid)}</td>
+        <td>${formatMoney(invoice.balance)}</td>
+        <td>${escapeHtml(invoice.paymentStatus || "—")}</td>
+      </tr>
+    `).join("");
+
+    const paymentRows = payments.map(payment => {
+      const invoice = invoices.find(
+        item => String(item._id) === String(payment.invoiceId)
+      );
+
+      return `
+        <tr>
+          <td>${formatDate(payment.paymentDate || payment.createdAt)}</td>
+          <td>${escapeHtml(invoice?.invoiceNumber || "—")}</td>
+          <td>${formatMoney(payment.amount)}</td>
+          <td>${escapeHtml(payment.paymentMethod || "—")}</td>
+          <td>${escapeHtml(payment.paymentReference || "—")}</td>
+        </tr>
+      `;
+    }).join("");
+
+    const generatedDate = new Date().toLocaleDateString("en-KE");
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>Tenant Rent Statement</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            color: #263238;
+            padding: 25px;
+          }
+          header {
+            text-align: center;
+            border-bottom: 3px solid #146c54;
+            padding-bottom: 15px;
+          }
+          h1 { color: #123b35; }
+          h2 { color: #123b35; margin-top: 28px; }
+          .details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+          }
+          .summary {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+          }
+          .summary div {
+            flex: 1;
+            padding: 15px;
+            background: #eef5f1;
+            border-radius: 6px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 12px;
+          }
+          th, td {
+            border: 1px solid #bbb;
+            padding: 9px;
+            text-align: left;
+          }
+          th {
+            background: #123b35;
+            color: white;
+          }
+          footer {
+            margin-top: 35px;
+            text-align: center;
+            font-size: 12px;
+          }
+          @media print {
+            body { padding: 5px; }
+            button { display: none; }
+            tr { break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <header>
+          <h1>HAVEN PROPERTY SOLUTIONS</h1>
+          <h2> TENANT RENT STATEMENT </h2>
+          <p>Statement generated: ${generatedDate}</p>
+        </header>
+
+        <h2>Tenant Information</h2>
+        <div class="details">
+          <div><strong>Tenant:</strong> ${escapeHtml(tenant.name || "—")}</div>
+          <div><strong>Email:</strong> ${escapeHtml(tenant.email || "—")}</div>
+          <div><strong>Phone:</strong> ${escapeHtml(tenant.phone || "—")}</div>
+          <div><strong>Unit:</strong> ${escapeHtml(tenant.unitNumber || "—")}</div>
+          <div><strong>Property:</strong> ${escapeHtml(property.title || "—")}</div>
+          <div><strong>Location:</strong> ${escapeHtml(property.location || "—")}</div>
+        </div>
+
+        <h2>Financial Summary</h2>
+        <div class="summary">
+          <div><strong>Total Due</strong><br>${formatMoney(summary.totalAmountDue)}</div>
+          <div><strong>Total Paid</strong><br>${formatMoney(summary.totalAmountPaid)}</div>
+          <div><strong>Balance</strong><br>${formatMoney(summary.totalBalance)}</div>
+        </div>
+
+        <h2>Rent Invoice History</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Period</th>
+              <th>Due</th>
+              <th>Paid</th>
+              <th>Balance</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${invoiceRows || '<tr><td colspan="6">No invoices found</td></tr>'}
+          </tbody>
+        </table>
+
+        <h2>Payment History</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Invoice</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${paymentRows || '<tr><td colspan="5">No payments found</td></tr>'}
+          </tbody>
+        </table>
+
+        <footer>
+          <p>Haven Property Solutions</p>
+          <p>Official Tenant Rent Account Statement</p>
+        </footer>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        <\/script>
+      </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+
+  } catch (error) {
+    printWindow.document.body.innerHTML =
+      "<p>Unable to generate statement. Please try again.</p>";
+    console.error("Rent statement error:", error);
+  }
+}
+
+document.getElementById("downloadRentStatement")
+  .addEventListener("click", printRentStatement);
 
 
   document.getElementById("logoutButton")
