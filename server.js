@@ -3061,6 +3061,85 @@ if (
 );
 
 
+app.get(
+  "/api/super-admin/ended-tenants",
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const tenants = await db.collection("tenants")
+        .aggregate([
+          {
+            $match: {
+              status: "ended"
+            }
+          },
+          {
+            $lookup: {
+              from: "properties",
+              localField: "propertyId",
+              foreignField: "_id",
+              as: "property"
+            }
+          },
+          {
+            $unwind: {
+              path: "$property",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $lookup: {
+              from: "landlords",
+              localField: "landlordId",
+              foreignField: "_id",
+              as: "landlord"
+            }
+          },
+          {
+            $unwind: {
+              path: "$landlord",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $project: {
+              name: 1,
+              phone: 1,
+              unitNumber: 1,
+              monthlyRent: 1,
+              tenancyStartDate: 1,
+              tenancyEndDate: 1,
+              "property.title": 1,
+              "landlord.name": 1,
+              "landlord.email": 1
+            }
+          },
+          {
+            $sort: {
+              updatedAt: -1
+            }
+          }
+        ])
+        .toArray();
+
+      return res.json({
+        status: "ok",
+        count: tenants.length,
+        tenants
+      });
+
+    } catch (error) {
+      console.error("Load ended tenants error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load ended tenants"
+      });
+    }
+  }
+);
+
+
 app.post(
   "/api/super-admin/tenants/:tenantId/reinstate",
   requireSuperAdmin,
