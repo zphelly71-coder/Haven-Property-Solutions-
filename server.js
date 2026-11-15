@@ -880,27 +880,85 @@ app.post("/api/tenant/activate", async (req, res) => {
 });
 app.post("/api/tenant/login", async (req, res) => {
   try {
-    const email = req.body?.email?.trim().toLowerCase();
+    // The login form sends the email or phone in the "email" field.
+    const identifier = String(
+      req.body?.email || req.body?.identifier || ""
+    ).trim();
+
     const password = req.body?.password;
 
     if (
-      typeof email !== "string" ||
+      !identifier ||
       typeof password !== "string" ||
-      !email ||
       !password
     ) {
       return res.status(400).json({
         status: "error",
-        message: "Email and password are required"
+        message: "Email or phone number and password are required"
       });
     }
 
-    const tenant = await db.collection("tenants").findOne({
-      email,
-      portalAccountStatus: "active",
-      status: { $in: ["active", "ended"] }
-    });
+    let tenant = null;
 
+    if (identifier.includes("@")) {
+      // Existing email login remains supported.
+      const email = identifier.toLowerCase();
+
+      tenant = await db.collection("tenants").findOne({
+        email,
+        portalAccountStatus: "active",
+        status: { $in: ["active", "ended"] }
+      });
+
+    } else {
+      // Convert the supplied Kenyan phone number to standard format.
+      const normalizedPhone = normalizeKenyanPhone(identifier);
+
+      if (!normalizedPhone) {
+        return res.status(400).json({
+          status: "error",
+          message: "Enter a valid email address or Kenyan phone number"
+        });
+      }
+
+      // Support common stored formats: 0712..., 254712..., +254712...
+      const internationalDigits = normalizedPhone.replace(/\D/g, "");
+      const localDigits = "0" + internationalDigits.slice(3);
+
+      const phonePatterns = [
+        internationalDigits,
+        localDigits
+      ].map(digits =>
+        digits.split("").join("[\\s().-]*")
+      );
+
+      const phoneRegex = new RegExp(
+        "^\\s*\\+?[\\s().-]*(?:" +
+        phonePatterns.join("|") +
+        ")[\\s().-]*$"
+      );
+
+      const matches = await db.collection("tenants")
+        .find({
+          phone: { $regex: phoneRegex },
+          portalAccountStatus: "active",
+          status: { $in: ["active", "ended"] }
+        })
+        .toArray();
+
+      // Do not guess when multiple tenant accounts share a number.
+      if (matches.length > 1) {
+        return res.status(409).json({
+          status: "error",
+          message:
+            "This phone number is registered to multiple tenant accounts. Please contact your landlord."
+        });
+      }
+
+      tenant = matches[0] || null;
+    }
+
+    // Existing password verification is preserved.
     if (
       !tenant ||
       !tenant.portalPasswordHash ||
@@ -908,10 +966,11 @@ app.post("/api/tenant/login", async (req, res) => {
     ) {
       return res.status(401).json({
         status: "error",
-        message: "Invalid email or password"
+        message: "Invalid email or phone number and password"
       });
     }
 
+    // Existing session creation is preserved.
     const token = crypto.randomBytes(32).toString("hex");
 
     tenantSessions.set(token, {
@@ -927,7 +986,8 @@ app.post("/api/tenant/login", async (req, res) => {
       tenant: {
         id: tenant._id,
         name: tenant.name,
-        email: tenant.email
+        email: tenant.email || "",
+        phone: tenant.phone || ""
       }
     });
 
