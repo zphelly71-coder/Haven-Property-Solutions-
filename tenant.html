@@ -719,6 +719,7 @@ const allPayments = rentData.payments || [];
 const fromDate = document.getElementById("statementFromDate").value;
 const toDate = document.getElementById("statementToDate").value;
     if (fromDate && toDate && fromDate > toDate) {
+  printWindow.close();
   alert("The From Date cannot be later than the To Date.");
   return;
 }
