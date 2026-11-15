@@ -295,6 +295,73 @@
       </div>
     </div>
 
+    
+<div class="card">
+  <h2>My Rent Account</h2>
+  <p>View your rent charges, payments and outstanding balance.</p>
+
+  <div class="details">
+    <div class="detail">
+      <strong>Total Rent Due</strong>
+      <span id="totalRentDue">KES 0</span>
+    </div>
+
+    <div class="detail">
+      <strong>Total Rent Paid</strong>
+      <span id="totalRentPaid">KES 0</span>
+    </div>
+
+    <div class="detail">
+      <strong>Outstanding Balance</strong>
+      <span id="totalRentBalance">KES 0</span>
+    </div>
+  </div>
+
+  <h3>My Rent Invoices</h3>
+  <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>Invoice</th>
+          <th>Period</th>
+          <th>Amount Due</th>
+          <th>Amount Paid</th>
+          <th>Balance</th>
+          <th>Status</th>
+          <th>Due Date</th>
+        </tr>
+      </thead>
+      <tbody id="tenantInvoiceList">
+        <tr>
+          <td colspan="7">Loading invoices...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>My Payment History</h3>
+  <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Invoice</th>
+          <th>Amount</th>
+          <th>Method</th>
+          <th>Reference</th>
+        </tr>
+      </thead>
+      <tbody id="tenantPaymentList">
+        <tr>
+          <td colspan="5">Loading payment history...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p id="rentAccountMessage" class="message"></p>
+</div>
+
     <div class="card">
       <h2>My Property</h2>
 
@@ -383,6 +450,17 @@
 
     return date.toLocaleDateString("en-KE");
   }
+  
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+
 
   function setText(id, value) {
     document.getElementById(id).textContent =
@@ -541,7 +619,69 @@
     loginCard.classList.add("hidden");
     activationCard.classList.add("hidden");
     dashboard.classList.remove("hidden");
+    await loadRentAccount();
   }
+  
+async function loadRentAccount() {
+  const invoiceBody = document.getElementById("tenantInvoiceList");
+  const paymentBody = document.getElementById("tenantPaymentList");
+
+  try {
+    const result = await apiRequest("/api/tenant/rent-account");
+
+    const summary = result.summary || {};
+    const invoices = result.invoices || [];
+    const payments = result.payments || [];
+
+    setText("totalRentDue", formatMoney(summary.totalAmountDue));
+    setText("totalRentPaid", formatMoney(summary.totalAmountPaid));
+    setText("totalRentBalance", formatMoney(summary.totalBalance));
+
+    invoiceBody.innerHTML = invoices.length
+      ? invoices.map(invoice => `
+          <tr>
+            <td>${escapeHtml(invoice.invoiceNumber || "—")}</td>
+            <td>${escapeHtml(invoice.billingPeriod || "—")}</td>
+            <td>${formatMoney(invoice.amountDue)}</td>
+            <td>${formatMoney(invoice.amountPaid)}</td>
+            <td>${formatMoney(invoice.balance)}</td>
+            <td>${escapeHtml(invoice.paymentStatus || "—")}</td>
+            <td>${formatDate(invoice.dueDate)}</td>
+          </tr>
+        `).join("")
+      : '<tr><td colspan="7">No rent invoices found.</td></tr>';
+
+    paymentBody.innerHTML = payments.length
+      ? payments.map(payment => {
+          const invoice = invoices.find(
+            item => String(item._id) === String(payment.invoiceId)
+          );
+
+          return `
+            <tr>
+              <td>${formatDate(payment.paymentDate || payment.createdAt)}</td>
+              <td>${escapeHtml(invoice?.invoiceNumber || "—")}</td>
+              <td>${formatMoney(payment.amount)}</td>
+              <td>${escapeHtml(payment.paymentMethod || "—")}</td>
+              <td>${escapeHtml(payment.paymentReference || "—")}</td>
+            </tr>
+          `;
+        }).join("")
+      : '<tr><td colspan="5">No payments recorded yet.</td></tr>';
+
+    document.getElementById("rentAccountMessage").style.display = "none";
+
+  } catch (error) {
+    invoiceBody.innerHTML =
+      '<tr><td colspan="7">Unable to load rent invoices.</td></tr>';
+
+    paymentBody.innerHTML =
+      '<tr><td colspan="5">Unable to load payment history.</td></tr>';
+
+    showMessage("rentAccountMessage", error.message);
+  }
+}
+
 
   document.getElementById("logoutButton")
     .addEventListener("click", function() {
