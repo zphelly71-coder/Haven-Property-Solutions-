@@ -977,6 +977,68 @@ async function loadEndedTenants() {
     message.textContent = error.message;
   }
 }
+
+async function loadReinstatementHistory() {
+  const list = $("reinstatementHistoryList");
+  const message = $("reinstatementHistoryMessage");
+
+  list.innerHTML =
+    '<tr><td colspan="6">Loading reinstatement history...</td></tr>';
+
+  try {
+    const result = await superAdminApi(
+      "/api/super-admin/tenant-reinstatement-history"
+    );
+
+    const records = result.history || [];
+
+    if (records.length === 0) {
+      list.innerHTML =
+        '<tr><td colspan="6">No reinstatement records found.</td></tr>';
+      message.textContent = "No reinstatement history available.";
+      return;
+    }
+
+    const escapeHtml = value =>
+      String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+
+    const formatDate = value =>
+      value ? new Date(value).toLocaleDateString() : "N/A";
+
+    list.innerHTML = records.map(record => `
+      <tr>
+        <td>${escapeHtml(record.tenant?.name || "Unknown")}</td>
+        <td>
+          ${escapeHtml(record.landlord?.name || "Unknown")}
+          <br>
+          ${escapeHtml(record.landlord?.email || "")}
+        </td>
+        <td>
+          ${escapeHtml(record.property?.title || "Unknown")}
+          <br>
+          Unit: ${escapeHtml(record.tenant?.unitNumber || "N/A")}
+        </td>
+        <td>${formatDate(record.previousEndDate)}</td>
+        <td>${escapeHtml(record.reason || "N/A")}</td>
+        <td>${formatDate(record.reinstatedAt)}</td>
+      </tr>
+    `).join("");
+
+    message.textContent =
+      `${records.length} reinstatement record(s) loaded.`;
+
+  } catch (error) {
+    list.innerHTML =
+      '<tr><td colspan="6">Unable to load reinstatement history.</td></tr>';
+    message.textContent = error.message;
+  }
+}
   
 
 function showDashboard() {
@@ -1124,6 +1186,7 @@ $("superAdminLoginForm").addEventListener("submit", async (event) => {
     await loadAdminRemovalRequests();
     await loadAdminRemovalHistory();
     await loadEndedTenants();
+    await loadReinstatementHistory();
 
   } catch (error) {
     alert(error.message);
@@ -1252,7 +1315,10 @@ $("refreshEndedTenantsAdmin").addEventListener(
   "click",
   loadEndedTenants
 );
-
+$("refreshReinstatementHistoryAdmin").addEventListener(
+  "click",
+  loadReinstatementHistory
+);
 $("superAdminLogoutButton").addEventListener("click", () => {
   sessionStorage.removeItem(SUPER_ADMIN_TOKEN_KEY);
 
