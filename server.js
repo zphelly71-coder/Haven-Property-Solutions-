@@ -2397,6 +2397,99 @@ app.post(
     }
   }
 );
+
+app.get(
+  "/api/super-admin/rent-invoices/register",
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const month = Number(req.query.billingMonth);
+      const year = Number(req.query.billingYear);
+
+      if (
+        !Number.isInteger(month) ||
+        month < 1 ||
+        month > 12 ||
+        !Number.isInteger(year) ||
+        year < 2000 ||
+        year > 2100
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Enter a valid billing month and year"
+        });
+      }
+
+      const invoices = await db.collection("rentInvoices")
+        .aggregate([
+          {
+            $match: {
+              billingMonth: month,
+              billingYear: year
+            }
+          },
+          {
+            $lookup: {
+              from: "landlords",
+              localField: "landlordId",
+              foreignField: "_id",
+              as: "landlord"
+            }
+          },
+          {
+            $unwind: {
+              path: "$landlord",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $project: {
+              invoiceNumber: 1,
+              tenantName: 1,
+              tenantEmail: 1,
+              tenantPhone: 1,
+              unitNumber: 1,
+              propertyTitle: 1,
+              billingPeriod: 1,
+              amountDue: 1,
+              amountPaid: 1,
+              balance: 1,
+              paymentStatus: 1,
+              issueDate: 1,
+              dueDate: 1,
+              createdAt: 1,
+              "landlord.name": 1,
+              "landlord.email": 1
+            }
+          },
+          {
+            $sort: {
+              createdAt: -1
+            }
+          },
+          {
+            $limit: 500
+          }
+        ])
+        .toArray();
+
+      return res.json({
+        status: "ok",
+        count: invoices.length,
+        invoices
+      });
+
+    } catch (error) {
+      console.error("Load rent invoice register error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load rent invoice register"
+      });
+    }
+  }
+);
+
 app.get(
   "/api/super-admin/rent-invoices",
   requireSuperAdmin,
