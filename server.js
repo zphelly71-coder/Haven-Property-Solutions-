@@ -22,6 +22,73 @@ const MPESA_CALLBACK_URL = process.env.MPESA_CALLBACK_URL;
 const MPESA_SHORTCODE = process.env.MPESA_SHORTCODE || "174379";
 const MPESA_ENVIRONMENT = process.env.MPESA_ENVIRONMENT || "sandbox";
 
+const AT_USERNAME = process.env.AT_USERNAME || "sandbox";
+const AT_API_KEY = process.env.AT_API_KEY;
+const AT_ENVIRONMENT = process.env.AT_ENVIRONMENT || "sandbox";
+
+async function sendTenantInvitationSMS(phoneNumber, message) {
+  if (!AT_API_KEY) {
+    throw new Error("Africa's Talking API key is not configured");
+  }
+
+  const baseUrl = AT_ENVIRONMENT === "production"
+    ? "https://api.africastalking.com"
+    : "https://api.sandbox.africastalking.com";
+
+  const body = new URLSearchParams({
+    username: AT_USERNAME,
+    to: phoneNumber,
+    message
+  });
+
+  const response = await fetch(
+    `${baseUrl}/version1/messaging`,
+    {
+      method: "POST",
+      headers: {
+        "apiKey": AT_API_KEY,
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: body.toString(),
+      signal: AbortSignal.timeout(20000)
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  const recipient = data.SMSMessageData?.Recipients?.[0];
+  const code = Number(recipient?.statusCode);
+
+  if (!response.ok || !recipient || code < 100 || code >= 200) {
+    throw new Error("Africa's Talking could not accept the SMS");
+  }
+
+  return {
+    messageId: recipient.messageId || "",
+    status: recipient.status || "Accepted"
+  };
+}
+
+function normalizeKenyanPhone(value) {
+  const phone = String(value || "").replace(/[\s()-]/g, "");
+
+  if (/^0[71]\d{8}$/.test(phone)) {
+    return "+254" + phone.slice(1);
+  }
+
+  if (/^254[71]\d{8}$/.test(phone)) {
+    return "+" + phone;
+  }
+
+  if (/^\+254[71]\d{8}$/.test(phone)) {
+    return phone;
+  }
+
+  return null;
+}
+
+
 const MPESA_BASE_URL =
   MPESA_ENVIRONMENT === "production"
     ? "https://api.safaricom.co.ke"
@@ -1593,13 +1660,12 @@ app.patch(
 );
 
 
+
 app.post(
   "/api/landlord/tenants/:tenantId/invitation",
   requireLandlord,
   async (req, res) => {
     try {
-      const { ObjectId } = require("mongodb");
-
       const tenantId = req.params.tenantId;
 
       if (!ObjectId.isValid(tenantId)) {
@@ -1611,24 +1677,35 @@ app.post(
 
       const tenant = await db.collection("tenants").findOne({
         _id: new ObjectId(tenantId),
-        landlordId: new ObjectId(req.landlordId),
         status: "active"
       });
 
       if (!tenant) {
         return res.status(404).json({
           status: "error",
-          message: "Active tenant not found under your account"
+          message: "Active tenant not found"
         });
       }
 
-      if (
-        typeof tenant.email !== "string" ||
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tenant.email)
-      ) {
+      // Verify that the tenant's property belongs to this landlord.
+      const property = await db.collection("properties").findOne({
+        _id: tenant.propertyId,
+        landlordId: new ObjectId(req.landlordId)
+      });
+
+      if (!property) {
+        return res.status(403).json({
+          status: "error",
+          message: "This tenant is not under your account"
+        });
+      }
+
+      const phoneNumber = normalizeKenyanPhone(tenant.phone);
+
+      if (!phoneNumber) {
         return res.status(400).json({
           status: "error",
-          message: "A valid tenant email address is required"
+          message: "A valid Kenyan tenant phone number is required"
         });
       }
 
@@ -1651,10 +1728,9 @@ app.post(
         now.getTime() + 7 * 24 * 60 * 60 * 1000
       );
 
-      await db.collection("tenants").updateOne(
+      const update = await db.collection("tenants").updateOne(
         {
           _id: tenant._id,
-          landlordId: new ObjectId(req.landlordId),
           status: "active",
           portalActivatedAt: { $exists: false }
         },
@@ -1669,17 +1745,52 @@ app.post(
         }
       );
 
+      if (update.modifiedCount !== 1) {
+        return res.status(409).json({
+          status: "error",
+          message: "Tenant invitation could not be saved"
+        });
+      }
+
       const invitationUrl =
         "https://zphelly71-coder.github.io/" +
         "Haven-Property-Solutions-/tenant.html?token=" +
         encodeURIComponent(invitationToken);
 
+      const smsMessage =
+        "Hello " + tenant.name +
+        ". Haven Property Solutions invites you to activate your Tenant Portal. " +
+        "Use this secure link within 7 days: " + invitationUrl;
+
+      let smsSent = false;
+      let smsMessageId = "";
+
+      try {
+        const smsResult = await sendTenantInvitationSMS(
+          phoneNumber,
+          smsMessage
+        );
+
+        smsSent = true;
+        smsMessageId = smsResult.messageId;
+
+      } catch (smsError) {
+        console.error(
+          "Tenant invitation SMS failed:",
+          smsError.message
+        );
+      }
+
       return res.json({
         status: "ok",
-        message: "Tenant invitation generated successfully",
+        message: smsSent
+          ? "Tenant invitation SMS accepted by Africa's Talking"
+          : "Invitation created, but SMS could not be sent. Use the invitation link instead.",
         tenantName: tenant.name,
-        tenantEmail: tenant.email,
+        tenantPhone: phoneNumber,
         expiresAt,
+        smsSent,
+        smsMessageId,
         invitationUrl
       });
 
