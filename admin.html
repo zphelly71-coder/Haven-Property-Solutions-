@@ -207,6 +207,43 @@ button:disabled{opacity:.5}
     </tbody>
   </table>
 </div>
+    
+<hr>
+
+<h3>Ended Tenants — Reinstatement</h3>
+
+<p class="muted">
+  View ended tenants and reinstate a tenancy when authorised.
+</p>
+
+<button type="button" id="refreshEndedTenantsAdmin">
+  Refresh Ended Tenants
+</button>
+
+<p id="endedTenantsMessage" class="muted" role="status">
+  Ended tenants will appear here.
+</p>
+
+<div style="overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th>Tenant</th>
+        <th>Landlord</th>
+        <th>Property / Unit</th>
+        <th>Monthly Rent</th>
+        <th>Previous End Date</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="endedTenantsList">
+      <tr>
+        <td colspan="6">No ended tenants loaded yet.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
 
   </div>
 </div>
