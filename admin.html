@@ -1086,6 +1086,7 @@ $("superAdminLoginForm").addEventListener("submit", async (event) => {
       "Super Admin authenticated successfully.";
     await loadAdminRemovalRequests();
     await loadAdminRemovalHistory();
+    await loadEndedTenants();
 
   } catch (error) {
     alert(error.message);
@@ -1162,6 +1163,58 @@ $("refreshRemovalRequestsAdmin").addEventListener(
   "click",
   loadAdminRemovalHistory
 ); 
+
+  
+$("endedTenantsList").addEventListener("click", async (event) => {
+  const button = event.target.closest(".reinstateTenantButton");
+
+  if (!button) return;
+
+  const tenantId = button.dataset.tenantId;
+
+  const reason = prompt(
+    "Enter the reason for reinstating this tenant:"
+  );
+
+  if (!reason || reason.trim().length < 5) {
+    alert("A reinstatement reason of at least 5 characters is required.");
+    return;
+  }
+
+  const confirmed = confirm(
+    "Are you sure you want to reinstate this tenant?"
+  );
+
+  if (!confirmed) return;
+
+  button.disabled = true;
+
+  try {
+    const result = await superAdminApi(
+      `/api/super-admin/tenants/${encodeURIComponent(tenantId)}/reinstate`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          reason: reason.trim()
+        })
+      }
+    );
+
+    $("endedTenantsMessage").textContent =
+      result.message || "Tenant successfully reinstated.";
+
+    await loadEndedTenants();
+
+  } catch (error) {
+    alert(error.message);
+    button.disabled = false;
+  }
+});
+
+$("refreshEndedTenantsAdmin").addEventListener(
+  "click",
+  loadEndedTenants
+);
 
 $("superAdminLogoutButton").addEventListener("click", () => {
   sessionStorage.removeItem(SUPER_ADMIN_TOKEN_KEY);
