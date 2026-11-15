@@ -583,6 +583,11 @@ $("registerProperty").innerHTML =
     data-tenant-id="${escapeHtml(tenant._id || tenant.id)}">
     Request Removal
   </button>
+  <button type="button"
+    class="inviteTenantButton"
+    data-tenant-id="${escapeHtml(tenant._id || tenant.id)}">
+    Invite to Tenant Portal
+</button>
 </td>
         </tr>
       `).join("")
@@ -694,7 +699,71 @@ $("editIdentificationLabel").textContent =
     block: "start"
   });
 });
-  
+  $("tenantList").addEventListener("click", async event => {
+  const button = event.target.closest(".inviteTenantButton");
+  if (!button) return;
+
+  const tenantId = button.dataset.tenantId;
+
+  const tenant = landlordTenants.find(
+    t => String(t._id || t.id) === tenantId
+  );
+
+  if (!tenant) {
+    showMessage("Tenant record could not be found.", true);
+    return;
+  }
+
+  if (!tenant.email) {
+    showMessage(
+      "Please add the tenant's email address before sending an invitation.",
+      true
+    );
+    return;
+  }
+
+  if (tenant.status !== "active") {
+    showMessage(
+      "Only active tenants can receive portal invitations.",
+      true
+    );
+    return;
+  }
+
+  if (!confirm(
+    "Generate a tenant portal invitation for " +
+    tenant.name + " (" + tenant.email + ")?"
+  )) {
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Generating...";
+
+  try {
+    const result = await api(
+      `/api/landlord/tenants/${encodeURIComponent(tenantId)}/invitation`,
+      { method: "POST" }
+    );
+
+    window.prompt(
+      "Copy this secure invitation link and send it to " +
+      result.tenantEmail + ". It expires in 7 days:",
+      result.invitationUrl
+    );
+
+    showMessage(
+      "Invitation generated for " + result.tenantName + "."
+    );
+
+  } catch (error) {
+    showMessage(error.message, true);
+
+  } finally {
+    button.disabled = false;
+    button.textContent = "Invite to Tenant Portal";
+  }
+});
 $("tenantList").addEventListener("click", event => {
   const button = event.target.closest(".requestRemovalButton");
   if (!button) return;
