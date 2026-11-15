@@ -171,6 +171,43 @@ button:disabled{opacity:.5}
       </table>
     </div>
 
+<hr>
+
+<h3>Tenant Removal History</h3>
+<p class="muted">
+  View previously approved and rejected tenant removal requests.
+</p>
+
+<button type="button" id="refreshRemovalHistoryAdmin">
+  Refresh Removal History
+</button>
+
+<p id="adminRemovalHistoryMessage" class="muted" role="status">
+  Removal history will appear here.
+</p>
+
+<div style="overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th>Tenant</th>
+        <th>Landlord</th>
+        <th>Property / Unit</th>
+        <th>Reason</th>
+        <th>Proposed End Date</th>
+        <th>Decision</th>
+        <th>Reviewed On</th>
+        <th>Rejection Reason</th>
+      </tr>
+    </thead>
+    <tbody id="adminRemovalHistoryList">
+      <tr>
+        <td colspan="8">No history loaded yet.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
   </div>
 </div>
 
