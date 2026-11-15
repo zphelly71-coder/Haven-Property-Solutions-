@@ -1067,6 +1067,94 @@ app.get(
     }
   }
 );
+
+
+app.get(
+  "/api/tenant/rent-account",
+  requireTenant,
+  async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({
+          status: "error",
+          message: "Database not connected"
+        });
+      }
+
+      const { ObjectId } = require("mongodb");
+
+      if (!ObjectId.isValid(String(req.tenantId))) {
+        return res.status(401).json({
+          status: "error",
+          message: "Invalid tenant session"
+        });
+      }
+
+      const tenantId = new ObjectId(String(req.tenantId));
+
+      const invoices = await db.collection("rentInvoices")
+        .find({ tenantId })
+        .sort({ billingYear: -1, billingMonth: -1, createdAt: -1 })
+        .limit(100)
+        .toArray();
+
+      const invoiceIds = invoices.map(invoice => invoice._id);
+
+      const payments = invoiceIds.length
+        ? await db.collection("rentPayments")
+            .find({ invoiceId: { $in: invoiceIds } })
+            .sort({ paymentDate: -1, createdAt: -1 })
+            .project({
+              invoiceId: 1,
+              amount: 1,
+              paymentDate: 1,
+              paymentMethod: 1,
+              paymentReference: 1,
+              notes: 1,
+              createdAt: 1
+            })
+            .toArray()
+        : [];
+
+      const totalAmountDue = invoices.reduce(
+        (total, invoice) => total + (Number(invoice.amountDue) || 0),
+        0
+      );
+
+      const totalAmountPaid = invoices.reduce(
+        (total, invoice) => total + (Number(invoice.amountPaid) || 0),
+        0
+      );
+
+      const totalBalance = invoices.reduce(
+        (total, invoice) => total + (Number(invoice.balance) || 0),
+        0
+      );
+
+      return res.json({
+        status: "ok",
+        summary: {
+          totalAmountDue,
+          totalAmountPaid,
+          totalBalance
+        },
+        invoiceCount: invoices.length,
+        invoices,
+        paymentCount: payments.length,
+        payments
+      });
+
+    } catch (error) {
+      console.error("Load tenant rent account error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load rent account"
+      });
+    }
+  }
+);
+
 app.post("/api/landlord/login", async (req, res) => {
   try {
     const email = req.body?.email?.trim().toLowerCase();
