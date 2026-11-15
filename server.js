@@ -1252,7 +1252,14 @@ identificationNumber: tenant.identificationNumber || "",
         tenancyStartDate: tenant.tenancyStartDate || null,
         tenancyEndDate: tenant.tenancyEndDate || null,
         status: tenant.status || "active",
-        createdAt: tenant.createdAt
+
+// Tenant Portal account information
+portalAccountStatus: tenant.portalAccountStatus ||
+  (tenant.portalActivatedAt ? "active" : "not_activated"),
+portalActivatedAt: tenant.portalActivatedAt || null,
+portalInvitationExpiresAt: tenant.portalInvitationExpiresAt || null,
+
+createdAt: tenant.createdAt
       }));
 
       return res.json({
