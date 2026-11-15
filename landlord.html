@@ -285,16 +285,19 @@ th,td {
 
       <div class="tableWrap">
         <table>
-          <thead>
-            <tr>
-              <th>Tenant</th>
-              <th>Property / Unit</th>
-              <th>Monthly Rent</th>
-              <th>Phone</th>
-<th>Status</th>
-<th>Actions</th>
-            </tr>
-          </thead>
+         
+<thead>
+  <tr>
+    <th>Tenant</th>
+    <th>Property / Unit</th>
+    <th>Monthly Rent</th>
+    <th>Phone</th>
+    <th>Status</th>
+    <th>Portal Account</th>
+    <th>Actions</th>
+  </tr>
+</thead>
+
           <tbody id="tenantList">
             <tr>
               <td colspan="6">Loading tenants...</td>
@@ -551,8 +554,36 @@ $("registerProperty").innerHTML =
       `).join("")
       : '<p class="muted">No properties are currently assigned to your account.</p>';
 
-    $("tenantList").innerHTML = tenants.length
-      ? tenants.map(tenant => `
+   
+$("tenantList").innerHTML = tenants.length
+  ? tenants.map(tenant => {
+      const portalActivated =
+        tenant.portalAccountStatus === "active" ||
+        Boolean(tenant.portalActivatedAt);
+
+      const invitationExpiry = tenant.portalInvitationExpiresAt
+        ? new Date(tenant.portalInvitationExpiresAt).getTime()
+        : 0;
+
+      const invitationPending =
+        !portalActivated &&
+        tenant.portalAccountStatus === "invited" &&
+        invitationExpiry > Date.now();
+
+      const invitationExpired =
+        !portalActivated &&
+        tenant.portalAccountStatus === "invited" &&
+        !invitationPending;
+
+      const portalStatus = portalActivated
+        ? "Portal Activated"
+        : invitationPending
+          ? "Invitation Pending"
+          : invitationExpired
+            ? "Invitation Expired"
+            : "Not Activated";
+
+      return `
         <tr>
           <td>
             <strong>${escapeHtml(tenant.name)}</strong><br>
@@ -560,50 +591,71 @@ $("registerProperty").innerHTML =
               ${escapeHtml(tenant.email || "")}
             </span>
           </td>
+
           <td>
             ${escapeHtml(tenant.propertyTitle || "")}<br>
             <span class="muted">
               Unit: ${escapeHtml(tenant.unitNumber || "—")}
             </span>
           </td>
+
           <td>${money(tenant.monthlyRent)}</td>
+
           <td>${escapeHtml(tenant.phone || "—")}</td>
-<td>
-  <strong>${escapeHtml(tenant.status || "Active")}</strong>
-</td>
-<td>
-  <button type="button"
-    class="editTenantButton"
-    data-tenant-id="${escapeHtml(tenant._id || tenant.id)}">
-    Edit
-  </button>
 
-  <button type="button"
-    class="requestRemovalButton"
-    data-tenant-id="${escapeHtml(tenant._id || tenant.id)}">
-    Request Removal
-  </button>
-  <button type="button"
-    class="inviteTenantButton"
-    data-tenant-id="${escapeHtml(tenant._id || tenant.id)}">
-    Invite to Tenant Portal
-</button>
-</td>
+          <td>
+            <strong>${escapeHtml(tenant.status || "Active")}</strong>
+          </td>
+
+          <td>
+            <strong>${portalStatus}</strong>
+          </td>
+
+          <td>
+            <button type="button"
+              class="editTenantButton"
+              data-tenant-id="${escapeHtml(tenant._id || tenant.id)}">
+              Edit
+            </button>
+
+            <button type="button"
+              class="requestRemovalButton"
+              data-tenant-id="${escapeHtml(tenant._id || tenant.id)}">
+              Request Removal
+            </button>
+
+            ${
+              portalActivated
+                ? ""
+                : invitationPending
+                  ? ""
+                  : `<button type="button"
+                      class="inviteTenantButton"
+                      data-tenant-id="${escapeHtml(tenant._id || tenant.id)}">
+                      ${invitationExpired
+                        ? "Resend Invitation"
+                        : "Invite to Tenant Portal"}
+                    </button>`
+            }
+          </td>
         </tr>
-      `).join("")
-      : '<tr><td colspan="6">No tenants found for your assigned properties.</td></tr>';
+      `;
+    }).join("")
+  : '<tr><td colspan="7">No tenants found for your assigned properties.</td></tr>';
 
-    if (showStatus) {
+if (showStatus) {
   showMessage("Dashboard updated successfully.");
 }
-    await loadRemovalRequests();
 
-  } catch (error) {
-    if (showStatus) {
-  showMessage(error.message, true);
-}
+await loadRemovalRequests();
+
+} catch (error) {
+  if (showStatus) {
+    showMessage(error.message, true);
   }
 }
+}
+
   async function loadRemovalRequests() {
   const list = $("removalRequestList");
   const message = $("removalHistoryMessage");
@@ -702,6 +754,7 @@ $("tenantList").addEventListener("click", async event => {
   }
 
  
+  
   // Handle Tenant Portal Invitation
   if (inviteButton) {
     const tenantId = inviteButton.dataset.tenantId;
@@ -715,6 +768,34 @@ $("tenantList").addEventListener("click", async event => {
       return;
     }
 
+    // Prevent invitations to activated accounts
+    if (
+      tenant.portalAccountStatus === "active" ||
+      tenant.portalActivatedAt
+    ) {
+      showMessage(
+        "This tenant already has an activated Tenant Portal account.",
+        true
+      );
+      inviteButton.remove();
+      return;
+    }
+
+    // Prevent duplicate invitations while one is still valid
+    if (tenant.portalAccountStatus === "invited") {
+      const expiry = tenant.portalInvitationExpiresAt
+        ? new Date(tenant.portalInvitationExpiresAt).getTime()
+        : 0;
+
+      if (!expiry || expiry > Date.now()) {
+        showMessage(
+          "This tenant already has a pending invitation. Please wait until it expires.",
+          true
+        );
+        return;
+      }
+    }
+
     if (!tenant.phone) {
       showMessage("Please add the tenant's phone number first.", true);
       return;
@@ -725,8 +806,13 @@ $("tenantList").addEventListener("click", async event => {
       return;
     }
 
+    const invitationAction =
+      tenant.portalAccountStatus === "invited"
+        ? "Resend the expired Tenant Portal invitation to "
+        : "Send a Tenant Portal invitation by SMS to ";
+
     if (!confirm(
-      "Send a Tenant Portal invitation by SMS to " +
+      invitationAction +
       tenant.name + " (" + tenant.phone + ")?"
     )) {
       return;
@@ -735,43 +821,58 @@ $("tenantList").addEventListener("click", async event => {
     inviteButton.disabled = true;
     inviteButton.textContent = "Sending SMS...";
 
+    let invitationCreated = false;
+
     try {
       const result = await api(
         `/api/landlord/tenants/${encodeURIComponent(tenantId)}/invitation`,
         { method: "POST" }
       );
 
-      
-if (result.smsSent) {
-  window.prompt(
-    "Africa's Talking Sandbox accepted the SMS request, " +
-    "but Sandbox messages are not delivered to real phones. " +
-    "Copy this invitation link and open it to test tenant activation:",
-    result.invitationUrl
-  );
+      invitationCreated = true;
 
-  showMessage(
-    "Sandbox SMS accepted. Copy the invitation link to test tenant activation."
-  );
+      // Update local tenant information immediately
+      tenant.portalAccountStatus = "invited";
 
-} else {
-  window.prompt(
-    "SMS was not sent. Copy this invitation link and share it with " +
-    result.tenantPhone + ". It expires in 7 days:",
-    result.invitationUrl
-  );
+      // Remove the invitation button to prevent repeat clicks
+      inviteButton.remove();
 
-  showMessage(
-    "Invitation created, but SMS failed. Use the copied link."
-  );
-}
+      if (result.smsSent) {
+        window.prompt(
+          "Africa's Talking Sandbox accepted the SMS request, " +
+          "but Sandbox messages are not delivered to real phones. " +
+          "Copy this invitation link and open it to test tenant activation:",
+          result.invitationUrl
+        );
+
+        showMessage(
+          "Sandbox SMS accepted. Copy the invitation link to test tenant activation."
+        );
+
+      } else {
+        window.prompt(
+          "SMS was not sent. Copy this invitation link and share it with " +
+          result.tenantPhone + ". It expires in 7 days:",
+          result.invitationUrl
+        );
+
+        showMessage(
+          "Invitation created, but SMS failed. Use the copied link."
+        );
+      }
 
     } catch (error) {
       showMessage(error.message, true);
 
     } finally {
-      inviteButton.disabled = false;
-      inviteButton.textContent = "Invite to Tenant Portal";
+      if (!invitationCreated) {
+        inviteButton.disabled = false;
+
+        inviteButton.textContent =
+          tenant.portalAccountStatus === "invited"
+            ? "Resend Invitation"
+            : "Invite to Tenant Portal";
+      }
     }
   }
 
