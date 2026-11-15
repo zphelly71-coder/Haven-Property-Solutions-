@@ -1093,10 +1093,21 @@ app.get(
       const tenantId = new ObjectId(String(req.tenantId));
 
       const invoices = await db.collection("rentInvoices")
-        .find({ tenantId })
-        .sort({ billingYear: -1, billingMonth: -1, createdAt: -1 })
-        .limit(100)
-        .toArray();
+  .find({ tenantId })
+  .sort({ billingYear: -1, billingMonth: -1, createdAt: -1 })
+  .limit(100)
+  .project({
+    _id: 1,
+    invoiceNumber: 1,
+    billingPeriod: 1,
+    amountDue: 1,
+    amountPaid: 1,
+    balance: 1,
+    paymentStatus: 1,
+    dueDate: 1,
+    createdAt: 1
+  })
+  .toArray();
 
       const invoiceIds = invoices.map(invoice => invoice._id);
 
