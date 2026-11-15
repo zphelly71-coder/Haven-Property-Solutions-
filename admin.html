@@ -1328,6 +1328,153 @@ $("refreshReinstatementHistoryAdmin").addEventListener(
   "click",
   loadReinstatementHistory
 );
+  
+function getReinstatementHistoryRows() {
+  const tableBody = $("reinstatementHistoryList");
+  const rows = Array.from(tableBody.rows);
+
+  if (
+    rows.length === 0 ||
+    (rows.length === 1 && rows[0].cells.length === 1)
+  ) {
+    alert("No reinstatement history records are available to export.");
+    return null;
+  }
+
+  return rows.map(row =>
+    Array.from(row.cells).map(cell =>
+      cell.innerText.replace(/\s*\n\s*/g, " ").trim()
+    )
+  );
+}
+
+$("printReinstatementHistoryAdmin").addEventListener("click", () => {
+  const dataRows = getReinstatementHistoryRows();
+  if (!dataRows) return;
+
+  const headers = [
+    "Tenant",
+    "Landlord",
+    "Property / Unit",
+    "Previous End Date",
+    "Reason for Reinstatement",
+    "Reinstated On"
+  ];
+
+  const escapeHtml = value =>
+    String(value).replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
+
+  const tableRows = dataRows.map(row => `
+    <tr>
+      ${row.map(value => `<td>${escapeHtml(value)}</td>`).join("")}
+    </tr>
+  `).join("");
+
+  const printWindow = window.open("", "_blank");
+
+  if (!printWindow) {
+    alert("Please allow pop-ups to print this report.");
+    return;
+  }
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Tenant Reinstatement History</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          padding: 25px;
+          color: #222;
+        }
+        h1, p {
+          text-align: center;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 25px;
+        }
+        th, td {
+          border: 1px solid #555;
+          padding: 8px;
+          text-align: left;
+          font-size: 11px;
+        }
+        th {
+          background: #eeeeee;
+        }
+        @media print {
+          body { padding: 5px; }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>HAVEN PROPERTY SOLUTIONS</h1>
+      <h2>Tenant Reinstatement History</h2>
+      <p>Official Super Admin Reinstatement Records</p>
+      <table>
+        <thead>
+          <tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+      <p>Generated: ${new Date().toLocaleString()}</p>
+    </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+});
+
+$("exportReinstatementHistoryAdmin").addEventListener("click", () => {
+  const dataRows = getReinstatementHistoryRows();
+  if (!dataRows) return;
+
+  const headers = [
+    "Tenant",
+    "Landlord",
+    "Property / Unit",
+    "Previous End Date",
+    "Reason for Reinstatement",
+    "Reinstated On"
+  ];
+
+  const csvEscape = value =>
+    '"' + String(value ?? "").replace(/"/g, '""') + '"';
+
+  const csvContent = [
+    headers,
+    ...dataRows
+  ].map(row => row.map(csvEscape).join(",")).join("\r\n");
+
+  const blob = new Blob(
+    ["\uFEFF" + csvContent],
+    { type: "text/csv;charset=utf-8;" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "Haven_Tenant_Reinstatement_History.csv";
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  URL.revokeObjectURL(url);
+});
+
 $("superAdminLogoutButton").addEventListener("click", () => {
   sessionStorage.removeItem(SUPER_ADMIN_TOKEN_KEY);
 
