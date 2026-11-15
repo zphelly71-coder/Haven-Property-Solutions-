@@ -3270,6 +3270,95 @@ app.post(
 );
 
 
+app.get(
+  "/api/super-admin/tenant-reinstatement-history",
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const history = await db.collection("tenantReinstatements")
+        .aggregate([
+          {
+            $lookup: {
+              from: "tenants",
+              localField: "tenantId",
+              foreignField: "_id",
+              as: "tenant"
+            }
+          },
+          {
+            $unwind: {
+              path: "$tenant",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $lookup: {
+              from: "properties",
+              localField: "propertyId",
+              foreignField: "_id",
+              as: "property"
+            }
+          },
+          {
+            $unwind: {
+              path: "$property",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $lookup: {
+              from: "landlords",
+              localField: "landlordId",
+              foreignField: "_id",
+              as: "landlord"
+            }
+          },
+          {
+            $unwind: {
+              path: "$landlord",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $project: {
+              tenantId: 1,
+              previousEndDate: 1,
+              reason: 1,
+              reinstatedByRole: 1,
+              reinstatedAt: 1,
+              "tenant.name": 1,
+              "tenant.unitNumber": 1,
+              "property.title": 1,
+              "landlord.name": 1,
+              "landlord.email": 1
+            }
+          },
+          {
+            $sort: {
+              reinstatedAt: -1
+            }
+          }
+        ])
+        .toArray();
+
+      return res.json({
+        status: "ok",
+        count: history.length,
+        history
+      });
+
+    } catch (error) {
+      console.error("Load tenant reinstatement history error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load tenant reinstatement history"
+      });
+    }
+  }
+);
+
+
 app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
   try {
     const name = req.body?.name?.trim();
