@@ -741,23 +741,30 @@ $("tenantList").addEventListener("click", async event => {
         { method: "POST" }
       );
 
-      if (result.smsSent) {
-        showMessage(
-          "SMS invitation accepted for " +
-          result.tenantName + " at " + result.tenantPhone +
-          ". Check the Africa's Talking delivery status."
-        );
-      } else {
-        window.prompt(
-          "SMS was not sent. Copy this invitation link and share it with " +
-          result.tenantPhone + ". It expires in 7 days:",
-          result.invitationUrl
-        );
+      
+if (result.smsSent) {
+  window.prompt(
+    "Africa's Talking Sandbox accepted the SMS request, " +
+    "but Sandbox messages are not delivered to real phones. " +
+    "Copy this invitation link and open it to test tenant activation:",
+    result.invitationUrl
+  );
 
-        showMessage(
-          "Invitation created, but SMS failed. Use the copied link."
-        );
-      }
+  showMessage(
+    "Sandbox SMS accepted. Copy the invitation link to test tenant activation."
+  );
+
+} else {
+  window.prompt(
+    "SMS was not sent. Copy this invitation link and share it with " +
+    result.tenantPhone + ". It expires in 7 days:",
+    result.invitationUrl
+  );
+
+  showMessage(
+    "Invitation created, but SMS failed. Use the copied link."
+  );
+}
 
     } catch (error) {
       showMessage(error.message, true);
