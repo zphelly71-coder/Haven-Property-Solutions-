@@ -244,6 +244,43 @@ button:disabled{opacity:.5}
   </table>
 </div>
 
+    
+<hr>
+
+<h3>Tenant Reinstatement History</h3>
+
+<p class="muted">
+  Records of tenants reinstated by Super Admin.
+</p>
+
+<button type="button" id="refreshReinstatementHistoryAdmin">
+  Refresh Reinstatement History
+</button>
+
+<p id="reinstatementHistoryMessage" class="muted" role="status">
+  Reinstatement history will appear here.
+</p>
+
+<div style="overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th>Tenant</th>
+        <th>Landlord</th>
+        <th>Property / Unit</th>
+        <th>Previous End Date</th>
+        <th>Reason for Reinstatement</th>
+        <th>Reinstated On</th>
+      </tr>
+    </thead>
+    <tbody id="reinstatementHistoryList">
+      <tr>
+        <td colspan="6">No reinstatement history loaded yet.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
 
   </div>
 </div>
