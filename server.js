@@ -1349,6 +1349,108 @@ app.patch(
   }
 );
 
+
+app.post(
+  "/api/landlord/tenants/:tenantId/invitation",
+  requireLandlord,
+  async (req, res) => {
+    try {
+      const { ObjectId } = require("mongodb");
+
+      const tenantId = req.params.tenantId;
+
+      if (!ObjectId.isValid(tenantId)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid tenant ID"
+        });
+      }
+
+      const tenant = await db.collection("tenants").findOne({
+        _id: new ObjectId(tenantId),
+        landlordId: new ObjectId(req.landlordId),
+        status: "active"
+      });
+
+      if (!tenant) {
+        return res.status(404).json({
+          status: "error",
+          message: "Active tenant not found under your account"
+        });
+      }
+
+      if (
+        typeof tenant.email !== "string" ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tenant.email)
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "A valid tenant email address is required"
+        });
+      }
+
+      if (tenant.portalActivatedAt) {
+        return res.status(409).json({
+          status: "error",
+          message: "This tenant already has an activated portal account"
+        });
+      }
+
+      const invitationToken = crypto.randomBytes(32).toString("hex");
+
+      const invitationTokenHash = crypto
+        .createHash("sha256")
+        .update(invitationToken)
+        .digest("hex");
+
+      const now = new Date();
+      const expiresAt = new Date(
+        now.getTime() + 7 * 24 * 60 * 60 * 1000
+      );
+
+      await db.collection("tenants").updateOne(
+        {
+          _id: tenant._id,
+          landlordId: new ObjectId(req.landlordId),
+          status: "active",
+          portalActivatedAt: { $exists: false }
+        },
+        {
+          $set: {
+            portalInvitationTokenHash: invitationTokenHash,
+            portalInvitationExpiresAt: expiresAt,
+            portalInvitationCreatedAt: now,
+            portalAccountStatus: "invited",
+            updatedAt: now
+          }
+        }
+      );
+
+      const invitationUrl =
+        "https://zphelly71-coder.github.io/" +
+        "Haven-Property-Solutions-/tenant.html?token=" +
+        encodeURIComponent(invitationToken);
+
+      return res.json({
+        status: "ok",
+        message: "Tenant invitation generated successfully",
+        tenantName: tenant.name,
+        tenantEmail: tenant.email,
+        expiresAt,
+        invitationUrl
+      });
+
+    } catch (error) {
+      console.error("Tenant invitation error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to generate tenant invitation"
+      });
+    }
+  }
+);
+
 app.post(
   "/api/landlord/tenants/:tenantId/removal-request",
   requireLandlord,
