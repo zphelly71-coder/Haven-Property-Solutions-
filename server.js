@@ -873,6 +873,73 @@ app.post("/api/tenant/login", async (req, res) => {
     });
   }
 });
+app.get(
+  "/api/tenant/profile",
+  requireTenant,
+  async (req, res) => {
+    try {
+      const tenant = await db.collection("tenants").findOne({
+        _id: new ObjectId(req.tenantId),
+        status: { $in: ["active", "ended"] },
+        portalAccountStatus: "active"
+      });
+
+      if (!tenant) {
+        return res.status(404).json({
+          status: "error",
+          message: "Tenant account not found"
+        });
+      }
+
+      const property = await db.collection("properties").findOne({
+        _id: tenant.propertyId
+      });
+
+      const landlord = tenant.landlordId
+        ? await db.collection("landlords").findOne({
+            _id: tenant.landlordId
+          })
+        : null;
+
+      return res.json({
+        status: "ok",
+        tenant: {
+          id: tenant._id,
+          name: tenant.name,
+          email: tenant.email,
+          phone: tenant.phone,
+          unitNumber: tenant.unitNumber,
+          monthlyRent: tenant.monthlyRent,
+          deposit: tenant.deposit,
+          tenancyStartDate: tenant.tenancyStartDate,
+          tenancyEndDate: tenant.tenancyEndDate,
+          status: tenant.status
+        },
+        property: property
+          ? {
+              id: property._id,
+              title: property.title,
+              location: property.location
+            }
+          : null,
+        landlord: landlord
+          ? {
+              name: landlord.name,
+              email: landlord.email
+            }
+          : null
+      });
+
+    } catch (error) {
+      console.error("Tenant profile error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load tenant profile"
+      });
+    }
+  }
+);
 app.post("/api/landlord/login", async (req, res) => {
   try {
     const email = req.body?.email?.trim().toLowerCase();
