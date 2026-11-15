@@ -1,0 +1,571 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tenant Portal | Haven Property Solutions</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f3f6f9;
+      color: #263238;
+    }
+
+    header {
+      background: #123b35;
+      color: white;
+      padding: 22px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 25px;
+    }
+
+    header p {
+      margin-bottom: 0;
+      color: #d8e8e3;
+    }
+
+    main {
+      max-width: 850px;
+      margin: 30px auto;
+      padding: 15px;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.07);
+    }
+
+    h2 {
+      color: #123b35;
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px;
+      margin-top: 7px;
+      border: 1px solid #ccd5d2;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 13px 20px;
+      border: none;
+      border-radius: 6px;
+      background: #146c54;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 18px;
+    }
+
+    button:hover {
+      background: #0e513f;
+    }
+
+    .secondary {
+      background: #52636b;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .message {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .success {
+      background: #e4f5e9;
+      color: #176b32;
+    }
+
+    .error {
+      background: #fde9e9;
+      color: #a32020;
+    }
+
+    .details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+    }
+
+    .detail {
+      background: #f3f7f5;
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .detail strong {
+      display: block;
+      color: #53645d;
+      margin-bottom: 7px;
+      font-size: 13px;
+    }
+
+    .detail span {
+      font-size: 16px;
+      font-weight: bold;
+      overflow-wrap: anywhere;
+    }
+
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    footer {
+      text-align: center;
+      color: #687873;
+      padding: 25px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>HAVEN PROPERTY SOLUTIONS</h1>
+  <p>Tenant Portal</p>
+</header>
+
+<main>
+
+  <section id="activationCard" class="card hidden">
+    <h2>Activate Your Tenant Account</h2>
+    <p>Create a password to access your tenant account.</p>
+
+    <form id="activationForm">
+      <label for="newPassword">Create Password</label>
+      <input
+        type="password"
+        id="newPassword"
+        minlength="10"
+        maxlength="128"
+        required
+        autocomplete="new-password"
+        placeholder="At least 10 characters"
+      >
+
+      <label for="confirmPassword">Confirm Password</label>
+      <input
+        type="password"
+        id="confirmPassword"
+        minlength="10"
+        maxlength="128"
+        required
+        autocomplete="new-password"
+        placeholder="Repeat your password"
+      >
+
+      <button type="submit" id="activateButton">
+        Activate Account
+      </button>
+    </form>
+
+    <div id="activationMessage" class="message"></div>
+  </section>
+
+  <section id="loginCard" class="card">
+    <h2>Tenant Login</h2>
+    <p>Sign in using the email address registered by your landlord.</p>
+
+    <form id="loginForm">
+      <label for="email">Email Address</label>
+      <input
+        type="email"
+        id="email"
+        required
+        autocomplete="username"
+        placeholder="Enter your registered email"
+      >
+
+      <label for="password">Password</label>
+      <input
+        type="password"
+        id="password"
+        required
+        autocomplete="current-password"
+        placeholder="Enter your password"
+      >
+
+      <button type="submit" id="loginButton">
+        Login
+      </button>
+    </form>
+
+    <div id="loginMessage" class="message"></div>
+  </section>
+
+  <section id="dashboard" class="hidden">
+
+    <div class="card">
+      <div class="top-row">
+        <div>
+          <h2>Welcome, <span id="tenantName">Tenant</span></h2>
+          <p>Your personal tenant account.</p>
+        </div>
+
+        <button class="secondary" id="logoutButton">
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>My Tenant Details</h2>
+
+      <div class="details">
+        <div class="detail">
+          <strong>Full Name</strong>
+          <span id="profileName">—</span>
+        </div>
+
+        <div class="detail">
+          <strong>Email</strong>
+          <span id="profileEmail">—</span>
+        </div>
+
+        <div class="detail">
+          <strong>Phone</strong>
+          <span id="profilePhone">—</span>
+        </div>
+
+        <div class="detail">
+          <strong>Unit Number</strong>
+          <span id="profileUnit">—</span>
+        </div>
+
+        <div class="detail">
+          <strong>Monthly Rent</strong>
+          <span id="profileRent">—</span>
+        </div>
+
+        <div class="detail">
+          <strong>Security Deposit</strong>
+          <span id="profileDeposit">—</span>
+        </div>
+
+        <div class="detail">
+          <strong>Tenancy Start</strong>
+          <span id="profileStart">—</span>
+        </div>
+
+        <div class="detail">
+          <strong>Tenancy End</strong>
+          <span id="profileEnd">—</span>
+        </div>
+
+        <div class="detail">
+          <strong>Tenancy Status</strong>
+          <span id="profileStatus">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>My Property</h2>
+
+      <div class="details">
+        <div class="detail">
+          <strong>Property</strong>
+          <span id="propertyTitle">—</span>
+        </div>
+
+        <div class="detail">
+          <strong>Location</strong>
+          <span id="propertyLocation">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>My Landlord</h2>
+
+      <div class="details">
+        <div class="detail">
+          <strong>Landlord Name</strong>
+          <span id="landlordName">—</span>
+        </div>
+
+        <div class="detail">
+          <strong>Landlord Email</strong>
+          <span id="landlordEmail">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="dashboardMessage" class="message"></div>
+
+  </section>
+
+</main>
+
+<footer>
+  © 2026 Haven Property Solutions. All rights reserved.
+</footer>
+
+<script>
+  const API_BASE =
+    "https://haven-property-solutions-api.onrender.com";
+
+  const TOKEN_KEY = "haven_tenant_token";
+
+  const params = new URLSearchParams(window.location.search);
+  const invitationToken = params.get("token");
+
+  const activationCard = document.getElementById("activationCard");
+  const loginCard = document.getElementById("loginCard");
+  const dashboard = document.getElementById("dashboard");
+
+  function showMessage(elementId, message, success = false) {
+    const element = document.getElementById(elementId);
+
+    element.textContent = message;
+    element.className =
+      "message " + (success ? "success" : "error");
+
+    element.style.display = "block";
+  }
+
+  function hideMessage(elementId) {
+    document.getElementById(elementId).style.display = "none";
+  }
+
+  function formatMoney(value) {
+    if (value === undefined || value === null || value === "") {
+      return "Not provided";
+    }
+
+    return "KES " + Number(value).toLocaleString("en-KE");
+  }
+
+  function formatDate(value) {
+    if (!value) return "Not provided";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "Not provided";
+    }
+
+    return date.toLocaleDateString("en-KE");
+  }
+
+  function setText(id, value) {
+    document.getElementById(id).textContent =
+      value === undefined || value === null || value === ""
+        ? "Not provided"
+        : String(value);
+  }
+
+  activationCard.classList.toggle(
+    "hidden",
+    !invitationToken
+  );
+
+  async function apiRequest(path, options = {}) {
+    const token = localStorage.getItem(TOKEN_KEY);
+
+    const headers = {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    };
+
+    if (token) {
+      headers.Authorization = "Bearer " + token;
+    }
+
+    const response = await fetch(API_BASE + path, {
+      ...options,
+      headers
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || "Request failed");
+    }
+
+    return data;
+  }
+
+  document.getElementById("activationForm")
+    .addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      hideMessage("activationMessage");
+
+      const password =
+        document.getElementById("newPassword").value;
+
+      const confirmPassword =
+        document.getElementById("confirmPassword").value;
+
+      if (password !== confirmPassword) {
+        showMessage(
+          "activationMessage",
+          "The passwords do not match."
+        );
+        return;
+      }
+
+      const button = document.getElementById("activateButton");
+      button.disabled = true;
+      button.textContent = "Activating...";
+
+      try {
+        const result = await apiRequest("/api/tenant/activate", {
+          method: "POST",
+          body: JSON.stringify({
+            token: invitationToken,
+            password
+          })
+        });
+
+        showMessage(
+          "activationMessage",
+          result.message + ". You can now log in.",
+          true
+        );
+
+        document.getElementById("activationForm").reset();
+
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+
+        activationCard.classList.add("hidden");
+        loginCard.classList.remove("hidden");
+
+      } catch (error) {
+        showMessage("activationMessage", error.message);
+      } finally {
+        button.disabled = false;
+        button.textContent = "Activate Account";
+      }
+    });
+
+  document.getElementById("loginForm")
+    .addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      hideMessage("loginMessage");
+
+      const button = document.getElementById("loginButton");
+      button.disabled = true;
+      button.textContent = "Signing in...";
+
+      try {
+        const result = await apiRequest("/api/tenant/login", {
+          method: "POST",
+          body: JSON.stringify({
+            email: document.getElementById("email").value.trim(),
+            password: document.getElementById("password").value
+          })
+        });
+
+        localStorage.setItem(TOKEN_KEY, result.token);
+
+        await loadDashboard();
+
+      } catch (error) {
+        localStorage.removeItem(TOKEN_KEY);
+        showMessage("loginMessage", error.message);
+      } finally {
+        button.disabled = false;
+        button.textContent = "Login";
+      }
+    });
+
+  async function loadDashboard() {
+    const result = await apiRequest("/api/tenant/profile");
+
+    const tenant = result.tenant || {};
+    const property = result.property || {};
+    const landlord = result.landlord || {};
+
+    setText("tenantName", tenant.name);
+    setText("profileName", tenant.name);
+    setText("profileEmail", tenant.email);
+    setText("profilePhone", tenant.phone);
+    setText("profileUnit", tenant.unitNumber);
+
+    setText("profileRent", formatMoney(tenant.monthlyRent));
+    setText("profileDeposit", formatMoney(tenant.deposit));
+
+    setText("profileStart", formatDate(tenant.tenancyStartDate));
+    setText("profileEnd", formatDate(tenant.tenancyEndDate));
+    setText("profileStatus", tenant.status);
+
+    setText("propertyTitle", property.title);
+    setText("propertyLocation", property.location);
+
+    setText("landlordName", landlord.name);
+    setText("landlordEmail", landlord.email);
+
+    loginCard.classList.add("hidden");
+    activationCard.classList.add("hidden");
+    dashboard.classList.remove("hidden");
+  }
+
+  document.getElementById("logoutButton")
+    .addEventListener("click", function() {
+      localStorage.removeItem(TOKEN_KEY);
+
+      dashboard.classList.add("hidden");
+      loginCard.classList.remove("hidden");
+
+      document.getElementById("loginForm").reset();
+    });
+
+  async function restoreSession() {
+    if (!localStorage.getItem(TOKEN_KEY)) return;
+
+    try {
+      await loadDashboard();
+    } catch (error) {
+      localStorage.removeItem(TOKEN_KEY);
+      dashboard.classList.add("hidden");
+      loginCard.classList.remove("hidden");
+    }
+  }
+
+  if (!invitationToken) {
+    restoreSession();
+  }
+</script>
+
+</body>
+</html>
