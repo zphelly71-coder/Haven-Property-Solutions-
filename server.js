@@ -811,7 +811,68 @@ app.post("/api/tenant/activate", async (req, res) => {
     });
   }
 });
+app.post("/api/tenant/login", async (req, res) => {
+  try {
+    const email = req.body?.email?.trim().toLowerCase();
+    const password = req.body?.password;
 
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !email ||
+      !password
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Email and password are required"
+      });
+    }
+
+    const tenant = await db.collection("tenants").findOne({
+      email,
+      portalAccountStatus: "active",
+      status: { $in: ["active", "ended"] }
+    });
+
+    if (
+      !tenant ||
+      !tenant.portalPasswordHash ||
+      !(await bcrypt.compare(password, tenant.portalPasswordHash))
+    ) {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid email or password"
+      });
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+
+    tenantSessions.set(token, {
+      tenantId: tenant._id.toString(),
+      expiresAt: Date.now() + SESSION_DURATION
+    });
+
+    return res.json({
+      status: "ok",
+      message: "Tenant login successful",
+      token,
+      expiresIn: SESSION_DURATION,
+      tenant: {
+        id: tenant._id,
+        name: tenant.name,
+        email: tenant.email
+      }
+    });
+
+  } catch (error) {
+    console.error("Tenant login error:", error);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Unable to log in"
+    });
+  }
+});
 app.post("/api/landlord/login", async (req, res) => {
   try {
     const email = req.body?.email?.trim().toLowerCase();
