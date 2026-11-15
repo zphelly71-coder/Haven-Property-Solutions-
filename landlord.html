@@ -660,110 +660,104 @@ $("registerProperty").innerHTML =
     message.textContent = error.message;
   }
 }
-$("tenantList").addEventListener("click", event => {
-  const button = event.target.closest(".editTenantButton");
-  if (!button) return;
 
-  const tenant = landlordTenants.find(
-    t => String(t._id || t.id) === button.dataset.tenantId
-  );
+$("tenantList").addEventListener("click", async event => {
+  const editButton = event.target.closest(".editTenantButton");
+  const inviteButton = event.target.closest(".inviteTenantButton");
 
-  if (!tenant) {
-    showMessage("Tenant record could not be found.", true);
+  // Handle Edit Tenant
+  if (editButton) {
+    const tenant = landlordTenants.find(
+      t => String(t._id || t.id) === editButton.dataset.tenantId
+    );
+
+    if (!tenant) {
+      showMessage("Tenant record could not be found.", true);
+      return;
+    }
+
+    $("editTenantId").value = tenant._id || tenant.id;
+    $("editTenantName").value = tenant.name || "";
+    $("editTenantPhone").value = tenant.phone || "";
+    $("editTenantEmail").value = tenant.email || "";
+    $("editTenantUnit").value = tenant.unitNumber || "";
+    $("editTenantRent").value = tenant.monthlyRent || "";
+    $("editTenantDeposit").value = tenant.deposit ?? 0;
+    $("editIdentificationType").value =
+      tenant.identificationType || "national_id";
+    $("editIdentificationNumber").value =
+      tenant.identificationNumber || "";
+    $("editIdentificationLabel").textContent =
+      tenant.identificationType === "passport"
+        ? "Passport Number"
+        : "National ID Number";
+
+    $("editTenantMessage").textContent = "";
+    $("editTenantPanel").hidden = false;
+    $("editTenantPanel").scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
     return;
   }
 
-  $("editTenantId").value = tenant._id || tenant.id;
-  $("editTenantName").value = tenant.name || "";
-  $("editTenantPhone").value = tenant.phone || "";
-  $("editTenantEmail").value = tenant.email || "";
-  $("editTenantUnit").value = tenant.unitNumber || "";
-  $("editTenantRent").value = tenant.monthlyRent || "";
-  $("editTenantDeposit").value = tenant.deposit ?? 0;
-  $("editIdentificationType").value =
-  tenant.identificationType || "national_id";
+  // Handle Tenant Portal Invitation
+  if (inviteButton) {
+    const tenantId = inviteButton.dataset.tenantId;
 
-$("editIdentificationNumber").value =
-  tenant.identificationNumber || "";
-
-$("editIdentificationLabel").textContent =
-  tenant.identificationType === "passport"
-    ? "Passport Number"
-    : "National ID Number";
-
-  $("editTenantMessage").textContent = "";
-  $("editTenantPanel").hidden = false;
-
-  $("editTenantPanel").scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
-});
-  $("tenantList").addEventListener("click", async event => {
-  const button = event.target.closest(".inviteTenantButton");
-  if (!button) return;
-
-  const tenantId = button.dataset.tenantId;
-
-  const tenant = landlordTenants.find(
-    t => String(t._id || t.id) === tenantId
-  );
-
-  if (!tenant) {
-    showMessage("Tenant record could not be found.", true);
-    return;
-  }
-
-  if (!tenant.email) {
-    showMessage(
-      "Please add the tenant's email address before sending an invitation.",
-      true
-    );
-    return;
-  }
-
-  if (tenant.status !== "active") {
-    showMessage(
-      "Only active tenants can receive portal invitations.",
-      true
-    );
-    return;
-  }
-
-  if (!confirm(
-    "Generate a tenant portal invitation for " +
-    tenant.name + " (" + tenant.email + ")?"
-  )) {
-    return;
-  }
-
-  button.disabled = true;
-  button.textContent = "Generating...";
-
-  try {
-    const result = await api(
-      `/api/landlord/tenants/${encodeURIComponent(tenantId)}/invitation`,
-      { method: "POST" }
+    const tenant = landlordTenants.find(
+      t => String(t._id || t.id) === tenantId
     );
 
-    window.prompt(
-      "Copy this secure invitation link and send it to " +
-      result.tenantEmail + ". It expires in 7 days:",
-      result.invitationUrl
-    );
+    if (!tenant) {
+      showMessage("Tenant record could not be found.", true);
+      return;
+    }
 
-    showMessage(
-      "Invitation generated for " + result.tenantName + "."
-    );
+    if (!tenant.email) {
+      showMessage("Please add the tenant's email address first.", true);
+      return;
+    }
 
-  } catch (error) {
-    showMessage(error.message, true);
+    if (tenant.status !== "active") {
+      showMessage("Only active tenants can receive invitations.", true);
+      return;
+    }
 
-  } finally {
-    button.disabled = false;
-    button.textContent = "Invite to Tenant Portal";
+    if (!confirm(
+      "Generate a tenant portal invitation for " +
+      tenant.name + " (" + tenant.email + ")?"
+    )) {
+      return;
+    }
+
+    inviteButton.disabled = true;
+    inviteButton.textContent = "Generating...";
+
+    try {
+      const result = await api(
+        `/api/landlord/tenants/${encodeURIComponent(tenantId)}/invitation`,
+        { method: "POST" }
+      );
+
+      window.prompt(
+        "Copy this invitation link and send it to " +
+        result.tenantEmail + ". It expires in 7 days:",
+        result.invitationUrl
+      );
+
+      showMessage("Invitation generated for " + result.tenantName + ".");
+
+    } catch (error) {
+      showMessage(error.message, true);
+
+    } finally {
+      inviteButton.disabled = false;
+      inviteButton.textContent = "Invite to Tenant Portal";
+    }
   }
 });
+
 $("tenantList").addEventListener("click", event => {
   const button = event.target.closest(".requestRemovalButton");
   if (!button) return;
