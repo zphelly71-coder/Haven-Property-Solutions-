@@ -3061,6 +3061,135 @@ if (
 );
 
 
+app.post(
+  "/api/super-admin/tenants/:tenantId/reinstate",
+  requireSuperAdmin,
+  async (req, res) => {
+    const { ObjectId } = require("mongodb");
+
+    const tenantId = req.params.tenantId;
+    const reason = req.body?.reason;
+
+    if (!ObjectId.isValid(tenantId)) {
+      return res.status(400).json({
+        status: "error",
+        message: "A valid tenant ID is required"
+      });
+    }
+
+    if (
+      typeof reason !== "string" ||
+      reason.trim().length < 5
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Please provide a reinstatement reason of at least 5 characters"
+      });
+    }
+
+    if (!mongoClient || typeof mongoClient.startSession !== "function") {
+      return res.status(503).json({
+        status: "error",
+        message: "Database transaction support is unavailable"
+      });
+    }
+
+    const session = mongoClient.startSession();
+
+    try {
+      const tenantObjectId = new ObjectId(tenantId);
+      const now = new Date();
+
+      let reinstatedTenant = null;
+
+      await session.withTransaction(async () => {
+        const tenant = await db.collection("tenants").findOne(
+          {
+            _id: tenantObjectId,
+            status: "ended"
+          },
+          { session }
+        );
+
+        if (!tenant) {
+          throw new Error("ENDED_TENANT_NOT_FOUND");
+        }
+
+        const updateResult = await db.collection("tenants").updateOne(
+          {
+            _id: tenantObjectId,
+            status: "ended"
+          },
+          {
+            $set: {
+              status: "active",
+              updatedAt: now
+            },
+            $unset: {
+              tenancyEndDate: ""
+            }
+          },
+          { session }
+        );
+
+        if (updateResult.modifiedCount !== 1) {
+          throw new Error("TENANT_REINSTATEMENT_FAILED");
+        }
+
+        await db.collection("tenantReinstatements").insertOne(
+          {
+            tenantId: tenantObjectId,
+            landlordId: tenant.landlordId,
+            propertyId: tenant.propertyId,
+            previousEndDate: tenant.tenancyEndDate || null,
+            reason: reason.trim(),
+            reinstatedByRole: req.superAdmin?.role || "super_admin",
+            reinstatedAt: now
+          },
+          { session }
+        );
+
+        reinstatedTenant = {
+          id: tenantObjectId,
+          name: tenant.name,
+          status: "active"
+        };
+      });
+
+      return res.json({
+        status: "ok",
+        message: "Tenant successfully reinstated",
+        tenant: reinstatedTenant
+      });
+
+    } catch (error) {
+      if (error.message === "ENDED_TENANT_NOT_FOUND") {
+        return res.status(404).json({
+          status: "error",
+          message: "Ended tenant not found"
+        });
+      }
+
+      if (error.message === "TENANT_REINSTATEMENT_FAILED") {
+        return res.status(409).json({
+          status: "error",
+          message: "Tenant could not be reinstated"
+        });
+      }
+
+      console.error("Tenant reinstatement error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to reinstate tenant"
+      });
+
+    } finally {
+      await session.endSession();
+    }
+  }
+);
+
 
 app.post("/api/super-admin/landlords", requireSuperAdmin, async (req, res) => {
   try {
