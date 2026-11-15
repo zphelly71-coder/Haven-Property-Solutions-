@@ -136,6 +136,76 @@ button:disabled{opacity:.5}
       <p id="invoiceGenerationMessage" class="muted" role="status"></p>
     </form>
 
+<hr>
+
+<h3>Rent Invoice Register</h3>
+
+<p class="muted">
+  View generated rent invoices, payments received and outstanding balances.
+</p>
+
+<div class="row">
+  <div>
+    <label for="registerBillingMonth">Billing Month</label>
+    <select id="registerBillingMonth">
+      <option value="1">January</option>
+      <option value="2">February</option>
+      <option value="3">March</option>
+      <option value="4">April</option>
+      <option value="5">May</option>
+      <option value="6">June</option>
+      <option value="7">July</option>
+      <option value="8">August</option>
+      <option value="9">September</option>
+      <option value="10">October</option>
+      <option value="11">November</option>
+      <option value="12">December</option>
+    </select>
+  </div>
+
+  <div>
+    <label for="registerBillingYear">Billing Year</label>
+    <input
+      id="registerBillingYear"
+      type="number"
+      min="2000"
+      max="2100"
+      required
+    >
+  </div>
+</div>
+
+<button type="button" id="loadRentInvoiceRegister">
+  Load Invoice Register
+</button>
+
+<p id="rentInvoiceRegisterMessage" class="muted" role="status">
+  Select a billing month and year to view invoices.
+</p>
+
+<div style="overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th>Invoice Number</th>
+        <th>Tenant</th>
+        <th>Landlord</th>
+        <th>Property / Unit</th>
+        <th>Amount Due</th>
+        <th>Amount Paid</th>
+        <th>Balance</th>
+        <th>Status</th>
+        <th>Due Date</th>
+      </tr>
+    </thead>
+    <tbody id="rentInvoiceRegisterList">
+      <tr>
+        <td colspan="9">No invoices loaded yet.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
     <hr>
 
     <h3>Tenant Removal Requests</h3>
