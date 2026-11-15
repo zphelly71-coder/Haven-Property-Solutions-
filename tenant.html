@@ -297,10 +297,17 @@
 
     
 <div class="card">
-  <h2>My Rent Account</h2>
+  <div class="rent-statement-filter">
+  <label for="statementFromDate">From Date</label>
+  <input type="date" id="statementFromDate">
+
+  <label for="statementToDate">To Date</label>
+  <input type="date" id="statementToDate">
+
   <button type="button" id="downloadRentStatement">
-  Print / Download Rent Statement
-</button>
+    Download Rent Statement
+  </button>
+</div>
   <p>View your rent charges, payments and outstanding balance.</p>
 
   <div class="details">
@@ -706,9 +713,49 @@ async function printRentStatement() {
 
     const tenant = profileData.tenant || {};
     const property = profileData.property || {};
-    const invoices = rentData.invoices || [];
-    const payments = rentData.payments || [];
-    const summary = rentData.summary || {};
+   const allInvoices = rentData.invoices || [];
+const allPayments = rentData.payments || [];
+
+const fromDate = document.getElementById("statementFromDate").value;
+const toDate = document.getElementById("statementToDate").value;
+    if (fromDate && toDate && fromDate > toDate) {
+  alert("The From Date cannot be later than the To Date.");
+  return;
+}
+
+const invoices = allInvoices.filter(invoice => {
+  const invoiceDate = new Date(invoice.dueDate || invoice.createdAt);
+
+  if (fromDate && invoiceDate < new Date(fromDate)) return false;
+
+  if (toDate) {
+    const endDate = new Date(toDate);
+    endDate.setHours(23, 59, 59, 999);
+    if (invoiceDate > endDate) return false;
+  }
+
+  return true;
+});
+
+const payments = allPayments.filter(payment => {
+  const paymentDate = new Date(payment.paymentDate || payment.createdAt);
+
+  if (fromDate && paymentDate < new Date(fromDate)) return false;
+
+  if (toDate) {
+    const endDate = new Date(toDate);
+    endDate.setHours(23, 59, 59, 999);
+    if (paymentDate > endDate) return false;
+  }
+
+  return true;
+});
+
+const summary = {
+  totalAmountDue: invoices.reduce((sum, item) => sum + Number(item.amountDue || 0), 0),
+  totalAmountPaid: invoices.reduce((sum, item) => sum + Number(item.amountPaid || 0), 0),
+  totalBalance: invoices.reduce((sum, item) => sum + Number(item.balance || 0), 0)
+};
 
     const invoiceRows = invoices.map(invoice => `
       <tr>
@@ -738,6 +785,9 @@ async function printRentStatement() {
     }).join("");
 
     const generatedDate = new Date().toLocaleDateString("en-KE");
+    const statementPeriod = fromDate || toDate
+  ? `${fromDate || "Beginning"} to ${toDate || "Present"}`
+  : "All available records";
 
     printWindow.document.open();
     printWindow.document.write(`
@@ -808,6 +858,7 @@ async function printRentStatement() {
           <h1>HAVEN PROPERTY SOLUTIONS</h1>
           <h2> TENANT RENT STATEMENT </h2>
           <p>Statement generated: ${generatedDate}</p>
+          <p><strong>Statement Period:</strong> ${escapeHtml(statementPeriod)}</p>
         </header>
 
         <h2>Tenant Information</h2>
