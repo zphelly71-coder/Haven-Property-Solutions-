@@ -197,17 +197,20 @@
 
   <section id="loginCard" class="card">
     <h2>Tenant Login</h2>
-    <p>Sign in using the email address registered by your landlord.</p>
+   <p>
+  Sign in using your registered email address
+  or phone number and password.
+</p>
 
     <form id="loginForm">
-      <label for="email">Email Address</label>
-      <input
-        type="email"
-        id="email"
-        required
-        autocomplete="username"
-        placeholder="Enter your registered email"
-      >
+     <label for="email">Email Address or Phone Number</label>
+<input
+  type="text"
+  id="email"
+  required
+  autocomplete="username"
+  placeholder="Email or phone e.g. 0712345678"
+>
 
       <label for="password">Password</label>
       <input
@@ -491,9 +494,9 @@
         const result = await apiRequest("/api/tenant/login", {
           method: "POST",
           body: JSON.stringify({
-            email: document.getElementById("email").value.trim(),
-            password: document.getElementById("password").value
-          })
+  email: document.getElementById("email").value.trim(),
+  password: document.getElementById("password").value
+})
         });
 
         localStorage.setItem(TOKEN_KEY, result.token);
