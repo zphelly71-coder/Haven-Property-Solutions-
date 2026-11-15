@@ -868,6 +868,80 @@ async function loadAdminRemovalHistory() {
   }
 }
 
+async function loadEndedTenants() {
+  const list = $("endedTenantsList");
+  const message = $("endedTenantsMessage");
+
+  list.innerHTML =
+    '<tr><td colspan="6">Loading ended tenants...</td></tr>';
+
+  try {
+    const result = await superAdminApi(
+      "/api/super-admin/ended-tenants"
+    );
+
+    const tenants = result.tenants || [];
+
+    if (tenants.length === 0) {
+      list.innerHTML =
+        '<tr><td colspan="6">No ended tenants found.</td></tr>';
+      message.textContent = "No ended tenants available.";
+      return;
+    }
+
+    const escapeHtml = value =>
+      String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      })[char]);
+
+    const formatDate = value =>
+      value ? new Date(value).toLocaleDateString() : "N/A";
+
+    list.innerHTML = tenants.map(tenant => `
+      <tr>
+        <td>
+          ${escapeHtml(tenant.name || "Unknown")}
+          <br>
+          ${escapeHtml(tenant.phone || "")}
+        </td>
+        <td>
+          ${escapeHtml(tenant.landlord?.name || "Unknown")}
+          <br>
+          ${escapeHtml(tenant.landlord?.email || "")}
+        </td>
+        <td>
+          ${escapeHtml(tenant.property?.title || "Unknown")}
+          <br>
+          Unit: ${escapeHtml(tenant.unitNumber || "N/A")}
+        </td>
+        <td>KSh ${Number(tenant.monthlyRent || 0).toLocaleString()}</td>
+        <td>${formatDate(tenant.tenancyEndDate)}</td>
+        <td>
+          <button
+            type="button"
+            class="reinstateTenantButton"
+            data-tenant-id="${escapeHtml(tenant._id)}">
+            Reinstate
+          </button>
+        </td>
+      </tr>
+    `).join("");
+
+    message.textContent =
+      `${tenants.length} ended tenant(s) loaded.`;
+
+  } catch (error) {
+    list.innerHTML =
+      '<tr><td colspan="6">Unable to load ended tenants.</td></tr>';
+    message.textContent = error.message;
+  }
+}
+  
+
 function showDashboard() {
   $("loginPanel").hidden = true;
   $("dashboard").hidden = false;
