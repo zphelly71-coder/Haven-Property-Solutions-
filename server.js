@@ -49,6 +49,7 @@ let db;
 let mongoClient;
 const adminSessions = new Map();
 const landlordSessions = new Map();
+const tenantSessions = new Map();
 const superAdminSessions = new Map();
 const SESSION_DURATION = 2 * 60 * 60 * 1000;
 
@@ -268,6 +269,28 @@ function requireLandlord(req, res, next) {
 
   next();
 }
+
+function requireTenant(req, res, next) {
+  const authorization = req.headers.authorization || "";
+  const token = authorization.startsWith("Bearer ")
+    ? authorization.slice(7)
+    : "";
+
+  const session = tenantSessions.get(token);
+
+  if (!token || !session || session.expiresAt < Date.now()) {
+    tenantSessions.delete(token);
+
+    return res.status(401).json({
+      status: "error",
+      message: "Tenant login required"
+    });
+  }
+
+  req.tenantId = session.tenantId;
+  next();
+}
+
 function requireSuperAdmin(req, res, next) {
   const authorization = req.headers.authorization || "";
   const token = authorization.startsWith("Bearer ")
@@ -697,6 +720,98 @@ app.post("/api/super-admin/login", async (req, res) => {
     expiresIn: SESSION_DURATION
   });
 });
+
+app.post("/api/tenant/activate", async (req, res) => {
+  try {
+    const invitationToken = req.body?.token;
+    const password = req.body?.password;
+
+    if (
+      typeof invitationToken !== "string" ||
+      !/^[a-f0-9]{64}$/i.test(invitationToken)
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid invitation link"
+      });
+    }
+
+    if (
+      typeof password !== "string" ||
+      password.length < 10 ||
+      password.length > 128
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Password must contain 10 to 128 characters"
+      });
+    }
+
+    const invitationTokenHash = crypto
+      .createHash("sha256")
+      .update(invitationToken)
+      .digest("hex");
+
+    const tenant = await db.collection("tenants").findOne({
+      portalInvitationTokenHash: invitationTokenHash,
+      portalInvitationExpiresAt: { $gt: new Date() },
+      portalAccountStatus: "invited",
+      status: "active"
+    });
+
+    if (!tenant) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invitation is invalid, expired or already used"
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const result = await db.collection("tenants").updateOne(
+      {
+        _id: tenant._id,
+        portalInvitationTokenHash: invitationTokenHash,
+        portalInvitationExpiresAt: { $gt: new Date() },
+        portalAccountStatus: "invited",
+        status: "active"
+      },
+      {
+        $set: {
+          portalPasswordHash: passwordHash,
+          portalAccountStatus: "active",
+          portalActivatedAt: new Date(),
+          updatedAt: new Date()
+        },
+        $unset: {
+          portalInvitationTokenHash: "",
+          portalInvitationExpiresAt: ""
+        }
+      }
+    );
+
+    if (result.modifiedCount !== 1) {
+      return res.status(409).json({
+        status: "error",
+        message: "Invitation has already been used or expired"
+      });
+    }
+
+    return res.json({
+      status: "ok",
+      message: "Tenant portal account activated successfully"
+    });
+
+  } catch (error) {
+    console.error("Tenant activation error:", error);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Unable to activate tenant account"
+    });
+  }
+});
+
 app.post("/api/landlord/login", async (req, res) => {
   try {
     const email = req.body?.email?.trim().toLowerCase();
