@@ -418,6 +418,99 @@ function showMessage(message, isError = false) {
   $("message").style.color =
     isError ? "#a62929" : "#17664e";
 }
+  function showInvitationLinkDialog(message, invitationUrl) {
+  return new Promise(resolve => {
+    const overlay = document.createElement("div");
+
+    overlay.style.cssText = `
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.6);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:99999;
+      padding:20px;
+    `;
+
+    const dialog = document.createElement("div");
+
+    dialog.style.cssText = `
+      background:white;
+      color:#222;
+      width:100%;
+      max-width:520px;
+      padding:24px;
+      border-radius:12px;
+      box-shadow:0 8px 30px rgba(0,0,0,0.25);
+    `;
+
+    const heading = document.createElement("h2");
+    heading.textContent = "Tenant Invitation Link";
+
+    const description = document.createElement("p");
+    description.textContent = message;
+
+    const linkField = document.createElement("textarea");
+    linkField.value = invitationUrl;
+    linkField.readOnly = true;
+    linkField.style.cssText = `
+      width:100%;
+      min-height:85px;
+      box-sizing:border-box;
+      padding:10px;
+      margin:10px 0;
+      border:1px solid #ccc;
+      border-radius:6px;
+      overflow-wrap:anywhere;
+    `;
+
+    const status = document.createElement("p");
+    status.setAttribute("role", "status");
+
+    const buttons = document.createElement("div");
+    buttons.style.cssText = `
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      margin-top:15px;
+    `;
+
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.textContent = "Copy Link";
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.textContent = "Cancel";
+    cancelButton.className = "secondary";
+
+    cancelButton.addEventListener("click", () => {
+      overlay.remove();
+      resolve(false);
+    });
+
+    copyButton.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(invitationUrl);
+        status.textContent = "Invitation link copied successfully!";
+        status.style.color = "#17664e";
+        copyButton.textContent = "Copied!";
+      } catch (error) {
+        linkField.focus();
+        linkField.select();
+        status.textContent =
+          "Automatic copying failed. Press Ctrl+C to copy the selected link.";
+        status.style.color = "#a62929";
+      }
+    });
+
+    buttons.append(copyButton, cancelButton);
+    dialog.append(heading, description, linkField, status, buttons);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+  });
+}
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -838,23 +931,21 @@ $("tenantList").addEventListener("click", async event => {
       inviteButton.remove();
 
       if (result.smsSent) {
-        window.prompt(
-          "Africa's Talking Sandbox accepted the SMS request, " +
-          "but Sandbox messages are not delivered to real phones. " +
-          "Copy this invitation link and open it to test tenant activation:",
-          result.invitationUrl
-        );
+          await showInvitationLinkDialog(
+    "Africa's Talking Sandbox accepted the SMS request, but Sandbox messages are not delivered to real phones. Copy this invitation link and open it to test tenant activation:",
+    result.invitationUrl
+  );
 
         showMessage(
           "Sandbox SMS accepted. Copy the invitation link to test tenant activation."
         );
 
       } else {
-        window.prompt(
-          "SMS was not sent. Copy this invitation link and share it with " +
-          result.tenantPhone + ". It expires in 7 days:",
-          result.invitationUrl
-        );
+          await showInvitationLinkDialog(
+    "SMS was not sent. Copy this invitation link and share it with " +
+    result.tenantPhone + ". It expires in 7 days:",
+    result.invitationUrl
+  );
 
         showMessage(
           "Invitation created, but SMS failed. Use the copied link."
