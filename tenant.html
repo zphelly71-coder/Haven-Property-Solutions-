@@ -682,6 +682,7 @@ async function loadRentAccount() {
 
     const summary = result.summary || {};
     const invoices = result.invoices || [];
+    tenantRentInvoices = invoices;
     const payments = result.payments || [];
 
     setText("totalRentDue", formatMoney(summary.totalAmountDue));
@@ -833,14 +834,14 @@ document.getElementById("rentMpesaPaymentForm")
         })
       });
 
-      showMessage(
-        "rentMpesaMessage",
-        result.message ||
-          "Payment request sent. Check your phone and enter your M-Pesa PIN.",
-        true
-      );
+     showMessage(
+  "rentMpesaMessage",
+  "Payment request sent. Check your phone and enter your M-Pesa PIN. Waiting for confirmation...",
+  true
+);
 
-      button.textContent = "Request Sent";
+button.textContent = "Waiting for payment...";
+await checkRentMpesaStatus(result.requestId);
 
     } catch (error) {
       showMessage("rentMpesaMessage", error.message);
@@ -848,6 +849,72 @@ document.getElementById("rentMpesaPaymentForm")
       button.textContent = "Send M-Pesa Payment Request";
     }
   });
+  
+
+
+async function checkRentMpesaStatus(requestId) {
+  const button = document.getElementById("rentMpesaPayButton");
+
+  for (let attempt = 0; attempt < 24; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    try {
+      const result = await apiRequest(
+        `/api/tenant/mpesa/stk-status/${encodeURIComponent(requestId)}`
+      );
+
+      const payment = result.payment || {};
+      const status = payment.paymentStatus;
+
+      if (status === "completed") {
+        showMessage(
+          "rentMpesaMessage",
+          "Payment confirmed! M-Pesa receipt: " +
+            (payment.receiptNumber || "Recorded"),
+          true
+        );
+
+        button.disabled = false;
+button.textContent = "Send M-Pesa Payment Request";
+
+await loadRentAccount();
+return;
+      }
+
+      if (
+        [
+          "failed",
+          "cancelled",
+          "initiation_error",
+          "duplicate_receipt",
+          "balance_exceeded",
+          "verification_error"
+        ].includes(status)
+      ) {
+        showMessage(
+          "rentMpesaMessage",
+          payment.message || "Payment was not completed."
+        );
+
+        button.disabled = false;
+        button.textContent = "Send M-Pesa Payment Request";
+        return;
+      }
+
+    } catch (error) {
+      console.error("Payment status check failed:", error.message);
+    }
+  }
+
+  showMessage(
+    "rentMpesaMessage",
+    "Payment is still pending. Do not send another payment request. Check your M-Pesa messages and rent account shortly."
+  );
+
+  button.disabled = true;
+  button.textContent = "Payment Pending";
+}
+
 
   async function downloadPaymentReceipt(paymentIndex) {
   try {
