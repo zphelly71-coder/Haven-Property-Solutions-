@@ -208,6 +208,43 @@ button:disabled{opacity:.5}
 
     <hr>
 
+    <h3>Rent Payment Register</h3>
+
+<p class="muted">
+  View all rent payments recorded against tenant invoices.
+</p>
+
+<button type="button" id="loadRentPaymentRegister">
+  Refresh Rent Payment Register
+</button>
+
+<p id="rentPaymentRegisterMessage" class="muted" role="status">
+  Click refresh to load rent payments.
+</p>
+
+<div style="overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th>Tenant</th>
+        <th>Invoice Number</th>
+        <th>Billing Period</th>
+        <th>Amount Paid</th>
+        <th>Payment Date</th>
+        <th>Method</th>
+        <th>Reference</th>
+      </tr>
+    </thead>
+    <tbody id="rentPaymentRegisterList">
+      <tr>
+        <td colspan="7">No payments loaded yet.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<hr>
+
     <h3>Tenant Removal Requests</h3>
     <p class="muted">
       Review landlord requests to end tenant agreements.
@@ -1155,6 +1192,69 @@ async function loadRentInvoiceRegister() {
     list.innerHTML =
       '<tr><td colspan="9">Unable to load invoices.</td></tr>';
     message.textContent = error.message;
+  }
+}
+  async function loadRentPaymentRegister() {
+  const list = $("rentPaymentRegisterList");
+  const message = $("rentPaymentRegisterMessage");
+const safeText = value => {
+  const div = document.createElement("div");
+  div.textContent = String(value ?? "—");
+  return div.innerHTML;
+};
+
+const moneyText = value =>
+  new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES"
+  }).format(Number(value) || 0);
+
+const dateText = value => {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : date.toLocaleDateString("en-KE");
+};
+  list.innerHTML = '<tr><td colspan="7">Loading rent payments...</td></tr>';
+  message.textContent = "Loading payment records...";
+
+  try {
+    const result = await superAdminApi(
+      "/api/super-admin/rent-payments"
+    );
+
+    const payments = result.payments || [];
+
+    if (!payments.length) {
+      list.innerHTML =
+        '<tr><td colspan="7">No rent payments have been recorded yet.</td></tr>';
+
+      message.textContent = "No rent payments found.";
+      return;
+    }
+
+    list.innerHTML = payments.map(payment => `
+      <tr>
+        <td>${escapeHtml(payment.tenantName || "—")}</td>
+        <td>${escapeHtml(payment.invoiceNumber || "—")}</td>
+        <td>${escapeHtml(payment.billingPeriod || "—")}</td>
+        <td>${formatMoney(payment.amount)}</td>
+        <td>${formatDate(payment.paymentDate)}</td>
+        <td>${escapeHtml(payment.paymentMethod || "—")}</td>
+        <td>${escapeHtml(payment.paymentReference || "—")}</td>
+      </tr>
+    `).join("");
+
+    message.textContent =
+      `${payments.length} rent payment record(s) found.`;
+
+  } catch (error) {
+    list.innerHTML =
+      '<tr><td colspan="7">Unable to load rent payments.</td></tr>';
+
+    message.textContent =
+      error.message || "Could not load rent payment register.";
   }
 }
 
@@ -2849,6 +2949,10 @@ $("rentInvoiceForm").addEventListener("submit", async event => {
   "click",
   loadRentInvoiceRegister
 ); 
+  $("loadRentPaymentRegister").addEventListener(
+  "click",
+  loadRentPaymentRegister
+);
 
 </script>
 </body>
