@@ -581,6 +581,219 @@ app.post(
   }
 );
 
+
+app.post(
+  "/api/tenant/mpesa/stk-push",
+  requireTenant,
+  async (req, res) => {
+    if (!db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Database not connected"
+      });
+    }
+
+    const { ObjectId } = require("mongodb");
+    const { invoiceId, phoneNumber } = req.body || {};
+    const amount = Number(req.body?.amount);
+
+    if (!ObjectId.isValid(String(req.tenantId))) {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid tenant session"
+      });
+    }
+
+    if (!ObjectId.isValid(invoiceId || "")) {
+      return res.status(400).json({
+        status: "error",
+        message: "A valid rent invoice ID is required"
+      });
+    }
+
+    if (
+      !Number.isSafeInteger(amount) ||
+      amount < 1 ||
+      amount > 150000
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter a valid whole-number amount"
+      });
+    }
+
+    if (
+      typeof phoneNumber !== "string" ||
+      !/^254[17]\d{8}$/.test(phoneNumber)
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Use phone format 2547XXXXXXXX or 2541XXXXXXXX"
+      });
+    }
+
+    if (MPESA_ENVIRONMENT !== "sandbox") {
+      return res.status(400).json({
+        status: "error",
+        message: "This test endpoint is restricted to the sandbox"
+      });
+    }
+
+    let pendingId;
+
+    try {
+      const tenantId = new ObjectId(String(req.tenantId));
+
+      const invoice = await db.collection("rentInvoices").findOne({
+        _id: new ObjectId(invoiceId),
+        tenantId
+      });
+
+      if (!invoice) {
+        return res.status(404).json({
+          status: "error",
+          message: "Rent invoice not found"
+        });
+      }
+
+      const balance = Number(invoice.balance);
+
+      if (!Number.isFinite(balance) || balance <= 0) {
+        return res.status(400).json({
+          status: "error",
+          message: "This invoice has no outstanding balance"
+        });
+      }
+
+      if (amount > balance) {
+        return res.status(400).json({
+          status: "error",
+          message: "Payment exceeds the outstanding rent balance",
+          remaining: balance
+        });
+      }
+
+      const pending = {
+        invoiceId: invoice._id,
+        tenantId: invoice.tenantId,
+        landlordId: invoice.landlordId,
+        propertyId: invoice.propertyId,
+        invoiceNumber: invoice.invoiceNumber,
+        purpose: "tenant_rent",
+        direction: "received",
+        amount,
+        phoneNumber,
+        status: "initiating",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const saved = await db
+        .collection("mpesa_stk_requests")
+        .insertOne(pending);
+
+      pendingId = saved.insertedId;
+
+      const stk = await initiateMpesaStkPush({
+        phoneNumber,
+        amount,
+        accountReference: `HPSR${String(pendingId).slice(-8)}`
+      });
+
+      await db.collection("mpesa_stk_requests").updateOne(
+        { _id: pendingId, status: "initiating" },
+        {
+          $set: {
+            status: "pending",
+            merchantRequestId: stk.MerchantRequestID,
+            checkoutRequestId: stk.CheckoutRequestID,
+            responseCode: stk.ResponseCode,
+            updatedAt: new Date()
+          }
+        }
+      );
+
+      const earlyEvent = await db
+        .collection("mpesa_callback_events")
+        .findOne({
+          checkoutRequestId: String(stk.CheckoutRequestID),
+          status: "unmatched"
+        });
+
+      if (earlyEvent?.callback?.Body?.stkCallback) {
+        const earlyCallback = earlyEvent.callback.Body.stkCallback;
+
+        if (
+          String(earlyCallback.CheckoutRequestID) ===
+          String(stk.CheckoutRequestID)
+        ) {
+          const attached = await db
+            .collection("mpesa_stk_requests")
+            .updateOne(
+              {
+                _id: pendingId,
+                checkoutRequestId: String(stk.CheckoutRequestID),
+                status: "pending"
+              },
+              {
+                $set: {
+                  status: "verification_required",
+                  callbackData: earlyCallback,
+                  callbackReceivedAt:
+                    earlyEvent.receivedAt || new Date(),
+                  updatedAt: new Date()
+                }
+              }
+            );
+
+          if (attached.modifiedCount === 1) {
+            await db.collection("mpesa_callback_events").updateOne(
+              {
+                _id: earlyEvent._id,
+                status: "unmatched"
+              },
+              {
+                $set: {
+                  status: "attached",
+                  attachedAt: new Date()
+                }
+              }
+            );
+          }
+        }
+      }
+
+      return res.status(202).json({
+        status: "ok",
+        message: "Rent STK Push accepted; awaiting payment result",
+        requestId: pendingId,
+        checkoutRequestId: stk.CheckoutRequestID
+      });
+
+    } catch (error) {
+      console.error("Tenant rent STK Push failed:", error.message);
+
+      if (pendingId) {
+        await db.collection("mpesa_stk_requests").updateOne(
+          { _id: pendingId, status: "initiating" },
+          {
+            $set: {
+              status: "initiation_error",
+              updatedAt: new Date()
+            }
+          }
+        ).catch(() => {});
+      }
+
+      return res.status(502).json({
+        status: "error",
+        message: "Unable to initiate rent STK Push; check server logs"
+      });
+    }
+  }
+);
+
+
 app.get("/", (req, res) => {
   res.json({
     message: "Haven Property Solutions API",
@@ -6278,177 +6491,293 @@ app.post("/api/mpesa/callback", async (req, res) => {
 
         // A repeated callback or concurrent handler cannot record twice.
         if (!request) return;
+         
+if (
+  !["resale_receipt", "tenant_rent"].includes(request.purpose) ||
+  request.direction !== "received" ||
+  request.amount !== callbackAmount ||
+  request.phoneNumber !== callbackPhone ||
+  (
+    request.merchantRequestId &&
+    String(callback.MerchantRequestID || "") !==
+      String(request.merchantRequestId)
+  ) ||
+  (
+    queryResult.MerchantRequestID &&
+    request.merchantRequestId &&
+    String(queryResult.MerchantRequestID) !==
+      String(request.merchantRequestId)
+  )
+) {
+  await requests.updateOne(
+    { _id: request._id, status: "verification_required" },
+    {
+      $set: {
+        status: "verification_error",
+        updatedAt: new Date()
+      }
+    },
+    { session }
+  );
+  return;
+}
 
-        if (
-          request.purpose !== "resale_receipt" ||
-          request.direction !== "received" ||
-          request.amount !== callbackAmount ||
-          request.phoneNumber !== callbackPhone ||
-          (
-            request.merchantRequestId &&
-            String(callback.MerchantRequestID || "") !==
-              String(request.merchantRequestId)
-          ) ||
-          (
-            queryResult.MerchantRequestID &&
-            request.merchantRequestId &&
-            String(queryResult.MerchantRequestID) !==
-              String(request.merchantRequestId)
-          )
-        ) {
-          await requests.updateOne(
-            { _id: request._id, status: "verification_required" },
-            {
-              $set: {
-                status: "verification_error",
-                updatedAt: new Date()
-              }
-            },
-            { session }
-          );
-          return;
+// Check both payment collections to prevent reuse of a receipt.
+const financialPayments = db.collection("financial_payments");
+const rentPayments = db.collection("rentPayments");
+
+const duplicateFinancial = await financialPayments.findOne(
+  { mpesaReceiptNumber: receipt },
+  { session }
+);
+
+const duplicateRent = await rentPayments.findOne(
+  { mpesaReceiptNumber: receipt },
+  { session }
+);
+
+if (duplicateFinancial || duplicateRent) {
+  await requests.updateOne(
+    { _id: request._id, status: "verification_required" },
+    {
+      $set: {
+        status: "duplicate_receipt",
+        updatedAt: new Date()
+      }
+    },
+    { session }
+  );
+  return;
+}
+
+// Convert Safaricom transaction date to Kenya local time.
+const transactionDate = String(metadata.TransactionDate || "");
+let paymentDate = new Date();
+
+if (/^\d{14}$/.test(transactionDate)) {
+  const iso =
+    `${transactionDate.slice(0, 4)}-` +
+    `${transactionDate.slice(4, 6)}-` +
+    `${transactionDate.slice(6, 8)}T` +
+    `${transactionDate.slice(8, 10)}:` +
+    `${transactionDate.slice(10, 12)}:` +
+    `${transactionDate.slice(12, 14)}+03:00`;
+
+  const parsed = new Date(iso);
+
+  if (!Number.isNaN(parsed.getTime())) {
+    paymentDate = parsed;
+  }
+}
+
+if (request.purpose === "resale_receipt") {
+  // Preserve the existing resale payment process.
+  const deals = db.collection("financial_deals");
+
+  const deal = await deals.findOne(
+    { _id: request.dealId },
+    { session }
+  );
+
+  if (!deal || deal.transactionType !== "resale") {
+    await requests.updateOne(
+      { _id: request._id, status: "verification_required" },
+      {
+        $set: {
+          status: "verification_error",
+          updatedAt: new Date()
         }
+      },
+      { session }
+    );
+    return;
+  }
 
-        const payments = db.collection("financial_payments");
+  const allowedTotal = Number(deal.transactionAmount) || 0;
+  const legacyReceived = Number(deal.paymentReceived) || 0;
 
-        const duplicate = await payments.findOne(
-          { mpesaReceiptNumber: receipt },
-          { session }
-        );
-
-        if (duplicate) {
-          await requests.updateOne(
-            { _id: request._id, status: "verification_required" },
-            {
-              $set: {
-                status: "duplicate_receipt",
-                updatedAt: new Date()
-              }
-            },
-            { session }
-          );
-          return;
-        }
-
-        const deals = db.collection("financial_deals");
-        const deal = await deals.findOne(
-          { _id: request.dealId },
-          { session }
-        );
-
-        if (!deal || deal.transactionType !== "resale") {
-          await requests.updateOne(
-            { _id: request._id, status: "verification_required" },
-            {
-              $set: {
-                status: "verification_error",
-                updatedAt: new Date()
-              }
-            },
-            { session }
-          );
-          return;
-        }
-
-        const allowedTotal = Number(deal.transactionAmount) || 0;
-        const legacyReceived = Number(deal.paymentReceived) || 0;
-
-        // Recheck the balance and update it atomically.
-        const updateResult = await deals.updateOne(
+  const updateResult = await deals.updateOne(
+    {
+      _id: request.dealId,
+      $expr: {
+        $lte: [
           {
-            _id: request.dealId,
-            $expr: {
-              $lte: [
-                {
-                  $add: [
-                    { $ifNull: ["$resaleReceivedTotal", 0] },
-                    legacyReceived,
-                    request.amount
-                  ]
-                },
-                allowedTotal
-              ]
-            }
+            $add: [
+              { $ifNull: ["$resaleReceivedTotal", 0] },
+              legacyReceived,
+              request.amount
+            ]
           },
-          {
-            $inc: { resaleReceivedTotal: request.amount },
-            $set: { updatedAt: new Date() }
-          },
-          { session }
-        );
+          allowedTotal
+        ]
+      }
+    },
+    {
+      $inc: { resaleReceivedTotal: request.amount },
+      $set: { updatedAt: new Date() }
+    },
+    { session }
+  );
 
-        if (!updateResult.matchedCount) {
-          await requests.updateOne(
-            { _id: request._id, status: "verification_required" },
-            {
-              $set: {
-                status: "balance_exceeded",
-                updatedAt: new Date()
-              }
-            },
-            { session }
-          );
-          return;
+  if (!updateResult.matchedCount) {
+    await requests.updateOne(
+      { _id: request._id, status: "verification_required" },
+      {
+        $set: {
+          status: "balance_exceeded",
+          updatedAt: new Date()
         }
+      },
+      { session }
+    );
+    return;
+  }
 
-        const transactionDate = String(
-          metadata.TransactionDate || ""
-        );
+  await financialPayments.insertOne(
+    {
+      dealId: request.dealId,
+      direction: "received",
+      purpose: "resale_receipt",
+      amount: request.amount,
+      paymentDate,
+      notes: `M-Pesa receipt ${receipt}`,
+      paymentMethod: "mpesa",
+      mpesaReceiptNumber: receipt,
+      mpesaCheckoutRequestId: checkoutId,
+      createdAt: new Date()
+    },
+    { session }
+  );
 
-        let paymentDate = new Date();
+} else if (request.purpose === "tenant_rent") {
+  // Verify the invoice still belongs to the tenant who initiated payment.
+  const invoices = db.collection("rentInvoices");
 
-        if (/^\d{14}$/.test(transactionDate)) {
-          const iso =
-            `${transactionDate.slice(0, 4)}-` +
-            `${transactionDate.slice(4, 6)}-` +
-            `${transactionDate.slice(6, 8)}T` +
-            `${transactionDate.slice(8, 10)}:` +
-            `${transactionDate.slice(10, 12)}:` +
-            `${transactionDate.slice(12, 14)}+03:00`;
+  const invoice = await invoices.findOne(
+    {
+      _id: request.invoiceId,
+      tenantId: request.tenantId
+    },
+    { session }
+  );
 
-          const parsed = new Date(iso);
-
-          if (!Number.isNaN(parsed.getTime())) {
-            paymentDate = parsed;
-          }
+  if (!invoice) {
+    await requests.updateOne(
+      { _id: request._id, status: "verification_required" },
+      {
+        $set: {
+          status: "verification_error",
+          updatedAt: new Date()
         }
+      },
+      { session }
+    );
+    return;
+  }
 
-        await payments.insertOne(
-          {
-            dealId: request.dealId,
-            direction: "received",
-            purpose: "resale_receipt",
-            amount: request.amount,
-            paymentDate,
-            notes: `M-Pesa receipt ${receipt}`,
-            paymentMethod: "mpesa",
-            mpesaReceiptNumber: receipt,
-            mpesaCheckoutRequestId: checkoutId,
-            createdAt: new Date()
-          },
-          { session }
-        );
+  const balance = Number(invoice.balance);
 
-        await requests.updateOne(
-          { _id: request._id, status: "verification_required" },
-          {
-            $set: {
-              status: "completed",
-              mpesaReceiptNumber: receipt,
-              completedAt: new Date(),
-              updatedAt: new Date()
-            },
-            $unset: { callbackData: "" }
-          },
-          { session }
-        );
+  if (!Number.isFinite(balance) || balance < request.amount) {
+    await requests.updateOne(
+      { _id: request._id, status: "verification_required" },
+      {
+        $set: {
+          status: "balance_exceeded",
+          updatedAt: new Date()
+        }
+      },
+      { session }
+    );
+    return;
+  }
+
+  const amountPaid = Number(invoice.amountPaid || 0) + request.amount;
+
+  const remainingBalance = Math.round(
+    (balance - request.amount + Number.EPSILON) * 100
+  ) / 100;
+
+  // Update invoice only if its balance has not changed.
+  const invoiceUpdate = await invoices.updateOne(
+    {
+      _id: invoice._id,
+      tenantId: request.tenantId,
+      balance: invoice.balance
+    },
+    {
+      $set: {
+        amountPaid,
+        balance: remainingBalance,
+        paymentStatus: remainingBalance === 0
+          ? "paid"
+          : "partially_paid",
+        updatedAt: new Date()
+      }
+    },
+    { session }
+  );
+
+  if (!invoiceUpdate.matchedCount) {
+    throw new Error("RENT_INVOICE_UPDATE_CONFLICT");
+  }
+
+  // Record the confirmed M-Pesa rent payment.
+  await rentPayments.insertOne(
+    {
+      invoiceId: invoice._id,
+      tenantId: request.tenantId,
+      landlordId: invoice.landlordId,
+      propertyId: invoice.propertyId,
+      amount: request.amount,
+      paymentDate,
+      paymentMethod: "mpesa",
+      paymentReference: `MPESA-${receipt}`,
+      mpesaReceiptNumber: receipt,
+      mpesaCheckoutRequestId: checkoutId,
+      notes: `M-Pesa receipt ${receipt}`,
+      recordedByRole: "tenant",
+      createdAt: new Date()
+    },
+    { session }
+  );
+
+} else {
+  await requests.updateOne(
+    { _id: request._id, status: "verification_required" },
+    {
+      $set: {
+        status: "verification_error",
+        updatedAt: new Date()
+      }
+    },
+    { session }
+  );
+  return;
+}
+
+// Mark the STK request completed only after the payment record is saved.
+await requests.updateOne(
+  { _id: request._id, status: "verification_required" },
+  {
+    $set: {
+      status: "completed",
+      mpesaReceiptNumber: receipt,
+      completedAt: new Date(),
+      updatedAt: new Date()
+    },
+    $unset: { callbackData: "" }
+  },
+  { session }
+);
+
       });
     } catch (error) {
       if (
   error.code === 11000 &&
   (
     error.keyPattern?.mpesaReceiptNumber ||
-    error.message?.includes("uniq_mpesa_receipt_number")
+    error.message?.includes("uniq_mpesa_receipt_number") ||
+    error.message?.includes("uniq_rent_mpesa_receipt_number")
   )
 ) {
         // Unique receipt index protects against concurrent duplicate receipts.
@@ -6748,6 +7077,16 @@ console.log("MongoDB Atlas connection established.");
     name: "rent_payment_invoice_date"
   }
 );
+  
+await db.collection("rentPayments").createIndex(
+  { mpesaReceiptNumber: 1 },
+  {
+    unique: true,
+    sparse: true,
+    name: "uniq_rent_mpesa_receipt_number"
+  }
+);
+
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Haven API listening on port ${PORT}`);
