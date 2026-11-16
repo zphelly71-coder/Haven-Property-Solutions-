@@ -793,6 +793,82 @@ app.post(
   }
 );
 
+app.get(
+  "/api/tenant/mpesa/stk-status/:requestId",
+  requireTenant,
+  async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({
+          status: "error",
+          message: "Database not connected"
+        });
+      }
+
+      const { ObjectId } = require("mongodb");
+      const requestId = req.params.requestId;
+
+      if (!ObjectId.isValid(requestId)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid payment request ID"
+        });
+      }
+
+      const request = await db
+        .collection("mpesa_stk_requests")
+        .findOne(
+          {
+            _id: new ObjectId(requestId),
+            tenantId: new ObjectId(String(req.tenantId)),
+            purpose: "tenant_rent"
+          },
+          {
+            projection: {
+              amount: 1,
+              status: 1,
+              invoiceNumber: 1,
+              mpesaReceiptNumber: 1,
+              resultDescription: 1,
+              createdAt: 1,
+              updatedAt: 1
+            }
+          }
+        );
+
+      if (!request) {
+        return res.status(404).json({
+          status: "error",
+          message: "Payment request not found"
+        });
+      }
+
+      return res.json({
+        status: "ok",
+        payment: {
+          requestId: request._id,
+          amount: request.amount,
+          paymentStatus: request.status,
+          invoiceNumber: request.invoiceNumber || "",
+          receiptNumber: request.mpesaReceiptNumber || "",
+          message: request.resultDescription || "",
+          createdAt: request.createdAt,
+          updatedAt: request.updatedAt
+        }
+      });
+
+    } catch (error) {
+      console.error("Tenant M-Pesa status check failed:", error.message);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to check payment status"
+      });
+    }
+  }
+);
+
+
 
 app.get("/", (req, res) => {
   res.json({
