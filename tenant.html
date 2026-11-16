@@ -847,6 +847,8 @@ async function loadRentAccount() {
     console.error("Payment receipt error:", error);
   }
 }
+window.downloadPaymentReceipt = downloadPaymentReceipt;
+  
 
 async function printRentStatement() {
   const printWindow = window.open("", "_blank");
