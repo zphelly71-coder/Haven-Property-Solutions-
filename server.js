@@ -3399,6 +3399,68 @@ app.get(
   }
 );
 
+app.get(
+  "/api/super-admin/rent-payments",
+  requireSuperAdmin,
+  async (req, res) => {
+    try {
+      const payments = await db.collection("rentPayments")
+        .aggregate([
+          {
+            $sort: {
+              paymentDate: -1,
+              createdAt: -1
+            }
+          },
+          {
+            $lookup: {
+              from: "rentInvoices",
+              localField: "invoiceId",
+              foreignField: "_id",
+              as: "invoice"
+            }
+          },
+          {
+            $unwind: {
+              path: "$invoice",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $project: {
+              amount: 1,
+              paymentDate: 1,
+              paymentMethod: 1,
+              paymentReference: 1,
+              notes: 1,
+              createdAt: 1,
+              tenantId: 1,
+              propertyId: 1,
+              invoiceNumber: "$invoice.invoiceNumber",
+              tenantName: "$invoice.tenantName",
+              billingPeriod: "$invoice.billingPeriod"
+            }
+          }
+        ])
+        .toArray();
+
+      return res.json({
+        status: "ok",
+        count: payments.length,
+        payments
+      });
+
+    } catch (error) {
+      console.error("Load rent payment register error:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to load rent payment register"
+      });
+    }
+  }
+);
+
 
 app.get(
   "/api/super-admin/tenant-removal-requests",
