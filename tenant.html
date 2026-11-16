@@ -661,23 +661,29 @@ async function loadRentAccount() {
         `).join("")
       : '<tr><td colspan="7">No rent invoices found.</td></tr>';
 
-    paymentBody.innerHTML = payments.length
-      ? payments.map(payment => {
-          const invoice = invoices.find(
-            item => String(item._id) === String(payment.invoiceId)
-          );
+   paymentBody.innerHTML = payments.length
+  ? payments.map((payment, index) => {
+      const invoice = invoices.find(
+        item => String(item._id) === String(payment.invoiceId)
+      );
 
-          return `
-            <tr>
-              <td>${formatDate(payment.paymentDate || payment.createdAt)}</td>
-              <td>${escapeHtml(invoice?.invoiceNumber || "—")}</td>
-              <td>${formatMoney(payment.amount)}</td>
-              <td>${escapeHtml(payment.paymentMethod || "—")}</td>
-              <td>${escapeHtml(payment.paymentReference || "—")}</td>
-            </tr>
-          `;
-        }).join("")
-      : '<tr><td colspan="5">No payments recorded yet.</td></tr>';
+      return `
+        <tr>
+          <td>${formatDate(payment.paymentDate || payment.createdAt)}</td>
+          <td>${escapeHtml(invoice?.invoiceNumber || "—")}</td>
+          <td>${formatMoney(payment.amount)}</td>
+          <td>${escapeHtml(payment.paymentMethod || "—")}</td>
+          <td>${escapeHtml(payment.paymentReference || "—")}</td>
+          <td>
+            <button type="button"
+              onclick="downloadPaymentReceipt(${index})">
+              Download Receipt
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("")
+  : '<tr><td colspan="6">No payments recorded yet.</td></tr>';
 
     document.getElementById("rentAccountMessage").style.display = "none";
 
@@ -691,7 +697,156 @@ async function loadRentAccount() {
     showMessage("rentAccountMessage", error.message);
   }
 }
-  
+  async function downloadPaymentReceipt(paymentIndex) {
+  try {
+    const result = await apiRequest("/api/tenant/rent-account");
+
+    const payments = result.payments || [];
+    const invoices = result.invoices || [];
+
+    const payment = payments[paymentIndex];
+
+    if (!payment) {
+      alert("Payment record not found.");
+      return;
+    }
+
+    const invoice = invoices.find(
+      item => String(item._id) === String(payment.invoiceId)
+    );
+
+    const profileData = await apiRequest("/api/tenant/profile");
+
+    const tenant = profileData.tenant || {};
+    const property = profileData.property || {};
+
+    const receiptNumber = payment.paymentReference ||
+      `HPS-${String(payment._id || paymentIndex).slice(-8)}`;
+
+    const receiptWindow = window.open("", "_blank");
+
+    if (!receiptWindow) {
+      alert("Please allow pop-ups to download your receipt.");
+      return;
+    }
+
+    receiptWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Rent Payment Receipt</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 35px;
+            color: #263238;
+          }
+          .receipt {
+            max-width: 700px;
+            margin: auto;
+            border: 2px solid #146c54;
+            padding: 25px;
+          }
+          header {
+            text-align: center;
+            border-bottom: 2px solid #146c54;
+            padding-bottom: 15px;
+          }
+          h1, h2 { color: #146c54; }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+          }
+          td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+          }
+          .amount {
+            font-size: 22px;
+            font-weight: bold;
+            color: #146c54;
+          }
+          footer {
+            text-align: center;
+            margin-top: 35px;
+            font-size: 12px;
+          }
+          @media print {
+            body { padding: 5px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+          <header>
+            <h1>HAVEN PROPERTY SOLUTIONS</h1>
+            <h2>RENT PAYMENT RECEIPT</h2>
+            <p>Official Payment Confirmation</p>
+          </header>
+
+          <table>
+            <tr>
+              <td><strong>Receipt Number</strong></td>
+              <td>${escapeHtml(receiptNumber)}</td>
+            </tr>
+            <tr>
+              <td><strong>Tenant Name</strong></td>
+              <td>${escapeHtml(tenant.name || "—")}</td>
+            </tr>
+            <tr>
+              <td><strong>Property</strong></td>
+              <td>${escapeHtml(property.title || "—")}</td>
+            </tr>
+            <tr>
+              <td><strong>Unit</strong></td>
+              <td>${escapeHtml(tenant.unitNumber || "—")}</td>
+            </tr>
+            <tr>
+              <td><strong>Invoice Number</strong></td>
+              <td>${escapeHtml(invoice?.invoiceNumber || "—")}</td>
+            </tr>
+            <tr>
+              <td><strong>Payment Date</strong></td>
+              <td>${formatDate(payment.paymentDate || payment.createdAt)}</td>
+            </tr>
+            <tr>
+              <td><strong>Payment Method</strong></td>
+              <td>${escapeHtml(payment.paymentMethod || "—")}</td>
+            </tr>
+            <tr>
+              <td><strong>Transaction Reference</strong></td>
+              <td>${escapeHtml(payment.paymentReference || "—")}</td>
+            </tr>
+            <tr>
+              <td><strong>Amount Paid</strong></td>
+              <td class="amount">${formatMoney(payment.amount)}</td>
+            </tr>
+          </table>
+
+          <footer>
+            <p>Thank you for your payment.</p>
+            <p>Haven Property Solutions</p>
+            <p>Generated: ${new Date().toLocaleDateString("en-KE")}</p>
+          </footer>
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        <\/script>
+      </body>
+      </html>
+    `);
+
+    receiptWindow.document.close();
+
+  } catch (error) {
+    alert("Unable to generate payment receipt. Please try again.");
+    console.error("Payment receipt error:", error);
+  }
+}
 
 async function printRentStatement() {
   const printWindow = window.open("", "_blank");
