@@ -1248,7 +1248,7 @@ const dateText = value => {
         <td>${escapeHtml(payment.tenantName || "—")}</td>
         <td>${escapeHtml(payment.invoiceNumber || "—")}</td>
         <td>${escapeHtml(payment.billingPeriod || "—")}</td>
-        <td>${formatMoney(payment.amount)}</td>
+        <td>${moneyText(payment.amount)}</td>
         <td>${formatDate(payment.paymentDate)}</td>
         <td>${escapeHtml(payment.paymentMethod || "—")}</td>
         <td>${escapeHtml(payment.paymentReference || "—")}</td>
