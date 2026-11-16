@@ -339,18 +339,57 @@
           <th>Amount Paid</th>
           <th>Balance</th>
           <th>Status</th>
-          <th>Due Date</th>
+         <th>Due Date</th>
+<th>Action</th>
         </tr>
       </thead>
       <tbody id="tenantInvoiceList">
         <tr>
-          <td colspan="7">Loading invoices...</td>
+         <td colspan="8">Loading invoices...</td>
         </tr>
       </tbody>
     </table>
+  
+  </div>
+
+  <div id="rentMpesaPaymentCard" class="card" style="display:none; margin-top:20px;">
+    <h3>Pay Rent with M-Pesa</h3>
+
+    <p id="rentMpesaInvoiceInfo">Selected rent invoice</p>
+
+    <form id="rentMpesaPaymentForm">
+      <label for="rentMpesaPhone">M-Pesa Phone Number</label>
+      <input
+        type="tel"
+        id="rentMpesaPhone"
+        placeholder="2547XXXXXXXX"
+        pattern="254[17][0-9]{8}"
+        required
+      >
+
+      <label for="rentMpesaAmount">Amount to Pay (KES)</label>
+      <input
+        type="number"
+        id="rentMpesaAmount"
+        min="1"
+        step="1"
+        required
+      >
+
+      <button type="submit" id="rentMpesaPayButton">
+        Send M-Pesa Payment Request
+      </button>
+
+      <button type="button" id="rentMpesaCancelButton">
+        Cancel
+      </button>
+    </form>
+
+    <p id="rentMpesaMessage" class="message"></p>
   </div>
 
   <h3>My Payment History</h3>
+
   <div style="overflow-x:auto;">
     <table style="width:100%; border-collapse:collapse;">
       <thead>
@@ -649,19 +688,31 @@ async function loadRentAccount() {
     setText("totalRentPaid", formatMoney(summary.totalAmountPaid));
     setText("totalRentBalance", formatMoney(summary.totalBalance));
 
-    invoiceBody.innerHTML = invoices.length
-      ? invoices.map(invoice => `
-          <tr>
-            <td>${escapeHtml(invoice.invoiceNumber || "—")}</td>
-            <td>${escapeHtml(invoice.billingPeriod || "—")}</td>
-            <td>${formatMoney(invoice.amountDue)}</td>
-            <td>${formatMoney(invoice.amountPaid)}</td>
-            <td>${formatMoney(invoice.balance)}</td>
-            <td>${escapeHtml(invoice.paymentStatus || "—")}</td>
-            <td>${formatDate(invoice.dueDate)}</td>
-          </tr>
-        `).join("")
-      : '<tr><td colspan="7">No rent invoices found.</td></tr>';
+   
+invoiceBody.innerHTML = invoices.length
+  ? invoices.map(invoice => `
+      <tr>
+        <td>${escapeHtml(invoice.invoiceNumber || "—")}</td>
+        <td>${escapeHtml(invoice.billingPeriod || "—")}</td>
+        <td>${formatMoney(invoice.amountDue)}</td>
+        <td>${formatMoney(invoice.amountPaid)}</td>
+        <td>${formatMoney(invoice.balance)}</td>
+        <td>${escapeHtml(invoice.paymentStatus || "—")}</td>
+        <td>${formatDate(invoice.dueDate)}</td>
+        <td>
+          ${
+            Number(invoice.balance) > 0
+              ? `<button type="button"
+                   onclick="openRentMpesaPayment('${invoice._id}')">
+                   Pay with M-Pesa
+                 </button>`
+              : "Fully paid"
+          }
+        </td>
+      </tr>
+    `).join("")
+  : '<tr><td colspan="8">No rent invoices found.</td></tr>';
+
 
    paymentBody.innerHTML = payments.length
   ? payments.map((payment, index) => {
@@ -699,12 +750,112 @@ async function loadRentAccount() {
     showMessage("rentAccountMessage", error.message);
   }
 }
+  
+let selectedRentInvoiceId = "";
+let tenantRentInvoices = [];
+
+function openRentMpesaPayment(invoiceId) {
+  selectedRentInvoiceId = invoiceId;
+
+  const card = document.getElementById("rentMpesaPaymentCard");
+  const amountInput = document.getElementById("rentMpesaAmount");
+  const message = document.getElementById("rentMpesaMessage");
+
+   const invoice = tenantRentInvoices.find(
+    item => String(item._id) === String(invoiceId)
+  );
+
+  if (!invoice) {
+    showMessage("rentAccountMessage", "Unable to identify the selected invoice.");
+    return;
+  }
+
+  const balance = Number(invoice.balance);
+  if (!Number.isFinite(balance) || balance <= 0) {
+    showMessage("rentAccountMessage", "This invoice has no outstanding balance.");
+    return;
+  }
+
+  document.getElementById("rentMpesaInvoiceInfo").textContent =
+    "Outstanding balance: " + formatMoney(balance);
+
+  amountInput.max = Math.floor(balance);
+  amountInput.value = Math.floor(balance);
+
+  message.style.display = "none";
+  card.style.display = "block";
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+document.getElementById("rentMpesaCancelButton")
+  .addEventListener("click", function() {
+    document.getElementById("rentMpesaPaymentCard").style.display = "none";
+    document.getElementById("rentMpesaPaymentForm").reset();
+    selectedRentInvoiceId = "";
+  });
+
+document.getElementById("rentMpesaPaymentForm")
+  .addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const phoneNumber = document.getElementById("rentMpesaPhone").value.trim();
+    const amount = Number(document.getElementById("rentMpesaAmount").value);
+    const button = document.getElementById("rentMpesaPayButton");
+
+    if (!selectedRentInvoiceId) {
+      showMessage("rentMpesaMessage", "Please select a rent invoice.");
+      return;
+    }
+
+    if (!/^254[17]\d{8}$/.test(phoneNumber)) {
+      showMessage(
+        "rentMpesaMessage",
+        "Enter a valid M-Pesa number, for example 254712345678."
+      );
+      return;
+    }
+
+    if (!Number.isInteger(amount) || amount <= 0) {
+      showMessage("rentMpesaMessage", "Enter a valid whole-number amount.");
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Sending request...";
+
+    try {
+      const result = await apiRequest("/api/tenant/mpesa/stk-push", {
+        method: "POST",
+        body: JSON.stringify({
+          invoiceId: selectedRentInvoiceId,
+          amount,
+          phoneNumber
+        })
+      });
+
+      showMessage(
+        "rentMpesaMessage",
+        result.message ||
+          "Payment request sent. Check your phone and enter your M-Pesa PIN.",
+        true
+      );
+
+      button.textContent = "Request Sent";
+
+    } catch (error) {
+      showMessage("rentMpesaMessage", error.message);
+      button.disabled = false;
+      button.textContent = "Send M-Pesa Payment Request";
+    }
+  });
+
   async function downloadPaymentReceipt(paymentIndex) {
   try {
     const result = await apiRequest("/api/tenant/rent-account");
 
     const payments = result.payments || [];
     const invoices = result.invoices || [];
+    tenantRentInvoices = invoices;
 
     const payment = payments[paymentIndex];
 
