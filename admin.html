@@ -599,6 +599,27 @@ button:disabled{opacity:.5}
       <button type="button" class="secondary" id="logoutButton">Log out</button>
       <div id="propertyList"></div>
     </div>
+
+    <div class="card" id="reservationsCard">
+  <h2>Short-Stay Reservations</h2>
+  <p class="muted">
+    Review customer reservation requests, approve or decline bookings,
+    and check reservation dates.
+  </p>
+
+  <p>
+    Total reservations:
+    <strong id="reservationCount">—</strong>
+  </p>
+
+  <button type="button" id="refreshReservationsButton">
+    Refresh reservations
+  </button>
+
+  <div id="reservationList">
+    Reservations will appear here.
+  </div>
+</div>
     <div class="card">
   <h2>Customer Enquiries</h2>
   <p class="muted">
