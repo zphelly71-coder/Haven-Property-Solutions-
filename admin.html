@@ -2171,6 +2171,19 @@ status.style.marginBottom = "12px";
         ["Special requests", reservation.specialRequests],
         ["Reservation status", reservation.status],
         ["Payment status", reservation.paymentStatus],
+        ["Nightly rate", reservation.nightlyRate
+  ? "KES " + Number(reservation.nightlyRate).toLocaleString()
+  : ""],
+["Number of nights", reservation.nights],
+["Total booking cost", reservation.totalAmount
+  ? "KES " + Number(reservation.totalAmount).toLocaleString()
+  : ""],
+["Deposit required (30%)", reservation.depositAmount
+  ? "KES " + Number(reservation.depositAmount).toLocaleString()
+  : ""],
+["Remaining balance (70%)", reservation.balanceAmount
+  ? "KES " + Number(reservation.balanceAmount).toLocaleString()
+  : ""],
         ["Received", reservation.createdAt
           ? new Date(reservation.createdAt).toLocaleString()
           : "Not available"],
