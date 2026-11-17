@@ -7570,21 +7570,9 @@ if (request.purpose === "resale_receipt") {
   );
 
 
-} else {
-  await requests.updateOne(
-    { _id: request._id, status: "verification_required" },
-    {
-      $set: {
-        status: "verification_error",
-        updatedAt: new Date()
-      }
-    },
-    { session }
-  );
-  return;
-}
+
    
-} else {     
+}   
 
 // Mark the STK request completed only after the payment record is saved.
 await requests.updateOne(
