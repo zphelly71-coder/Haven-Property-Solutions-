@@ -3012,6 +3012,7 @@ if (sessionStorage.getItem(TOKEN_KEY)) {
   showDashboard();
   loadProperties().catch(() => logout());
   loadEnquiries().catch(() => logout());
+    loadReservations().catch(() => logout());
   loadFinancialRecords().catch(error =>
     console.error("Financial records loading failed:", error)
   );
