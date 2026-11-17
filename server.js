@@ -7125,6 +7125,27 @@ app.post("/api/mpesa/callback", async (req, res) => {
           }
         }
       );
+            if (
+        existingRequest.purpose === "short_stay_deposit" &&
+        existingRequest.reservationId
+      ) {
+        await db.collection("reservations").updateOne(
+          {
+            _id: existingRequest.reservationId,
+            status: "approved_awaiting_payment",
+            paymentStatus: "stk_pending"
+          },
+          {
+            $set: {
+              paymentStatus: "awaiting_deposit",
+              updatedAt: new Date()
+            },
+            $unset: {
+              depositStkRequestId: ""
+            }
+          }
+        );
+      }
 
       return res.status(200).json({
         ResultCode: 0,
