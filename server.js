@@ -5793,6 +5793,13 @@ app.get("/api/admin/reservations", requireAdmin, async (req, res) => {
             specialRequests: 1,
             status: 1,
             paymentStatus: 1,
+            nightlyRate: 1,
+nights: 1,
+totalAmount: 1,
+depositPercentage: 1,
+depositAmount: 1,
+balanceAmount: 1,
+currency: 1,
             createdAt: 1,
             updatedAt: 1,
             reviewedAt: 1,
@@ -5881,6 +5888,7 @@ app.patch(
       }
 
       let newStatus = "declined";
+      let pricing = {};
 
       if (action === "approve") {
         const conflict = await reservations.findOne({
@@ -5900,7 +5908,50 @@ app.patch(
           });
         }
 
-        newStatus = "approved_awaiting_payment";
+        const property = await db.collection("properties").findOne({
+  _id: reservation.propertyId,
+  status: "published"
+});
+
+const nightlyRate = Number(property?.nightlyRate || 0);
+
+const checkIn = new Date(reservation.checkInDate + "T00:00:00Z");
+const checkOut = new Date(reservation.checkOutDate + "T00:00:00Z");
+
+const nights = Math.round(
+  (checkOut.getTime() - checkIn.getTime()) / 86400000
+);
+
+if (!Number.isFinite(nightlyRate) || nightlyRate <= 0 || nights < 1) {
+  return res.status(400).json({
+    status: "error",
+    message: "This property needs a valid nightly rate before approval."
+  });
+}
+
+const minimumNights = Number(property.minimumNights || 1);
+
+if (nights < minimumNights) {
+  return res.status(400).json({
+    status: "error",
+    message: `This property requires at least ${minimumNights} nights.`
+  });
+}
+
+const totalAmount = Math.round(nightlyRate * nights);
+const depositAmount = Math.ceil(totalAmount * 0.30);
+
+pricing = {
+  nightlyRate,
+  nights,
+  totalAmount,
+  depositPercentage: 30,
+  depositAmount,
+  balanceAmount: totalAmount - depositAmount,
+  currency: "KES"
+};
+
+newStatus = "approved_awaiting_payment";
       }
 
       const updateResult = await reservations.updateOne(
@@ -5909,14 +5960,18 @@ app.patch(
           status: "pending"
         },
         {
-          $set: {
-            status: newStatus,
-            paymentStatus: "not_requested",
-            reviewNote,
-            reviewedAt: new Date(),
-            updatedAt: new Date()
-          }
-        }
+         {
+  $set: {
+    status: newStatus,
+    paymentStatus: action === "approve"
+      ? "awaiting_deposit"
+      : "not_requested",
+    ...(action === "approve" ? pricing : {}),
+    reviewNote,
+    reviewedAt: new Date(),
+    updatedAt: new Date()
+  }
+}
       );
 
       if (updateResult.modifiedCount !== 1) {
@@ -5926,10 +5981,13 @@ app.patch(
         });
       }
 
-      return res.json({
-        status: "ok",
-        reservationStatus: newStatus,
-        paymentStatus: "not_requested",
+     return res.json({
+  status: "ok",
+  reservationStatus: newStatus,
+  paymentStatus: action === "approve"
+    ? "awaiting_deposit"
+    : "not_requested",
+  ...(action === "approve" ? pricing : {}),
         message: action === "approve"
           ? "Reservation approved. Payment has not been requested."
           : "Reservation declined successfully."
