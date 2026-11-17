@@ -2275,6 +2275,58 @@ status.style.marginBottom = "12px";
         });
 
         actions.append(approveButton, declineButton);
+               card.appendChild(actions);
+      }
+
+      if (
+        reservation.status === "approved_awaiting_payment" &&
+        reservation.paymentStatus === "awaiting_deposit"
+      ) {
+        const actions = document.createElement("div");
+        actions.style.display = "flex";
+        actions.style.gap = "8px";
+        actions.style.marginTop = "12px";
+
+        const depositButton = document.createElement("button");
+        depositButton.type = "button";
+        depositButton.textContent = "Request 30% Deposit";
+
+        depositButton.addEventListener("click", async () => {
+          const amount = Number(reservation.depositAmount || 0);
+
+          if (!window.confirm(
+            "Send an M-Pesa STK prompt for KES " +
+            amount.toLocaleString() +
+            " to " + reservation.phone + "?"
+          )) return;
+
+          depositButton.disabled = true;
+          depositButton.textContent = "Sending prompt...";
+
+          try {
+            const result = await api(
+              "/api/admin/reservations/" +
+                encodeURIComponent(reservation._id) +
+                "/request-deposit",
+              {
+                method: "POST"
+              }
+            );
+
+            message(
+              result.message ||
+              "STK prompt accepted. Awaiting payment confirmation."
+            );
+
+            await loadReservations();
+          } catch (error) {
+            message(error.message);
+            depositButton.disabled = false;
+            depositButton.textContent = "Request 30% Deposit";
+          }
+        });
+
+        actions.appendChild(depositButton);
         card.appendChild(actions);
       }
 
