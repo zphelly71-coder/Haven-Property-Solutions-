@@ -467,6 +467,194 @@ whatsappShare.target = "_blank";
 whatsappShare.rel = "noopener noreferrer";
 
 content.appendChild(whatsappShare);
+
+    
+if (isShortStay) {
+  const reservationButton = document.createElement("button");
+  reservationButton.type = "button";
+  reservationButton.className = "button gold";
+  reservationButton.textContent = "Make Reservation";
+  reservationButton.style.marginTop = "20px";
+
+  const reservationSection = document.createElement("section");
+  reservationSection.hidden = true;
+  reservationSection.style.marginTop = "16px";
+  reservationSection.style.padding = "18px";
+  reservationSection.style.border = "1px solid #e4d8bd";
+  reservationSection.style.borderRadius = "10px";
+
+  const reservationHeading = document.createElement("h2");
+  reservationHeading.textContent = "Request a Reservation";
+
+  const reservationIntro = document.createElement("p");
+  reservationIntro.textContent =
+    "Submit your preferred dates and guest details. We will review your request and contact you. No payment is required at this stage.";
+
+  const reservationForm = document.createElement("form");
+
+  reservationForm.innerHTML = `
+    <label for="reservation-name">Your name</label>
+    <input id="reservation-name" name="name"
+      type="text" maxlength="100" required>
+
+    <label for="reservation-email">Email address (optional)</label>
+    <input id="reservation-email" name="email"
+      type="email" maxlength="254">
+
+    <label for="reservation-phone">Phone number (optional)</label>
+    <input id="reservation-phone" name="phone"
+      type="tel" maxlength="30">
+
+    <label for="reservation-checkin">Check-in date</label>
+    <input id="reservation-checkin" name="checkInDate"
+      type="date" required>
+
+    <label for="reservation-checkout">Check-out date</label>
+    <input id="reservation-checkout" name="checkOutDate"
+      type="date" required>
+
+    <label for="reservation-guests">Number of guests</label>
+    <input id="reservation-guests" name="guestCount"
+      type="number" min="1" max="50" step="1" required>
+
+    <label for="reservation-requests">Special requests (optional)</label>
+    <textarea id="reservation-requests" name="specialRequests"
+      maxlength="1000" rows="4"></textarea>
+
+    <button type="submit" class="button gold">
+      Submit Reservation Request
+    </button>
+  `;
+
+  reservationForm.querySelectorAll("input, textarea").forEach(field => {
+    field.style.width = "100%";
+    field.style.padding = "12px";
+    field.style.marginBottom = "12px";
+    field.style.boxSizing = "border-box";
+  });
+
+  const checkInField =
+    reservationForm.elements.namedItem("checkInDate");
+  const checkOutField =
+    reservationForm.elements.namedItem("checkOutDate");
+
+  const todayInKenya = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Nairobi"
+  }).format(new Date());
+
+  checkInField.min = todayInKenya;
+  checkOutField.min = todayInKenya;
+
+  checkInField.addEventListener("change", () => {
+    checkOutField.min = checkInField.value || todayInKenya;
+
+    if (
+      checkOutField.value &&
+      checkOutField.value <= checkInField.value
+    ) {
+      checkOutField.value = "";
+    }
+  });
+
+  const reservationStatus = document.createElement("p");
+  reservationStatus.setAttribute("role", "status");
+  reservationStatus.setAttribute("aria-live", "polite");
+
+  reservationButton.addEventListener("click", () => {
+    reservationSection.hidden = !reservationSection.hidden;
+    reservationButton.textContent = reservationSection.hidden
+      ? "Make Reservation"
+      : "Close Reservation Form";
+  });
+
+  reservationForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const name =
+      reservationForm.elements.namedItem("name").value.trim();
+    const email =
+      reservationForm.elements.namedItem("email").value.trim();
+    const phone =
+      reservationForm.elements.namedItem("phone").value.trim();
+
+    if (!email && !phone) {
+      reservationStatus.textContent =
+        "Please provide an email address or phone number.";
+      return;
+    }
+
+    const propertyId = String(property._id || property.id || "");
+
+    if (!propertyId) {
+      reservationStatus.textContent =
+        "Unable to identify this property. Please contact us through WhatsApp.";
+      return;
+    }
+
+    const submitButton = reservationForm.querySelector(
+      'button[type="submit"]'
+    );
+
+    submitButton.disabled = true;
+    reservationStatus.textContent = "Submitting your reservation request...";
+
+    try {
+      const response = await fetch(
+        "https://haven-property-solutions-api.onrender.com/api/reservations",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            propertyId,
+            name,
+            email,
+            phone,
+            checkInDate: checkInField.value,
+            checkOutDate: checkOutField.value,
+            guestCount: Number(
+              reservationForm.elements.namedItem("guestCount").value
+            ),
+            specialRequests:
+              reservationForm.elements.namedItem("specialRequests").value.trim()
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || "Unable to submit your reservation request."
+        );
+      }
+
+      reservationStatus.textContent =
+        "Your reservation request has been submitted successfully. It is pending review. No payment is required yet.";
+
+      reservationForm.reset();
+      checkInField.min = todayInKenya;
+      checkOutField.min = todayInKenya;
+
+    } catch (error) {
+      reservationStatus.textContent =
+        error.message || "Unable to submit your request. Please try again.";
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+
+  reservationSection.append(
+    reservationHeading,
+    reservationIntro,
+    reservationForm,
+    reservationStatus
+  );
+
+  content.append(reservationButton, reservationSection);
+}
+
     const enquirySection = document.createElement("section");
 enquirySection.style.marginTop = "24px";
 enquirySection.style.padding = "18px";
