@@ -44,7 +44,7 @@ button:disabled{opacity:.5}
       <button type="submit">Sign in</button>
     </form>
   </section>
-  <div class="card" id="superAdminInvoiceCard">
+  <div class="card" id="superAdminInvoiceCard" hidden>
   <h2>Super Admin — Rent Invoice Management</h2>
   <p class="muted">
     Sign in separately with your Super Admin password
@@ -1354,6 +1354,10 @@ async function loadReinstatementHistory() {
 function showDashboard() {
   $("loginPanel").hidden = true;
   $("dashboard").hidden = false;
+
+  const superAdminCard = $("superAdminInvoiceCard");
+  $("dashboard").appendChild(superAdminCard);
+  superAdminCard.hidden = false;
 }
 
 async function logout(showMessage = true) {
