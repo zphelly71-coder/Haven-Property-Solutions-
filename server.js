@@ -5954,25 +5954,24 @@ pricing = {
 newStatus = "approved_awaiting_payment";
       }
 
-      const updateResult = await reservations.updateOne(
-        {
-          _id: reservationId,
-          status: "pending"
-        },
-        {
-         {
-  $set: {
-    status: newStatus,
-    paymentStatus: action === "approve"
-      ? "awaiting_deposit"
-      : "not_requested",
-    ...(action === "approve" ? pricing : {}),
-    reviewNote,
-    reviewedAt: new Date(),
-    updatedAt: new Date()
+     const updateResult = await reservations.updateOne(
+  {
+    _id: reservationId,
+    status: "pending"
+  },
+  {
+    $set: {
+      status: newStatus,
+      paymentStatus: action === "approve"
+        ? "awaiting_deposit"
+        : "not_requested",
+      ...(action === "approve" ? pricing : {}),
+      reviewNote,
+      reviewedAt: new Date(),
+      updatedAt: new Date()
+    }
   }
-}
-      );
+);
 
       if (updateResult.modifiedCount !== 1) {
         return res.status(409).json({
