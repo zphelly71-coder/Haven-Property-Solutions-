@@ -7495,21 +7495,7 @@ if (request.purpose === "resale_receipt") {
     },
     { session }
   );
-
-} else {
-  await requests.updateOne(
-    { _id: request._id, status: "verification_required" },
-    {
-      $set: {
-        status: "verification_error",
-        updatedAt: new Date()
-      }
-    },
-    { session }
-  );
-  return;
-}
-   } else if (request.purpose === "short_stay_deposit") {
+  } else if (request.purpose === "short_stay_deposit") {
   const reservations = db.collection("reservations");
 
   const reservation = await reservations.findOne(
@@ -7583,6 +7569,21 @@ if (request.purpose === "resale_receipt") {
     { session }
   );
 
+
+} else {
+  await requests.updateOne(
+    { _id: request._id, status: "verification_required" },
+    {
+      $set: {
+        status: "verification_error",
+        updatedAt: new Date()
+      }
+    },
+    { session }
+  );
+  return;
+}
+   
 } else {     
 
 // Mark the STK request completed only after the payment record is saved.
@@ -7602,13 +7603,13 @@ await requests.updateOne(
 
       });
     } catch (error) {
-      if (
+     if (
   error.code === 11000 &&
   (
     error.keyPattern?.mpesaReceiptNumber ||
     error.message?.includes("uniq_mpesa_receipt_number") ||
-    error.message?.includes("uniq_rent_mpesa_receipt_number")
-    error.message?.includes("uniq_reservation_mpesa_receipt_number") ||
+    error.message?.includes("uniq_rent_mpesa_receipt_number") ||
+    error.message?.includes("uniq_reservation_mpesa_receipt_number")
   )
 ) {
         // Unique receipt index protects against concurrent duplicate receipts.
