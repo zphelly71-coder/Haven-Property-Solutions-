@@ -5766,6 +5766,187 @@ const resaleReceived =
   }
 });
 
+
+app.get("/api/admin/reservations", requireAdmin, async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Database not connected"
+      });
+    }
+
+    const reservations = await db.collection("reservations")
+      .find(
+        {},
+        {
+          projection: {
+            propertyId: 1,
+            propertyTitle: 1,
+            propertyLocation: 1,
+            name: 1,
+            email: 1,
+            phone: 1,
+            checkInDate: 1,
+            checkOutDate: 1,
+            guestCount: 1,
+            specialRequests: 1,
+            status: 1,
+            paymentStatus: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            reviewedAt: 1,
+            reviewNote: 1
+          }
+        }
+      )
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .toArray();
+
+    return res.json({
+      status: "ok",
+      count: reservations.length,
+      reservations
+    });
+
+  } catch (error) {
+    console.error("Admin reservation list failed:", error);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Unable to load reservations"
+    });
+  }
+});
+
+
+app.patch(
+  "/api/admin/reservations/:id",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({
+          status: "error",
+          message: "Database not connected"
+        });
+      }
+
+      const { ObjectId } = require("mongodb");
+
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid reservation ID"
+        });
+      }
+
+      const reservationId = new ObjectId(req.params.id);
+      const action = String(req.body?.action || "").trim();
+      const reviewNote = String(req.body?.reviewNote || "").trim();
+
+      if (!["approve", "decline"].includes(action)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Choose approve or decline"
+        });
+      }
+
+      if (reviewNote.length > 500) {
+        return res.status(400).json({
+          status: "error",
+          message: "Review note must not exceed 500 characters"
+        });
+      }
+
+      const reservations = db.collection("reservations");
+
+      const reservation = await reservations.findOne({
+        _id: reservationId
+      });
+
+      if (!reservation) {
+        return res.status(404).json({
+          status: "error",
+          message: "Reservation not found"
+        });
+      }
+
+      if (reservation.status !== "pending") {
+        return res.status(409).json({
+          status: "error",
+          message: "This reservation has already been reviewed"
+        });
+      }
+
+      let newStatus = "declined";
+
+      if (action === "approve") {
+        const conflict = await reservations.findOne({
+          _id: { $ne: reservationId },
+          propertyId: reservation.propertyId,
+          status: {
+            $in: ["approved_awaiting_payment", "confirmed"]
+          },
+          checkInDate: { $lt: reservation.checkOutDate },
+          checkOutDate: { $gt: reservation.checkInDate }
+        });
+
+        if (conflict) {
+          return res.status(409).json({
+            status: "error",
+            message: "These dates overlap an approved or confirmed reservation. This request cannot be approved."
+          });
+        }
+
+        newStatus = "approved_awaiting_payment";
+      }
+
+      const updateResult = await reservations.updateOne(
+        {
+          _id: reservationId,
+          status: "pending"
+        },
+        {
+          $set: {
+            status: newStatus,
+            paymentStatus: "not_requested",
+            reviewNote,
+            reviewedAt: new Date(),
+            updatedAt: new Date()
+          }
+        }
+      );
+
+      if (updateResult.modifiedCount !== 1) {
+        return res.status(409).json({
+          status: "error",
+          message: "This reservation was already reviewed. Refresh the reservations list."
+        });
+      }
+
+      return res.json({
+        status: "ok",
+        reservationStatus: newStatus,
+        paymentStatus: "not_requested",
+        message: action === "approve"
+          ? "Reservation approved. Payment has not been requested."
+          : "Reservation declined successfully."
+      });
+
+    } catch (error) {
+      console.error("Admin reservation review failed:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Unable to review this reservation"
+      });
+    }
+  }
+);
+
+
 app.get("/api/admin/enquiries", requireAdmin, async (req, res) => {
   try {
     if (!db) {
