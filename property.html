@@ -477,9 +477,12 @@ const enquiryHeading = document.createElement("h2");
 enquiryHeading.textContent = "Enquire About This Property";
 
 const enquiryIntro = document.createElement("p");
-enquiryIntro.textContent =
-const enquiryForm = document.createElement("form");
 
+enquiryIntro.textContent = isShortStay
+  ? "Want to book this stay? Tell us your check-in date, check-out date and number of guests so we can confirm availability."
+  : "Send us your details and message about this property.";
+
+const enquiryForm = document.createElement("form");
 enquiryForm.innerHTML = `
   <label for="enquiry-name">Your name</label>
   <input id="enquiry-name" name="name"
