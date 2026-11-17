@@ -352,14 +352,24 @@ async function loadPropertyDetails() {
 addDetail("Rental arrangement", property.rentalArrangement);
 addDetail("Total rooms or units", property.totalRentalUnits);
 
+const hasUnitCounts =
+  property.totalRentalUnits !== null &&
+  property.totalRentalUnits !== undefined &&
+  property.totalRentalUnits !== "" &&
+  property.availableRentalUnits !== null &&
+  property.availableRentalUnits !== undefined &&
+  property.availableRentalUnits !== "";
+
 const totalUnits = Number(property.totalRentalUnits);
 const availableUnits = Number(property.availableRentalUnits);
 
 if (
-  Number.isFinite(totalUnits) &&
-  Number.isFinite(availableUnits) &&
+  hasUnitCounts &&
+  Number.isInteger(totalUnits) &&
+  Number.isInteger(availableUnits) &&
   totalUnits >= 0 &&
-  availableUnits >= 0
+  availableUnits >= 0 &&
+  availableUnits <= totalUnits
 ) {
   addDetail(
     "Available rooms or units",
@@ -371,12 +381,16 @@ if (
 
   const status = document.createElement("strong");
 
-  if (availableUnits === 0) {
-    status.textContent = "Fully occupied";
+  if (totalUnits === 0) {
+    status.textContent = "Availability not yet provided";
+  } else if (availableUnits === 0) {
+    status.textContent =
+      "Fully occupied — enquire about upcoming vacancies.";
   } else if (availableUnits === totalUnits) {
-    status.textContent = "All units available";
+    status.textContent = "All units currently available";
   } else {
-    status.textContent = "Units available for rent";
+    status.textContent =
+      availableUnits + " unit(s) currently available — enquire to arrange a viewing.";
   }
 
   availability.appendChild(status);
@@ -464,8 +478,6 @@ enquiryHeading.textContent = "Enquire About This Property";
 
 const enquiryIntro = document.createElement("p");
 enquiryIntro.textContent =
-  "Send us your details and message about this property.";
-
 const enquiryForm = document.createElement("form");
 
 enquiryForm.innerHTML = `
@@ -489,7 +501,12 @@ enquiryForm.innerHTML = `
     Send Enquiry
   </button>
 `;
+const messageField = enquiryForm.elements.namedItem("message");
 
+if (isShortStay) {
+  messageField.placeholder =
+    "Enter your check-in date, check-out date and number of guests here.";
+}
 enquiryForm.querySelectorAll("input, textarea").forEach(field => {
   field.style.width = "100%";
   field.style.padding = "12px";
