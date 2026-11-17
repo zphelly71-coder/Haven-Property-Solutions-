@@ -2124,6 +2124,151 @@ status.style.marginBottom = "12px";
   }
 }
 
+  async function loadReservations() {
+  const list = $("reservationList");
+  const count = $("reservationCount");
+
+  list.textContent = "Loading reservations...";
+  count.textContent = "…";
+
+  try {
+    const result = await api("/api/admin/reservations");
+    const reservations = Array.isArray(result.reservations)
+      ? result.reservations
+      : [];
+
+    count.textContent = reservations.length.toLocaleString();
+    list.replaceChildren();
+
+    if (reservations.length === 0) {
+      list.textContent = "No reservation requests received yet.";
+      return;
+    }
+
+    for (const reservation of reservations) {
+      const card = document.createElement("article");
+      card.className = "property";
+
+      const heading = document.createElement("h3");
+      heading.textContent =
+        reservation.propertyTitle || "Short-stay reservation";
+
+      const details = document.createElement("div");
+
+      const fields = [
+        ["Location", reservation.propertyLocation],
+        ["Customer", reservation.name],
+        ["Email", reservation.email],
+        ["Phone", reservation.phone],
+        ["Check-in", reservation.checkInDate],
+        ["Check-out", reservation.checkOutDate],
+        ["Guests", reservation.guestCount],
+        ["Special requests", reservation.specialRequests],
+        ["Reservation status", reservation.status],
+        ["Payment status", reservation.paymentStatus],
+        ["Received", reservation.createdAt
+          ? new Date(reservation.createdAt).toLocaleString()
+          : "Not available"],
+        ["Review note", reservation.reviewNote]
+      ];
+
+      for (const [label, value] of fields) {
+        if (value === undefined || value === null || value === "") {
+          continue;
+        }
+
+        const paragraph = document.createElement("p");
+        paragraph.textContent = label + ": " + value;
+        paragraph.style.whiteSpace = "pre-wrap";
+        details.appendChild(paragraph);
+      }
+
+      card.append(heading, details);
+
+      if (reservation.status === "pending") {
+        const actions = document.createElement("div");
+        actions.style.display = "flex";
+        actions.style.flexWrap = "wrap";
+        actions.style.gap = "8px";
+        actions.style.marginTop = "12px";
+
+        const approveButton = document.createElement("button");
+        approveButton.type = "button";
+        approveButton.textContent = "Approve reservation";
+
+        approveButton.addEventListener("click", async () => {
+          if (!window.confirm(
+            "Approve this reservation? This will not request payment."
+          )) return;
+
+          approveButton.disabled = true;
+
+          try {
+            await api(
+              "/api/admin/reservations/" +
+                encodeURIComponent(reservation._id),
+              {
+                method: "PATCH",
+                body: JSON.stringify({ action: "approve" })
+              }
+            );
+
+            message("Reservation approved. Payment has not been requested.");
+            await loadReservations();
+          } catch (error) {
+            message(error.message);
+            approveButton.disabled = false;
+          }
+        });
+
+        const declineButton = document.createElement("button");
+        declineButton.type = "button";
+        declineButton.className = "secondary";
+        declineButton.textContent = "Decline reservation";
+
+        declineButton.addEventListener("click", async () => {
+          const reviewNote = window.prompt(
+            "Enter an optional reason for declining this reservation:"
+          );
+
+          if (reviewNote === null) return;
+
+          declineButton.disabled = true;
+
+          try {
+            await api(
+              "/api/admin/reservations/" +
+                encodeURIComponent(reservation._id),
+              {
+                method: "PATCH",
+                body: JSON.stringify({
+                  action: "decline",
+                  reviewNote
+                })
+              }
+            );
+
+            message("Reservation declined successfully.");
+            await loadReservations();
+          } catch (error) {
+            message(error.message);
+            declineButton.disabled = false;
+          }
+        });
+
+        actions.append(approveButton, declineButton);
+        card.appendChild(actions);
+      }
+
+      list.appendChild(card);
+    }
+  } catch (error) {
+    count.textContent = "—";
+    list.textContent = "Could not load reservations.";
+    message(error.message);
+  }
+}
+
 function beginEdit(property) {
   editingId = property._id;
   $("propertyId").value = editingId;
