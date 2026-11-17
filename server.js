@@ -6003,6 +6003,246 @@ newStatus = "approved_awaiting_payment";
   }
 );
 
+app.post(
+  "/api/admin/reservations/:id/request-deposit",
+  requireAdmin,
+  async (req, res) => {
+    let pendingId = null;
+
+    try {
+      if (!db) {
+        return res.status(503).json({
+          status: "error",
+          message: "Database not connected"
+        });
+      }
+
+      if (MPESA_ENVIRONMENT !== "sandbox") {
+        return res.status(400).json({
+          status: "error",
+          message: "Short-stay deposit testing is restricted to the M-Pesa sandbox"
+        });
+      }
+
+      const { ObjectId } = require("mongodb");
+
+      if (!ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid reservation ID"
+        });
+      }
+
+      const reservationId = new ObjectId(req.params.id);
+      const reservations = db.collection("reservations");
+
+      const reservation = await reservations.findOne({
+        _id: reservationId
+      });
+
+      if (!reservation) {
+        return res.status(404).json({
+          status: "error",
+          message: "Reservation not found"
+        });
+      }
+
+      if (
+        reservation.status !== "approved_awaiting_payment" ||
+        reservation.paymentStatus !== "awaiting_deposit"
+      ) {
+        return res.status(409).json({
+          status: "error",
+          message: "This reservation is not awaiting a deposit"
+        });
+      }
+
+      const depositAmount = Number(reservation.depositAmount);
+
+      if (
+        !Number.isSafeInteger(depositAmount) ||
+        depositAmount < 1
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid reservation deposit amount"
+        });
+      }
+
+      const normalizedPhone = normalizeKenyanPhone(
+        reservation.phone || ""
+      );
+
+      if (!normalizedPhone) {
+        return res.status(400).json({
+          status: "error",
+          message: "The reservation does not have a valid Kenyan phone number"
+        });
+      }
+
+      const phoneNumber = normalizedPhone.replace(/^\+/, "");
+
+      const requests = db.collection("mpesa_stk_requests");
+
+      const existingRequest = await requests.findOne({
+        reservationId,
+        purpose: "short_stay_deposit",
+        status: {
+          $in: [
+            "initiating",
+            "pending",
+            "verification_required",
+            "verification_error"
+          ]
+        }
+      });
+
+      if (existingRequest) {
+        return res.status(409).json({
+          status: "error",
+          message: "An existing deposit payment request is still being processed",
+          requestStatus: existingRequest.status
+        });
+      }
+
+      const saved = await requests.insertOne({
+        reservationId,
+        propertyId: reservation.propertyId,
+        purpose: "short_stay_deposit",
+        direction: "received",
+        amount: depositAmount,
+        phoneNumber,
+        status: "initiating",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      pendingId = saved.insertedId;
+
+      const stk = await initiateMpesaStkPush({
+        phoneNumber,
+        amount: depositAmount,
+        accountReference: `HPSD${String(pendingId).slice(-8)}`
+      });
+
+      await requests.updateOne(
+        {
+          _id: pendingId,
+          status: "initiating"
+        },
+        {
+          $set: {
+            status: "pending",
+            merchantRequestId: stk.MerchantRequestID,
+            checkoutRequestId: stk.CheckoutRequestID,
+            responseCode: stk.ResponseCode,
+            updatedAt: new Date()
+          }
+        }
+      );
+
+      await reservations.updateOne(
+        {
+          _id: reservationId,
+          status: "approved_awaiting_payment",
+          paymentStatus: "awaiting_deposit"
+        },
+        {
+          $set: {
+            paymentStatus: "stk_pending",
+            depositStkRequestId: pendingId,
+            updatedAt: new Date()
+          }
+        }
+      );
+
+      const earlyEvent = await db
+        .collection("mpesa_callback_events")
+        .findOne({
+          checkoutRequestId: String(stk.CheckoutRequestID),
+          status: "unmatched"
+        });
+
+      if (earlyEvent?.callback?.Body?.stkCallback) {
+        const earlyCallback = earlyEvent.callback.Body.stkCallback;
+
+        if (
+          String(earlyCallback.CheckoutRequestID) ===
+          String(stk.CheckoutRequestID)
+        ) {
+          const attached = await requests.updateOne(
+            {
+              _id: pendingId,
+              checkoutRequestId: String(stk.CheckoutRequestID),
+              status: "pending"
+            },
+            {
+              $set: {
+                status: "verification_required",
+                callbackData: earlyCallback,
+                callbackReceivedAt:
+                  earlyEvent.receivedAt || new Date(),
+                updatedAt: new Date()
+              }
+            }
+          );
+
+          if (attached.modifiedCount === 1) {
+            await db
+              .collection("mpesa_callback_events")
+              .updateOne(
+                {
+                  _id: earlyEvent._id,
+                  status: "unmatched"
+                },
+                {
+                  $set: {
+                    status: "attached",
+                    attachedAt: new Date()
+                  }
+                }
+              );
+          }
+        }
+      }
+
+      return res.status(202).json({
+        status: "ok",
+        message: "Deposit STK Push accepted; awaiting payment result",
+        requestId: pendingId,
+        checkoutRequestId: stk.CheckoutRequestID
+      });
+
+    } catch (error) {
+      console.error(
+        "Reservation deposit STK initiation failed:",
+        error.message
+      );
+
+      if (pendingId && db) {
+        await db.collection("mpesa_stk_requests").updateOne(
+          {
+            _id: pendingId,
+            status: "initiating"
+          },
+          {
+            $set: {
+              status: "initiation_error",
+              errorMessage: error.message,
+              updatedAt: new Date()
+            }
+          }
+        );
+      }
+
+      return res.status(502).json({
+        status: "error",
+        message: "Unable to initiate the reservation deposit payment"
+      });
+    }
+  }
+);
+
 
 app.get("/api/admin/enquiries", requireAdmin, async (req, res) => {
   try {
@@ -7003,7 +7243,7 @@ app.post("/api/mpesa/callback", async (req, res) => {
         if (!request) return;
          
 if (
-  !["resale_receipt", "tenant_rent"].includes(request.purpose) ||
+ !["resale_receipt", "tenant_rent", "short_stay_deposit"].includes(request.purpose) ||
   request.direction !== "received" ||
   request.amount !== callbackAmount ||
   request.phoneNumber !== callbackPhone ||
@@ -7035,6 +7275,7 @@ if (
 // Check both payment collections to prevent reuse of a receipt.
 const financialPayments = db.collection("financial_payments");
 const rentPayments = db.collection("rentPayments");
+        const reservationPayments = db.collection("reservationPayments");
 
 const duplicateFinancial = await financialPayments.findOne(
   { mpesaReceiptNumber: receipt },
@@ -7045,8 +7286,12 @@ const duplicateRent = await rentPayments.findOne(
   { mpesaReceiptNumber: receipt },
   { session }
 );
+      const duplicateReservation = await reservationPayments.findOne(
+  { mpesaReceiptNumber: receipt },
+  { session }
+);  
 
-if (duplicateFinancial || duplicateRent) {
+if (duplicateFinancial || duplicateRent || duplicateReservation) {
   await requests.updateOne(
     { _id: request._id, status: "verification_required" },
     {
@@ -7264,6 +7509,81 @@ if (request.purpose === "resale_receipt") {
   );
   return;
 }
+   } else if (request.purpose === "short_stay_deposit") {
+  const reservations = db.collection("reservations");
+
+  const reservation = await reservations.findOne(
+    {
+      _id: request.reservationId
+    },
+    { session }
+  );
+
+  if (
+    !reservation ||
+    reservation.status !== "approved_awaiting_payment" ||
+    !["awaiting_deposit", "stk_pending"].includes(
+      reservation.paymentStatus
+    ) ||
+    Number(reservation.depositAmount) !== request.amount
+  ) {
+    await requests.updateOne(
+      {
+        _id: request._id,
+        status: "verification_required"
+      },
+      {
+        $set: {
+          status: "verification_error",
+          updatedAt: new Date()
+        }
+      },
+      { session }
+    );
+    return;
+  }
+
+  const reservationUpdate = await reservations.updateOne(
+    {
+      _id: reservation._id,
+      status: "approved_awaiting_payment",
+      paymentStatus: reservation.paymentStatus,
+      depositAmount: request.amount
+    },
+    {
+      $set: {
+        status: "confirmed",
+        paymentStatus: "partially_paid",
+        depositPaidAmount: request.amount,
+        depositMpesaReceiptNumber: receipt,
+        depositPaidAt: paymentDate,
+        updatedAt: new Date()
+      }
+    },
+    { session }
+  );
+
+  if (!reservationUpdate.matchedCount) {
+    throw new Error("RESERVATION_DEPOSIT_UPDATE_CONFLICT");
+  }
+
+  await reservationPayments.insertOne(
+    {
+      reservationId: reservation._id,
+      propertyId: reservation.propertyId,
+      amount: request.amount,
+      purpose: "short_stay_deposit",
+      paymentMethod: "mpesa",
+      paymentDate,
+      mpesaReceiptNumber: receipt,
+      mpesaCheckoutRequestId: checkoutId,
+      phoneNumber: request.phoneNumber,
+      createdAt: new Date()
+    },
+    { session }
+  );
+
+} else {     
 
 // Mark the STK request completed only after the payment record is saved.
 await requests.updateOne(
@@ -7288,6 +7608,7 @@ await requests.updateOne(
     error.keyPattern?.mpesaReceiptNumber ||
     error.message?.includes("uniq_mpesa_receipt_number") ||
     error.message?.includes("uniq_rent_mpesa_receipt_number")
+    error.message?.includes("uniq_reservation_mpesa_receipt_number") ||
   )
 ) {
         // Unique receipt index protects against concurrent duplicate receipts.
@@ -7596,7 +7917,15 @@ await db.collection("rentPayments").createIndex(
     name: "uniq_rent_mpesa_receipt_number"
   }
 );
-
+  
+await db.collection("reservationPayments").createIndex(
+  { mpesaReceiptNumber: 1 },
+  {
+    unique: true,
+    sparse: true,
+    name: "uniq_reservation_mpesa_receipt_number"
+  }
+);
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Haven API listening on port ${PORT}`);
