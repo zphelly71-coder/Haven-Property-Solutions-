@@ -348,9 +348,40 @@ async function loadPropertyDetails() {
       addDetail("Check-in information", property.checkInInfo);
     } else if (isRental) {
       // Rental inventory only.
-      addDetail("Rental arrangement", property.rentalArrangement);
-      addDetail("Total rooms or units", property.totalRentalUnits);
-      addDetail("Available rooms or units", property.availableRentalUnits);
+      // Rental inventory and availability
+addDetail("Rental arrangement", property.rentalArrangement);
+addDetail("Total rooms or units", property.totalRentalUnits);
+
+const totalUnits = Number(property.totalRentalUnits);
+const availableUnits = Number(property.availableRentalUnits);
+
+if (
+  Number.isFinite(totalUnits) &&
+  Number.isFinite(availableUnits) &&
+  totalUnits >= 0 &&
+  availableUnits >= 0
+) {
+  addDetail(
+    "Available rooms or units",
+    availableUnits + " of " + totalUnits
+  );
+
+  const availability = document.createElement("div");
+  availability.className = "detail-row";
+
+  const status = document.createElement("strong");
+
+  if (availableUnits === 0) {
+    status.textContent = "Fully occupied";
+  } else if (availableUnits === totalUnits) {
+    status.textContent = "All units available";
+  } else {
+    status.textContent = "Units available for rent";
+  }
+
+  availability.appendChild(status);
+  content.appendChild(availability);
+}
     }
 
 
