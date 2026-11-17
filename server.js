@@ -4889,6 +4889,202 @@ if (notificationUrl && notificationSecret) {
   }
 });
 
+
+app.post("/api/reservations", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({
+        status: "error",
+        message: "Database not connected"
+      });
+    }
+
+    const body = req.body || {};
+    const { ObjectId } = require("mongodb");
+
+    const propertyId = String(body.propertyId || "").trim();
+    const name = String(body.name || "").trim();
+    const email = String(body.email || "").trim().toLowerCase();
+    const phone = String(body.phone || "").trim();
+    const checkInDate = String(body.checkInDate || "").trim();
+    const checkOutDate = String(body.checkOutDate || "").trim();
+    const guestCount = Number(body.guestCount);
+    const specialRequests = String(body.specialRequests || "").trim();
+
+    if (!ObjectId.isValid(propertyId)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid property selection"
+      });
+    }
+
+    if (!name || name.length > 100) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter your name (maximum 100 characters)"
+      });
+    }
+
+    if (!email && !phone) {
+      return res.status(400).json({
+        status: "error",
+        message: "Provide an email address or phone number"
+      });
+    }
+
+    if (
+      email.length > 254 ||
+      (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter a valid email address"
+      });
+    }
+
+    if (
+      phone.length > 30 ||
+      (phone && !/^[+()\d\s.-]{6,30}$/.test(phone))
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter a valid phone number"
+      });
+    }
+
+    const validDate = value => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+      const date = new Date(value + "T00:00:00Z");
+
+      return !Number.isNaN(date.getTime()) &&
+        date.toISOString().slice(0, 10) === value;
+    };
+
+    if (
+      !validDate(checkInDate) ||
+      !validDate(checkOutDate) ||
+      checkOutDate <= checkInDate
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter valid check-in and check-out dates"
+      });
+    }
+
+    const todayInKenya = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Africa/Nairobi"
+    }).format(new Date());
+
+    if (checkInDate < todayInKenya) {
+      return res.status(400).json({
+        status: "error",
+        message: "Check-in date cannot be in the past"
+      });
+    }
+
+    if (
+      !Number.isInteger(guestCount) ||
+      guestCount < 1 ||
+      guestCount > 50
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Enter a valid number of guests"
+      });
+    }
+
+    if (specialRequests.length > 1000) {
+      return res.status(400).json({
+        status: "error",
+        message: "Special requests must not exceed 1000 characters"
+      });
+    }
+
+    const property = await db.collection("properties").findOne({
+      _id: new ObjectId(propertyId),
+      status: "published"
+    });
+
+    if (
+      !property ||
+      String(property.listingPurpose || "").toLowerCase() !== "short-stay"
+    ) {
+      return res.status(404).json({
+        status: "error",
+        message: "Short-stay property not found or unavailable"
+      });
+    }
+
+    const capacity = Number(
+      property.guestCapacity || property.maxGuests
+    );
+
+    if (
+      Number.isFinite(capacity) &&
+      capacity > 0 &&
+      guestCount > capacity
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Guest count exceeds this property's capacity"
+      });
+    }
+
+    const conflictingReservation =
+      await db.collection("reservations").findOne({
+        propertyId: property._id,
+        status: {
+          $in: ["approved_awaiting_payment", "confirmed"]
+        },
+        checkInDate: { $lt: checkOutDate },
+        checkOutDate: { $gt: checkInDate }
+      });
+
+    if (conflictingReservation) {
+      return res.status(409).json({
+        status: "error",
+        message: "These dates are already reserved. Please choose other dates."
+      });
+    }
+
+    const reservation = {
+      propertyId: property._id,
+      propertyTitle: property.title || "Short-stay property",
+      propertyLocation: property.location || "",
+      name,
+      email,
+      phone,
+      checkInDate,
+      checkOutDate,
+      guestCount,
+      specialRequests,
+      status: "pending",
+      paymentStatus: "not_requested",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const result = await db.collection("reservations")
+      .insertOne(reservation);
+
+    return res.status(201).json({
+      status: "ok",
+      reservationId: result.insertedId,
+      reservationStatus: "pending",
+      message: "Your reservation request has been submitted for review. No payment is required yet."
+    });
+
+  } catch (error) {
+    console.error("Reservation request failed:", error.message);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Unable to submit your reservation request. Please try again."
+    });
+  }
+});
+
 app.post("/api/contact", async (req, res) => {
   try {
     if (!db) {
