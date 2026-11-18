@@ -745,7 +745,7 @@ if (!isLand && property.bedrooms != null) {
   });
 }
 
-if (!isLand && property.bathrooms != null) {
+if (!isLand && !isShortStay && property.bathrooms != null) {
   highlights.push({
     label: "Bathrooms",
     value: property.bathrooms
