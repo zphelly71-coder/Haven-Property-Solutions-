@@ -715,36 +715,7 @@ async function loadPropertyDetails() {
   content.appendChild(mapSection);
 }
     addDetail("Listing type", property.listingPurpose);
-   // Display property description in a dedicated section
-if (property.description) {
-  const descriptionSection = document.createElement("section");
-  descriptionSection.className = "description-section";
-
-  const descriptionHeading = document.createElement("h2");
-  descriptionHeading.textContent = "About This Property";
-
-  const descriptionText = document.createElement("p");
-  descriptionText.className = "description-text";
-  descriptionText.textContent = property.description;
-
-  descriptionSection.append(
-    descriptionHeading,
-    descriptionText
-  );
-
-  content.appendChild(descriptionSection);
-}
-   
-    const propertyType = String(property.propertyType || "").toLowerCase();
-    const listingPurpose = String(property.listingPurpose || "").toLowerCase();
-
-    const isLand = propertyType.includes("land") ||
-      propertyType.includes("plot");
-
-    const isRental = listingPurpose === "rent" ||
-      listingPurpose === "lease";
-
-    const isShortStay = listingPurpose === "short-stay";
+   addDetail("Description", property.description);
     // Build concise property highlights
 const highlights = [];
 
