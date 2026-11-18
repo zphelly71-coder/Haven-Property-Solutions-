@@ -386,23 +386,33 @@ form button {
       background-color: #2980b9;
     }
 
-    .properties {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-around;
-    }
+   
+/* Haven premium property catalogue */
+.properties {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 26px;
+  align-items: stretch;
+  margin: 28px 0;
+}
 
-    
 .property {
-  margin: 20px auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 18px;
-  background-color: #ffffff;
-  border: 1px solid #e4d8bd;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #e5d9c2;
   border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(20, 43, 70, 0.10);
-  transition: box-shadow 0.2s ease;
-  max-width: 520px;
+  box-shadow: 0 8px 24px rgba(20, 43, 70, 0.09);
   overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.property:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 32px rgba(20, 43, 70, 0.15);
 }
 
 .property img {
@@ -413,6 +423,38 @@ form button {
   border-radius: 11px;
   margin-bottom: 16px;
 }
+
+.property > h3 {
+  color: #142b46;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.4;
+  margin: 12px 0;
+}
+
+.property > p {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.property > a.button {
+  display: inline-block;
+  background: #142b46;
+  color: #ffffff;
+  border: 2px solid #c5a15b;
+  border-radius: 8px;
+  padding: 11px 18px;
+  font-weight: 800;
+  text-align: center;
+  transition: background 0.2s ease;
+}
+
+.property > a.button:hover {
+  background: #c5a15b;
+  color: #142b46;
+}
+
     
 .property-options {
     display: grid;
