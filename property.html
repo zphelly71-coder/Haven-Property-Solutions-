@@ -738,7 +738,7 @@ if (property.propertyType) {
   });
 }
 
-if (!isLand && property.bedrooms != null) {
+if (!isLand && !isShortStay && property.bedrooms != null) {
   highlights.push({
     label: "Bedrooms",
     value: property.bedrooms
