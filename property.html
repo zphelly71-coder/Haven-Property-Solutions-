@@ -715,8 +715,20 @@ async function loadPropertyDetails() {
   content.appendChild(mapSection);
 }
     addDetail("Listing type", property.listingPurpose);
-   addDetail("Description", property.description);
-    // Build concise property highlights
+  addDetail("Description", property.description);
+
+const propertyType = String(property.propertyType || "").toLowerCase();
+const listingPurpose = String(property.listingPurpose || "").toLowerCase();
+
+const isLand = propertyType.includes("land") ||
+  propertyType.includes("plot");
+
+const isRental = listingPurpose === "rent" ||
+  listingPurpose === "lease";
+
+const isShortStay = listingPurpose === "short-stay";
+
+// Build concise property highlights
 const highlights = [];
 
 if (property.propertyType) {
