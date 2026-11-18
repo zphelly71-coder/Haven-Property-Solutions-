@@ -409,6 +409,111 @@ header p {
     font-size: 13px;
   }
 }
+  /* Haven property highlights */
+.property-highlights {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 150px), 1fr)
+  );
+  gap: 14px;
+  margin: 24px 0 30px;
+}
+
+.highlight-card {
+  background: linear-gradient(145deg, #f8f6f1, #ffffff);
+  border: 1px solid #e5d9c2;
+  border-bottom: 3px solid #c5a15b;
+  border-radius: 12px;
+  padding: 17px;
+  min-height: 100px;
+}
+
+.highlight-label {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 7px;
+}
+
+.highlight-value {
+  display: block;
+  color: #142b46;
+  font-size: 19px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .property-highlights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .highlight-card {
+    padding: 13px;
+    min-height: 88px;
+  }
+
+  .highlight-value {
+    font-size: 16px;
+  }
+}
+  /* Haven amenities presentation */
+.amenities-section {
+  margin: 26px 0;
+  padding: 22px;
+  background: #f8f6f1;
+  border: 1px solid #e5d9c2;
+  border-radius: 14px;
+}
+
+.amenities-section h2 {
+  margin-top: 0;
+  color: #142b46;
+}
+
+.amenities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.amenity-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 15px;
+  background: #ffffff;
+  border: 1px solid #e5d9c2;
+  border-radius: 20px;
+  color: #203f60;
+  font-size: 13px;
+  font-weight: 700;
+}
+ /* Premium property description */
+.description-section {
+  margin: 28px 0;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e5d9c2;
+  border-left: 5px solid #c5a15b;
+  border-radius: 12px;
+}
+
+.description-section h2 {
+  margin-top: 0;
+}
+
+.description-text {
+  color: #526477;
+  font-size: 15px;
+  line-height: 1.9;
+  white-space: pre-line;
+} 
   </style>
 </head>
 
@@ -610,7 +715,25 @@ async function loadPropertyDetails() {
   content.appendChild(mapSection);
 }
     addDetail("Listing type", property.listingPurpose);
-    addDetail("Description", property.description);
+   // Display property description in a dedicated section
+if (property.description) {
+  const descriptionSection = document.createElement("section");
+  descriptionSection.className = "description-section";
+
+  const descriptionHeading = document.createElement("h2");
+  descriptionHeading.textContent = "About This Property";
+
+  const descriptionText = document.createElement("p");
+  descriptionText.className = "description-text";
+  descriptionText.textContent = property.description;
+
+  descriptionSection.append(
+    descriptionHeading,
+    descriptionText
+  );
+
+  content.appendChild(descriptionSection);
+}
    
     const propertyType = String(property.propertyType || "").toLowerCase();
     const listingPurpose = String(property.listingPurpose || "").toLowerCase();
@@ -622,13 +745,53 @@ async function loadPropertyDetails() {
       listingPurpose === "lease";
 
     const isShortStay = listingPurpose === "short-stay";
+    // Build concise property highlights
+const highlights = [];
 
-    // Bedrooms and bathrooms apply to buildings, not vacant land.
-    if (!isLand) {
-      addDetail("Bedrooms", property.bedrooms);
-      addDetail("Bathrooms", property.bathrooms);
-    }
+if (property.propertyType) {
+  highlights.push({
+    label: "Property type",
+    value: property.propertyType
+  });
+}
 
+if (!isLand && property.bedrooms != null) {
+  highlights.push({
+    label: "Bedrooms",
+    value: property.bedrooms
+  });
+}
+
+if (!isLand && property.bathrooms != null) {
+  highlights.push({
+    label: "Bathrooms",
+    value: property.bathrooms
+  });
+}
+
+if (highlights.length) {
+  const highlightsSection = document.createElement("section");
+  highlightsSection.className = "property-highlights";
+
+  highlights.forEach(item => {
+    const card = document.createElement("div");
+    card.className = "highlight-card";
+
+    const label = document.createElement("span");
+    label.className = "highlight-label";
+    label.textContent = item.label;
+
+    const value = document.createElement("span");
+    value.className = "highlight-value";
+    value.textContent = item.value;
+
+    card.append(label, value);
+    highlightsSection.appendChild(card);
+  });
+
+  content.appendChild(highlightsSection);
+}
+    
     // Show only land-specific details for land / plot listings.
     if (isLand) {
       addDetail("Land size", property.landSize);
@@ -645,7 +808,37 @@ async function loadPropertyDetails() {
       addDetail("Minimum nights", property.minimumNights);
       addDetail("Check-in", property.checkInTime);
       addDetail("Check-out", property.checkOutTime);
-      addDetail("Amenities", property.stayAmenities);
+      // Display short-stay amenities as individual labels
+if (property.stayAmenities) {
+  const amenitiesSection = document.createElement("section");
+  amenitiesSection.className = "amenities-section";
+
+  const amenitiesHeading = document.createElement("h2");
+  amenitiesHeading.textContent = "Property Amenities";
+
+  const amenitiesList = document.createElement("div");
+  amenitiesList.className = "amenities-list";
+
+  const amenities = Array.isArray(property.stayAmenities)
+    ? property.stayAmenities
+    : String(property.stayAmenities).split(",");
+
+  amenities.forEach(item => {
+    const amenity = String(item).trim();
+
+    if (amenity) {
+      const amenityTag = document.createElement("span");
+      amenityTag.className = "amenity-item";
+      amenityTag.textContent = amenity;
+      amenitiesList.appendChild(amenityTag);
+    }
+  });
+
+  if (amenitiesList.children.length) {
+    amenitiesSection.append(amenitiesHeading, amenitiesList);
+    content.appendChild(amenitiesSection);
+  }
+}
       addDetail("Check-in information", property.checkInInfo);
     } else if (isRental) {
       // Rental inventory only.
