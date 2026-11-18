@@ -640,10 +640,10 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
 
       <label for="filter-purpose">I'm looking to</label>
       <select id="filter-purpose">
-        <option value="short-stay" selected>Short Stay / Airbnb</option>
+        <option value="short-stay">Short Stay / Airbnb</option>
         <option value="rent">Rent a Property</option>
         <option value="sale">Buy a Property</option>
-        <option value="all">All Properties</option>
+       <option value="all" selected>All Properties</option>
       </select>
 
       <label for="filter-location">Location or neighbourhood</label>
@@ -752,7 +752,7 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
 <div class="properties" id="properties-list"></div>
 
 <script>
- let selectedPurpose = "short-stay";
+ let selectedPurpose = "all";
   let searchTerm = "";
   let propertySortOrder = "newest";
   let showingFavorites = false;
@@ -859,7 +859,17 @@ const purposeMatches =
     .toLowerCase()
     .includes(filterLocation);
 
-const price = Number(property.price);
+const isShortStay = [
+  "short-stay",
+  "short stay",
+  "airbnb"
+].includes(listingPurpose);
+
+const price = Number(
+  isShortStay && property.nightlyRate != null
+    ? property.nightlyRate
+    : property.price
+);
 
 const minPriceMatches =
   minPriceValue === "" ||
@@ -909,9 +919,9 @@ properties.sort((a, b) => {
     list.replaceChildren();
 
     if (!properties || properties.length === 0) {
-  status.textContent = selectedPurpose === "short-stay"
-    ? "No published Short Stay / Airbnb properties available yet."
-    : "No published properties available yet.";
+  status.textContent =
+    "No properties match your search. Please change your search filters or try another location, property type or budget.";
+
   return;
 }
 
@@ -1241,10 +1251,20 @@ document.querySelectorAll('.site-links a[data-purpose="sale"]')
   const propertySearchButton = document.getElementById("haven-search-button");
 
 if (propertySearchButton) {
-  propertySearchButton.addEventListener("click", () => {
+  propertySearchButton.addEventListener("click", async () => {
     const searchInput = document.getElementById("search-bar");
-    searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : "";
-    loadProperties();
+
+    searchTerm = searchInput
+      ? searchInput.value.trim().toLowerCase()
+      : "";
+
+    await loadProperties();
+
+    document.getElementById("properties-list")
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
   });
 }
   const favoritesFilterButton =
@@ -1307,8 +1327,8 @@ document.getElementById("clear-advanced-filters")
 
    const resetPurposeFilter = document.getElementById("filter-purpose");
 if (resetPurposeFilter) {
-  resetPurposeFilter.value = "short-stay";
-  selectedPurpose = "short-stay";
+  resetPurposeFilter.value = "all";
+selectedPurpose = "all";
 }
 
     const sortControl = document.getElementById("haven-sort");
