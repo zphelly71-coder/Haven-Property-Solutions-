@@ -3,6 +3,11 @@
 <head>
   <title>Haven Property Solutions</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
  <style>
  
 /* Premium Haven two-level header */
@@ -101,11 +106,59 @@
 
     body {
     font-family: Arial, sans-serif;
+     font-family: 'Manrope', Arial, sans-serif; 
     background-color: #f4f1ea;
     color: #1b2b42;
     margin: 0;
     padding: 0;
 }
+   
+/* Haven coastal luxury hero */
+.haven-hero {
+  min-height: 430px;
+  margin: 0 0 30px;
+  padding: 75px 30px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #ffffff;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(10, 32, 52, 0.65),
+      rgba(10, 32, 52, 0.20),
+      rgba(10, 32, 52, 0.55)
+    ),
+    url("brand/haven-coastal-hero.png") center 52% / cover no-repeat;
+  border-bottom: 4px solid #c5a15b;
+}
+
+.haven-hero-content {
+  max-width: 850px;
+}
+
+.haven-hero h1 {
+  background: none;
+  color: #ffffff;
+  font-size: clamp(36px, 5vw, 62px);
+  font-weight: 800;
+  line-height: 1.15;
+  padding: 0;
+  margin: 0 0 18px;
+  border: none;
+  box-shadow: none;
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.45);
+}
+
+.haven-hero p {
+  color: #ffffff;
+  font-size: clamp(16px, 2vw, 21px);
+  line-height: 1.7;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+}
+
     .container {
       max-width: 1200px;
       margin: 40px auto;
@@ -325,6 +378,19 @@ form button {
     max-width: 100%;
     white-space: normal;
   }
+    .haven-hero {
+    min-height: 330px;
+    padding: 55px 18px;
+    background-position: center;
+  }
+
+  .haven-hero h1 {
+    font-size: 34px;
+  }
+
+  .haven-hero p {
+    font-size: 15px;
+  }
 }
   </style>
 </head>
@@ -363,8 +429,19 @@ form button {
 
 </header>
 
-  <div class="container">
+  
+<section class="haven-hero">
+  <div class="haven-hero-content">
     <h1>Discover Exceptional Living.</h1>
+    <p>
+      Find your perfect home, discover exceptional investments
+      and experience beautiful coastal living with Haven Property Solutions.
+    </p>
+  </div>
+</section>
+
+<div class="container">
+
     <p id="api-status">Checking system connection...</p>
 
 <script>
