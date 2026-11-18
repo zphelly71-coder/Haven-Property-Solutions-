@@ -6,31 +6,146 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Property Details | Haven Property Solutions</title>
   <meta name="description" content="View property photos, prices, locations and full details at Haven Property Solutions.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  
+/* Final Haven property details styling */
+#property-content {
+  padding: 30px;
+}
+
+.gallery-main {
+  width: 100%;
+  height: 480px;
+  max-height: 560px;
+  object-fit: cover;
+  background: #142b46;
+  border-radius: 14px;
+}
+
+.thumbnails {
+  gap: 12px;
+  margin: 16px 0 25px;
+  padding: 5px;
+}
+
+.thumbnails img {
+  width: 100px;
+  height: 75px;
+  border-radius: 8px;
+}
+
+.price {
+  font-size: 28px;
+  font-weight: 800;
+  background: #f4f1ea;
+  border-left: 5px solid #c5a15b;
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+
+.detail-row {
+  padding: 13px 5px;
+  border-bottom: 1px solid #eadfc9;
+}
+
+.detail-row strong {
+  color: #142b46;
+}
+
+/* Mobile property details */
+@media (max-width: 600px) {
+  main {
+    margin: 10px auto;
+    padding: 10px;
+  }
+
+  #property-content {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .gallery-main {
+    height: 280px;
+    max-height: 350px;
+    object-fit: contain;
+  }
+
+  .thumbnails img {
+    width: 82px;
+    height: 62px;
+  }
+
+  .price {
+    font-size: 23px;
+    padding: 12px;
+  }
+
+  .button {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin: 10px 0;
+  }
+}
 
   <style>
     * {
       box-sizing: border-box;
     }
 
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f4f1ea;
-      color: #1b2b42;
-    }
+    
+body {
+  margin: 0;
+  font-family: 'Manrope', Arial, sans-serif;
+  background: #f4f1ea;
+  color: #203b59;
+  line-height: 1.65;
+}
 
-    header {
-      background: #142b46;
-      color: #e6c783;
-      padding: 20px;
-      border-bottom: 4px solid #c5a15b;
-    }
+h1, h2, h3 {
+  color: #142b46;
+  font-weight: 800;
+}
 
-    header a {
-      color: #e6c783;
-      text-decoration: none;
-      font-weight: bold;
-    }
+h1 {
+  font-size: clamp(26px, 4vw, 38px);
+  line-height: 1.25;
+  margin: 0 0 22px;
+}
+
+h2 {
+  font-size: 23px;
+  border-bottom: 2px solid #c5a15b;
+  padding-bottom: 9px;
+  margin-top: 28px;
+}
+
+
+   
+header {
+  background: linear-gradient(135deg, #142b46, #203f60);
+  color: #e6c783;
+  padding: 22px 5%;
+  border-bottom: 4px solid #c5a15b;
+  box-shadow: 0 5px 18px rgba(20, 43, 70, 0.15);
+}
+
+header a {
+  color: #e6c783;
+  text-decoration: none;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+header p {
+  color: #ffffff;
+  margin-bottom: 0;
+  font-size: 14px;
+}
+
 
     main {
       max-width: 1100px;
@@ -38,12 +153,108 @@
       padding: 20px;
     }
 
-    .panel {
-      background: #fff;
-      border-radius: 12px;
-      padding: 22px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    }
+   
+.panel {
+  background: #ffffff;
+  border: 1px solid #e5d9c2;
+  border-radius: 18px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(20, 43, 70, 0.09);
+}
+    
+/* Premium property details presentation */
+#property-content {
+  background: #ffffff;
+  border: 1px solid #e5d9c2;
+  border-top: 5px solid #c5a15b;
+  border-radius: 18px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(20, 43, 70, 0.09);
+}
+
+.gallery-main {
+  width: 100%;
+  height: 480px;
+  max-height: 560px;
+  object-fit: cover;
+  background: #142b46;
+  border-radius: 14px;
+  cursor: zoom-in;
+  box-shadow: 0 6px 18px rgba(20, 43, 70, 0.12);
+}
+
+.thumbnails {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  margin: 16px 0 25px;
+  padding: 5px;
+}
+
+.thumbnails img {
+  width: 100px;
+  height: 75px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 3px solid transparent;
+}
+
+.thumbnails img.active {
+  border-color: #c5a15b;
+}
+
+.price {
+  font-size: 28px;
+  font-weight: 800;
+  color: #142b46;
+  background: #f4f1ea;
+  border-left: 5px solid #c5a15b;
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+
+.detail-row {
+  padding: 13px 5px;
+  border-bottom: 1px solid #eadfc9;
+  line-height: 1.7;
+}
+
+.detail-row strong {
+  color: #142b46;
+}
+
+.button {
+  display: inline-block;
+  border: 2px solid #c5a15b;
+  border-radius: 9px;
+  padding: 12px 20px;
+  background: #142b46;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 800;
+  cursor: pointer;
+  margin: 7px 7px 7px 0;
+  transition: 0.2s ease;
+}
+
+.button:hover {
+  background: #c5a15b;
+  color: #142b46;
+}
+
+.button.gold {
+  background: #c5a15b;
+  color: #142b46;
+}
+
+.button.gold:hover {
+  background: #142b46;
+  color: #ffffff;
+}
+
+
 
     .gallery-main {
       width: 100%;
@@ -127,14 +338,96 @@
         padding: 14px;
       }
     }
+    /* Haven premium property page header */
+.property-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: linear-gradient(135deg, #142b46, #203f60);
+  padding: 16px 5%;
+  border-bottom: 4px solid #c5a15b;
+  box-shadow: 0 5px 18px rgba(20, 43, 70, 0.15);
+}
+
+.property-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #e6c783;
+  text-decoration: none;
+}
+
+.property-brand img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  background: #ffffff;
+  padding: 5px;
+  border-radius: 10px;
+}
+
+.property-brand strong {
+  display: block;
+  color: #e6c783;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.property-brand small {
+  display: block;
+  color: #ffffff;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  margin-top: 5px;
+}
+
+.property-header > p {
+  color: #ffffff;
+  font-size: 14px;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .property-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .property-brand img {
+    width: 54px;
+    height: 54px;
+  }
+
+  .property-brand strong {
+    font-size: 14px;
+  }
+
+  .property-brand small {
+    font-size: 9px;
+  }
+}
   </style>
 </head>
 
 <body>
-  <header>
-    <a href="./">← Haven Property Solutions</a>
-    <p>Property details</p>
-  </header>
+  <header class="property-header">
+  <a href="./" class="property-brand">
+    <img
+      src="brand/haven-icon-transparent.png"
+      alt="Haven Property Solutions logo"
+    >
+    <span>
+      <strong>HAVEN PROPERTY SOLUTIONS</strong>
+      <small>YOUR TRUSTED PROPERTY PARTNER</small>
+    </span>
+  </a>
+
+  <p>Property details</p>
+</header>
 
   <main>
     <div id="property-content" class="message">
