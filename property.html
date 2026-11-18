@@ -382,12 +382,47 @@ header p {
     margin: 10px auto;
     padding: 10px;
   }
+/* Back navigation button */
+.back-navigation {
+  display: inline-block;
+  padding: 11px 18px;
+  background: #ffffff;
+  color: #142b46;
+  border: 2px solid #c5a15b;
+  border-radius: 9px;
+  font-family: 'Manrope', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
 
+.back-navigation:hover {
+  background: #c5a15b;
+  color: #142b46;
+  transform: translateX(-3px);
+}
+
+@media (max-width: 600px) {
+  .back-navigation {
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+}
   </style>
 </head>
 
 <body>
-  <header class="property-header">
+ <header class="property-header">
+
+  <button
+    type="button"
+    id="backToPreviousPage"
+    class="back-navigation"
+  >
+    ← Back
+  </button>
+
   <a href="./" class="property-brand">
     <img
       src="brand/haven-icon-transparent.png"
@@ -400,8 +435,8 @@ header p {
   </a>
 
   <p>Property details</p>
-</header>
 
+</header>
   <main>
     <div id="property-content" class="message">
       Loading property details...
@@ -1058,7 +1093,18 @@ content.appendChild(enquirySection);
       "Unable to load property details. Please try again later.";
   }
 }
+// Return to the previous page, or Haven homepage if no history exists
+const backButton = document.getElementById("backToPreviousPage");
 
+if (backButton) {
+  backButton.addEventListener("click", () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = "./";
+    }
+  });
+}
 loadPropertyDetails();
 </script>
 </body>
