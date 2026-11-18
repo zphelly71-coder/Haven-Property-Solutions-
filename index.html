@@ -456,44 +456,83 @@ form button {
 }
 
     
+
+/* Haven premium property service cards */
 .property-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 18px;
-    margin: 28px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 22px;
+  margin: 28px 0 40px;
+  align-items: stretch;
 }
 
 .option-card {
-    display: block;
-    padding: 24px;
-    background: #142b46;
-    color: #ffffff;
-    border: 1px solid #c5a15b;
-    border-radius: 14px;
-    text-decoration: none;
-    box-shadow: 0 6px 18px rgba(20, 43, 70, 0.12);
+  display: flex;
+  flex-direction: column;
+  padding: 26px;
+  min-height: 240px;
+  box-sizing: border-box;
+  background: linear-gradient(145deg, #203f60, #142b46);
+  color: #ffffff;
+  border: 1px solid #c5a15b;
+  border-radius: 16px;
+  text-decoration: none;
+  box-shadow: 0 8px 22px rgba(20, 43, 70, 0.12);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+a.option-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(20, 43, 70, 0.2);
 }
 
 .option-card h3 {
-    color: #ffffff;
-    margin: 12px 0;
+  color: #e6c783;
+  font-size: 20px;
+  margin: 15px 0 10px;
 }
 
 .option-card p {
-    line-height: 1.6;
+  color: #f4f1ea;
+  line-height: 1.7;
+  font-size: 14px;
+  flex: 1;
 }
 
 .option-icon {
-    color: #c5a15b;
-    font-size: 30px;
+  color: #e6c783;
+  font-size: 36px;
+  font-weight: bold;
 }
 
 .option-link {
-    display: inline-block;
-    margin-top: 10px;
-    color: #e6c783;
-    font-weight: bold;
+  display: inline-block;
+  margin-top: 18px;
+  color: #e6c783;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
 }
+
+.option-coming-soon {
+  background: linear-gradient(145deg, #e9e3d7, #f7f4ed);
+  border: 1px dashed #c5a15b;
+  box-shadow: none;
+}
+
+.option-coming-soon h3 {
+  color: #142b46;
+}
+
+.option-coming-soon p {
+  color: #64748b;
+}
+
+.option-coming-soon .option-icon,
+.option-coming-soon .option-link {
+  color: #a17b3d;
+}
+
 @media (max-width: 600px) {
   .container {
     margin: 12px auto;
@@ -752,21 +791,48 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
 </section>
 
     
-<div class="property-options">
-    <a href="#properties-list" class="option-card">
-        <span class="option-icon">⌂</span>
-        <h3>Rent a Property</h3>
-        <p>Discover comfortable apartments and beautiful homes for rent across Kenya. Find a space that suits your lifestyle and budget.</p>
-        <span class="option-link">EXPLORE RENTALS →</span>
-    </a>
 
-    <a href="#properties-list" class="option-card">
-        <span class="option-icon">◆</span>
-        <h3>Buy a Property</h3>
-        <p>Explore quality homes and valuable property investments across Kenya. Discover a property where your future can grow.</p>
-        <span class="option-link">EXPLORE PROPERTIES FOR SALE →</span>
-    </a>
+<h2>Explore Our Property Services</h2>
+<p>Discover the right property solution for your lifestyle, investment or accommodation needs.</p>
+
+<div class="property-options">
+
+  <a href="#properties-list"
+     class="option-card"
+     data-purpose="rent">
+    <span class="option-icon">⌂</span>
+    <h3>Rent a Property</h3>
+    <p>Discover comfortable apartments and beautiful homes for rent across Kenya.</p>
+    <span class="option-link">EXPLORE RENTALS →</span>
+  </a>
+
+  <a href="#properties-list"
+     class="option-card"
+     data-purpose="sale">
+    <span class="option-icon">◆</span>
+    <h3>Buy a Property</h3>
+    <p>Explore quality homes, land and valuable property investments.</p>
+    <span class="option-link">EXPLORE PROPERTIES FOR SALE →</span>
+  </a>
+
+  <a href="#properties-list"
+     class="option-card"
+     data-purpose="short-stay">
+    <span class="option-icon">✦</span>
+    <h3>Short Stay / Airbnb</h3>
+    <p>Discover furnished accommodation for holidays, business trips and short visits.</p>
+    <span class="option-link">EXPLORE SHORT STAYS →</span>
+  </a>
+
+  <div class="option-card option-coming-soon">
+    <span class="option-icon">⌂</span>
+    <h3>Guest Rooms & Hotels</h3>
+    <p>Find convenient guest rooms and hotel accommodation through our upcoming booking service.</p>
+    <span class="option-link">COMING SOON</span>
+  </div>
+
 </div>
+
 
 
     <h2>About Us</h2>
@@ -1285,6 +1351,48 @@ document.querySelectorAll('.site-links a[data-purpose="sale"]')
       loadProperties();
     });
   });
+  
+// Connect Haven property service cards to property search
+document.querySelectorAll(
+  '.property-options a.option-card[data-purpose]'
+).forEach(card => {
+  card.addEventListener("click", async event => {
+    event.preventDefault();
+
+    selectedPurpose = card.dataset.purpose;
+    document.getElementById("filter-purpose").value = selectedPurpose;
+
+    // Clear previous search filters
+    document.getElementById("search-bar").value = "";
+    document.getElementById("filter-location").value = "";
+    document.getElementById("filter-min-price").value = "";
+    document.getElementById("filter-max-price").value = "";
+    document.getElementById("filter-bedrooms").value = "";
+    document.getElementById("filter-property-type").value = "";
+    document.getElementById("haven-sort").value = "newest";
+
+    const filterDropdown =
+      document.querySelector(".haven-filter-dropdown");
+
+    if (filterDropdown) {
+      filterDropdown.open = false;
+    }
+
+    searchTerm = "";
+    propertySortOrder = "newest";
+    showingFavorites = false;
+    updateFavoritesFilterButton();
+
+    await loadProperties();
+
+    document.getElementById("properties-list")
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+  });
+});
+
   document.getElementById("search-bar")
   .addEventListener("input", event => {
     searchTerm = event.target.value.trim().toLowerCase();
