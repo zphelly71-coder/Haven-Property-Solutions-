@@ -246,6 +246,72 @@
   background: #c5a15b;
   color: #ffffff;
 }
+   
+/* Expandable Haven advanced filters */
+.haven-filter-dropdown {
+  margin-top: 18px;
+  border: 1px solid #dfcfad;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.haven-filter-dropdown summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  color: #142b46;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.haven-filter-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+
+.haven-filter-dropdown summary:hover {
+  background: #f4f1ea;
+}
+
+.filter-summary-icon {
+  color: #c5a15b;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.haven-filter-dropdown[open] .filter-summary-icon {
+  transform: rotate(45deg);
+}
+
+.haven-filter-content {
+  padding: 5px 18px 20px;
+  border-top: 1px solid #eadfc9;
+}
+
+.haven-filter-content label {
+  display: block;
+  margin: 16px 0 7px;
+  color: #203b59;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.haven-filter-content input,
+.haven-filter-content select {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 13px;
+  border: 1px solid #d8c7a2;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #142b46;
+  font-family: inherit;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
 
 
     .container {
@@ -553,71 +619,84 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
   });
   </script><p>Explore exceptional homes for rent and premium properties for sale with Haven Property Solutions. From finding your next home to making a smart property investment, we help you discover a place that fits your lifestyle and ambitions.</p>
    
+
 <section id="advanced-filters" class="haven-search-panel"
          aria-label="Search properties">
+
   <h2>Find Your Ideal Property</h2>
   <p>Buy, rent or book a short stay with Haven Property Solutions.</p>
 
-  <label for="search-bar">Keywords</label>
+  <label for="search-bar">Search properties</label>
   <input type="text" id="search-bar"
          placeholder="Search by property name or description">
 
-  <label for="filter-purpose">I'm looking to</label>
-  <select id="filter-purpose">
-    <option value="short-stay" selected>Short Stay / Airbnb</option>
-    <option value="rent">Rent a Property</option>
-    <option value="sale">Buy a Property</option>
-    <option value="all">All Properties</option>
-  </select>
+  <details class="haven-filter-dropdown">
+    <summary>
+      <span>Advanced Filters</span>
+      <span class="filter-summary-icon">＋</span>
+    </summary>
 
-  <label for="filter-location">Location or neighbourhood</label>
-  <input type="text" id="filter-location"
-         placeholder="e.g. Nyali, Bamburi, Mikindani">
+    <div class="haven-filter-content">
 
-  <label for="filter-property-type">Property type</label>
-  <select id="filter-property-type">
-    <option value="">All property types</option>
-    <option value="Apartment">Apartment</option>
-    <option value="Studio">Studio</option>
-    <option value="Bedsitter">Bedsitter</option>
-    <option value="House">House</option>
-    <option value="Bungalow">Bungalow</option>
-    <option value="Maisonette">Maisonette</option>
-    <option value="Townhouse">Townhouse</option>
-    <option value="Villa">Villa</option>
-    <option value="Land / Plot">Land / Plot</option>
-    <option value="Commercial Building">Commercial Building</option>
-    <option value="Office">Office</option>
-    <option value="Shop">Shop</option>
-    <option value="Warehouse">Warehouse</option>
-    <option value="Farm">Farm</option>
-  </select>
+      <label for="filter-purpose">I'm looking to</label>
+      <select id="filter-purpose">
+        <option value="short-stay" selected>Short Stay / Airbnb</option>
+        <option value="rent">Rent a Property</option>
+        <option value="sale">Buy a Property</option>
+        <option value="all">All Properties</option>
+      </select>
 
-  <label for="filter-min-price">Minimum price (KSh)</label>
-  <input type="number" id="filter-min-price" min="0"
-         placeholder="Minimum budget">
+      <label for="filter-location">Location or neighbourhood</label>
+      <input type="text" id="filter-location"
+             placeholder="e.g. Nyali, Bamburi, Mikindani">
 
-  <label for="filter-max-price">Maximum price (KSh)</label>
-  <input type="number" id="filter-max-price" min="0"
-         placeholder="Maximum budget">
+      <label for="filter-property-type">Property type</label>
+      <select id="filter-property-type">
+        <option value="">All property types</option>
+        <option value="Apartment">Apartment</option>
+        <option value="Studio">Studio</option>
+        <option value="Bedsitter">Bedsitter</option>
+        <option value="House">House</option>
+        <option value="Bungalow">Bungalow</option>
+        <option value="Maisonette">Maisonette</option>
+        <option value="Townhouse">Townhouse</option>
+        <option value="Villa">Villa</option>
+        <option value="Land / Plot">Land / Plot</option>
+        <option value="Commercial Building">Commercial Building</option>
+        <option value="Office">Office</option>
+        <option value="Shop">Shop</option>
+        <option value="Warehouse">Warehouse</option>
+        <option value="Farm">Farm</option>
+      </select>
 
-  <label for="filter-bedrooms">Minimum bedrooms</label>
-  <select id="filter-bedrooms">
-    <option value="">Any number</option>
-    <option value="0">Studio / Bedsitter</option>
-    <option value="1">1 or more</option>
-    <option value="2">2 or more</option>
-    <option value="3">3 or more</option>
-    <option value="4">4 or more</option>
-    <option value="5">5 or more</option>
-  </select>
+      <label for="filter-min-price">Minimum price (KSh)</label>
+      <input type="number" id="filter-min-price" min="0"
+             placeholder="Minimum budget">
 
-  <label for="haven-sort">Sort results</label>
-  <select id="haven-sort">
-    <option value="newest">Newest first</option>
-    <option value="price-low">Lowest price first</option>
-    <option value="price-high">Highest price first</option>
-  </select>
+      <label for="filter-max-price">Maximum price (KSh)</label>
+      <input type="number" id="filter-max-price" min="0"
+             placeholder="Maximum budget">
+
+      <label for="filter-bedrooms">Minimum bedrooms</label>
+      <select id="filter-bedrooms">
+        <option value="">Any number</option>
+        <option value="0">Studio / Bedsitter</option>
+        <option value="1">1 or more</option>
+        <option value="2">2 or more</option>
+        <option value="3">3 or more</option>
+        <option value="4">4 or more</option>
+        <option value="5">5 or more</option>
+      </select>
+
+      <label for="haven-sort">Sort results</label>
+      <select id="haven-sort">
+        <option value="newest">Newest first</option>
+        <option value="price-low">Lowest price first</option>
+        <option value="price-high">Highest price first</option>
+      </select>
+
+    </div>
+  </details>
 
   <div class="haven-search-actions">
     <button type="button" id="haven-search-button" class="button">
@@ -627,6 +706,7 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
       Reset Filters
     </button>
   </div>
+
 </section>
 
     
