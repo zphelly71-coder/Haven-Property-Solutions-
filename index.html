@@ -4,49 +4,79 @@
   <title>Haven Property Solutions</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <style>
-  /* Premium Haven navigation */
-.site-nav {
-  background: #142b46;
-  border-bottom: 3px solid #c5a15b;
-  padding: 16px 22px;
+ 
+/* Premium Haven two-level header */
+.site-header {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.site-brand-bar {
+  background: linear-gradient(135deg, #142b46, #203f60);
+  min-height: 125px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px;
-  border-radius: 12px;
-  margin-bottom: 24px;
+  justify-content: center;
+  gap: 22px;
+  padding: 20px;
+  box-sizing: border-box;
+  border-bottom: 3px solid #c5a15b;
 }
 
 .site-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  gap: 18px;
   color: #e6c783;
-  font-size: 19px;
-  font-weight: bold;
-  letter-spacing: 1px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 2px;
   text-decoration: none;
+  text-align: center;
   max-width: 100%;
 }
 
 .site-brand img {
-  width: 72px;
-  height: 55px;
+  width: 105px;
+  height: 85px;
   object-fit: contain;
   background: #ffffff;
-  padding: 4px;
-  border-radius: 6px;
+  padding: 5px;
+  border-radius: 8px;
   box-sizing: border-box;
 }
+
 .site-brand span {
   line-height: 1.2;
 }
 
+.site-tagline {
+  color: #ffffff;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-align: center;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.site-nav {
+  background: #203b59;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 22px;
+  border-bottom: 2px solid #c5a15b;
+}
+
 .site-links {
   display: flex;
+  justify-content: center;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 24px;
 }
 
 .site-links a {
@@ -59,6 +89,7 @@
 .site-links a:hover {
   color: #e6c783;
 }
+
     body {
     font-family: Arial, sans-serif;
     background-color: #f4f1ea;
@@ -211,19 +242,40 @@ form button {
     border-radius: 8px;
   }
 
+ 
+  .site-brand-bar {
+    min-height: 100px;
+    padding: 16px 10px;
+  }
+
+  .site-brand {
+    font-size: 19px;
+    gap: 10px;
+    letter-spacing: 1px;
+  }
+
+  .site-brand img {
+    width: 68px;
+    height: 60px;
+  }
+
+  .site-tagline {
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+
   .site-nav {
-    padding: 14px;
-    align-items: flex-start;
-    flex-direction: column;
+    padding: 14px 10px;
   }
 
   .site-links {
     width: 100%;
-    gap: 10px;
+    gap: 14px;
   }
 
   .site-links a {
     padding: 5px 0;
+    font-size: 13px;
   }
 
   h1 {
@@ -267,24 +319,38 @@ form button {
 </head>
 <body>
   
-<nav class="site-nav">
-  <a href="#home" class="site-brand">
-  <img
-    src="brand/haven-icon-transparent.png"
-    alt="Haven Property Solutions Logo"
-  >
-  <span>HAVEN PROPERTY SOLUTIONS</span>
-</a>
-  <div class="site-links">
-    <a href="#home" data-purpose="all">Home</a>
-    <a href="#properties-list" data-purpose="rent">Rent</a>
-    <a href="#properties-list" data-purpose="sale">Buy</a>
-    <a href="#properties-list" data-purpose="short-stay">Short Stay / Airbnb</a>
-    <a href="#properties-list" data-purpose="all">Search Properties</a>
-    <a href="#about">About</a>
-    <a href="#contact">Contact</a>
+
+<header class="site-header">
+
+  <div class="site-brand-bar">
+    <div>
+      <a href="#home" class="site-brand">
+        <img
+          src="brand/haven-icon-transparent.png"
+          alt="Haven Property Solutions Logo"
+        >
+        <span>HAVEN PROPERTY SOLUTIONS</span>
+      </a>
+
+      <div class="site-tagline">
+        YOUR TRUSTED PROPERTY PARTNER
+      </div>
+    </div>
   </div>
-</nav>
+
+  <nav class="site-nav">
+    <div class="site-links">
+      <a href="#home" data-purpose="all">Home</a>
+      <a href="#properties-list" data-purpose="rent">Rent</a>
+      <a href="#properties-list" data-purpose="sale">Buy</a>
+      <a href="#properties-list" data-purpose="short-stay">Short Stay / Airbnb</a>
+      <a href="#properties-list" data-purpose="all">Search Properties</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </nav>
+
+</header>
 
   <div class="container">
     <h1>Discover Exceptional Living.</h1>
