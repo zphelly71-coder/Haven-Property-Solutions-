@@ -19,12 +19,25 @@
 }
 
 .site-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   color: #e6c783;
-  font-size: 18px;
+  font-size: 19px;
   font-weight: bold;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
   text-decoration: none;
   max-width: 100%;
+}
+
+.site-brand img {
+  width: 55px;
+  height: 55px;
+  object-fit: contain;
+}
+
+.site-brand span {
+  line-height: 1.2;
 }
 
 .site-links {
@@ -252,8 +265,13 @@ form button {
 <body>
   
 <nav class="site-nav">
-  <a href="#home" class="site-brand">HAVEN PROPERTY SOLUTIONS</a>
-
+  <a href="#home" class="site-brand">
+  <img
+    src="brand/haven-icon-transparent.png"
+    alt="Haven Property Solutions Logo"
+  >
+  <span>HAVEN PROPERTY SOLUTIONS</span>
+</a>
   <div class="site-links">
     <a href="#home" data-purpose="all">Home</a>
     <a href="#properties-list" data-purpose="rent">Rent</a>
