@@ -1304,6 +1304,7 @@ detailsButton.style.textDecoration = "none";
       location.textContent = "Location: " + (property.location || "Not specified");
 
       const price = document.createElement("p");
+      price.className = "property-price";
       price.textContent = property.price != null
         ? "Price: KSh " + Number(property.price).toLocaleString("en-KE") +
           (property.pricePeriod ? "/" + property.pricePeriod : "")
