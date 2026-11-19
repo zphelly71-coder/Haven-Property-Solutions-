@@ -443,12 +443,29 @@ header p {
 }
 
 .detail-row {
-  padding: 13px 5px;
-  border-bottom: 1px solid #eadfc9;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 15px 17px;
+  margin-bottom: 9px;
+  background: linear-gradient(135deg, #ffffff, #f8f6f1);
+  border: 1px solid #e5d9c2;
+  border-left: 4px solid #c5a15b;
+  border-radius: 10px;
+  line-height: 1.7;
+  box-shadow: 0 3px 10px rgba(20, 43, 70, 0.05);
 }
 
 .detail-row strong {
   color: #142b46;
+  font-weight: 800;
+}
+
+.detail-row span {
+  color: #475569;
+  overflow-wrap: anywhere;
+}
 }
 
 /* Mobile property details */
