@@ -128,19 +128,35 @@ header p {
 }
 
 .thumbnails img {
-  width: 100px;
-  height: 75px;
+  width: 112px;
+  height: 82px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   flex-shrink: 0;
-  border: 3px solid transparent;
+  border: 3px solid #142b46;
+  outline: 1px solid rgba(197, 161, 91, 0.65);
+  outline-offset: 1px;
+  box-shadow: 0 5px 14px rgba(197, 161, 91, 0.22);
+  opacity: 0.88;
+  transition: all 0.25s ease;
+}
+
+.thumbnails img:hover {
+  opacity: 1;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(197, 161, 91, 0.38);
 }
 
 .thumbnails img.active {
-  border-color: #c5a15b;
+  opacity: 1;
+  border: 3px solid #142b46;
+  outline: 2px solid #c5a15b;
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 2px rgba(197, 161, 91, 0.3),
+    0 7px 20px rgba(197, 161, 91, 0.45);
 }
-
 .price {
   font-size: 28px;
   font-weight: 800;
