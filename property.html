@@ -337,25 +337,57 @@ header p {
   padding: 30px;
 }
 
+/* Premium Haven property gallery */
 .gallery-main {
+  display: block;
   width: 100%;
-  height: 480px;
+  height: clamp(280px, 52vw, 560px);
   max-height: 560px;
   object-fit: cover;
   background: #142b46;
-  border-radius: 14px;
+  border: 1px solid #e5d9c2;
+  border-radius: 18px;
+  cursor: zoom-in;
+  box-shadow: 0 14px 34px rgba(20, 43, 70, 0.16);
+  transition: box-shadow 0.25s ease;
+}
+
+.gallery-main:hover {
+  box-shadow: 0 18px 42px rgba(20, 43, 70, 0.22);
 }
 
 .thumbnails {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  margin: 16px 0 25px;
-  padding: 5px;
+  overflow-x: auto;
+  margin: 18px 0 28px;
+  padding: 8px 5px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #c5a15b #f4f1ea;
 }
 
 .thumbnails img {
-  width: 100px;
-  height: 75px;
-  border-radius: 8px;
+  width: 112px;
+  height: 82px;
+  object-fit: cover;
+  border-radius: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 2px solid transparent;
+  opacity: 0.78;
+  transition: all 0.2s ease;
+}
+
+.thumbnails img:hover {
+  opacity: 1;
+  transform: translateY(-3px);
+}
+
+.thumbnails img.active {
+  opacity: 1;
+  border: 2px solid #c5a15b;
+  box-shadow: 0 4px 12px rgba(197, 161, 91, 0.3);
 }
 
 .price {
