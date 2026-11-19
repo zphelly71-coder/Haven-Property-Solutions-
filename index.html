@@ -1311,7 +1311,8 @@ detailsButton.style.textDecoration = "none";
         : "Price: Contact us";
 
       const description = document.createElement("p");
-      description.textContent = property.description || "";
+description.className = "property-description";
+description.textContent = property.description || "";
 
       card.append(title, location, price, description);
 card.appendChild(detailsButton);
