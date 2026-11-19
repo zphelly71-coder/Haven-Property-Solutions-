@@ -433,10 +433,25 @@ form button {
 }
 .property > h3 {
   color: #142b46;
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 800;
   line-height: 1.4;
-  margin: 12px 0;
+  margin: 14px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5d9c2;
+  position: relative;
+}
+
+.property > h3::after {
+  content: "";
+  display: block;
+  width: 55px;
+  height: 3px;
+  background: #c5a15b;
+  border-radius: 3px;
+  position: absolute;
+  bottom: -2px;
+  left: 0;
 }
 
 .property > p {
