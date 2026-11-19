@@ -1314,7 +1314,8 @@ detailsButton.style.marginTop = "10px";
 detailsButton.style.textDecoration = "none";
 
       const location = document.createElement("p");
-      location.textContent = "Location: " + (property.location || "Not specified");
+location.className = "property-location";
+location.textContent = "Location: " + (property.location || "Not specified");
 
       const price = document.createElement("p");
       price.className = "property-price";
