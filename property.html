@@ -728,51 +728,12 @@ const isRental = listingPurpose === "rent" ||
 
 const isShortStay = listingPurpose === "short-stay";
 
-// Build concise property highlights
-const highlights = [];
+// Display property information using the original detail-row style
+addDetail("Property type", property.propertyType);
 
-if (property.propertyType) {
-  highlights.push({
-    label: "Property type",
-    value: property.propertyType
-  });
-}
-
-if (!isLand && !isShortStay && property.bedrooms != null) {
-  highlights.push({
-    label: "Bedrooms",
-    value: property.bedrooms
-  });
-}
-
-if (!isLand && !isShortStay && property.bathrooms != null) {
-  highlights.push({
-    label: "Bathrooms",
-    value: property.bathrooms
-  });
-}
-
-if (highlights.length) {
-  const highlightsSection = document.createElement("section");
-  highlightsSection.className = "property-highlights";
-
-  highlights.forEach(item => {
-    const card = document.createElement("div");
-    card.className = "highlight-card";
-
-    const label = document.createElement("span");
-    label.className = "highlight-label";
-    label.textContent = item.label;
-
-    const value = document.createElement("span");
-    value.className = "highlight-value";
-    value.textContent = item.value;
-
-    card.append(label, value);
-    highlightsSection.appendChild(card);
-  });
-
-  content.appendChild(highlightsSection);
+if (!isLand && !isShortStay) {
+  addDetail("Bedrooms", property.bedrooms);
+  addDetail("Bathrooms", property.bathrooms);
 }
     
     // Show only land-specific details for land / plot listings.
