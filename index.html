@@ -1108,13 +1108,7 @@ badge.textContent = isPublished
   )
   : "DRAFT";
 
-badge.style.display = "inline-block";
-badge.style.padding = "5px 10px";
-badge.style.backgroundColor = "#142b46";
-badge.style.color = "#e6c783";
-badge.style.fontWeight = "bold";
-badge.style.borderRadius = "6px";
-badge.style.fontSize = "12px";
+badge.className = "property-status-badge";
 card.appendChild(badge);
       const favoriteButton = document.createElement("button");
 favoriteButton.type = "button";
