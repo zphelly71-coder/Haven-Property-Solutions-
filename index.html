@@ -959,20 +959,32 @@ a.option-card:hover {
   }
 
  .site-brand {
-  gap: 14px;
-  font-size: clamp(17px, 4.8vw, 24px);
-  letter-spacing: 0.4px;
-  line-height: 1.2;
-  padding: 5px;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 4px;
 }
 
 .site-brand img {
-  width: 82px;
-  height: 88px;
-  padding: 4px;
-  border-radius: 10px;
+  width: 68px;
+  height: 90px;
+  padding: 3px;
+  border-radius: 8px;
 }
 
+.site-brand .brand-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.site-brand .brand-haven {
+  font-size: clamp(34px, 9vw, 52px);
+  letter-spacing: 1px;
+}
+
+.site-brand .brand-subtitle {
+  font-size: clamp(9px, 2.5vw, 13px);
+  letter-spacing: 0.3px;
+}
   .site-tagline {
     font-size: 9px;
     letter-spacing: 1.5px;
