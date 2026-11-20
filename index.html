@@ -978,11 +978,20 @@ a.option-card:hover {
 }
 
 .site-brand .brand-haven {
-  font-size: clamp(58px, 12vw, 88px);
+  width: 100%;
+  font-size: clamp(58px, 22vw, 84px);
   font-weight: 900;
   letter-spacing: 3px;
-  transform: scaleX(1.08);
-  transform-origin: center;
+  transform: none;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.site-brand .brand-subtitle {
+  width: 100%;
+  justify-content: space-between;
+  font-size: clamp(9px, 2.5vw, 13px);
+  letter-spacing: 0.3px;
 }
 
 .site-brand .brand-subtitle {
