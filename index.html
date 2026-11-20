@@ -60,8 +60,32 @@
   flex-shrink: 0;
 }
 
-.site-brand span {
-  line-height: 1.1;
+.site-brand .brand-name {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: fit-content;
+  line-height: 1;
+}
+
+.site-brand .brand-haven {
+  display: block;
+  font-size: clamp(48px, 6vw, 82px);
+  font-weight: 900;
+  letter-spacing: 3px;
+  line-height: 1;
+  text-align: center;
+}
+
+.site-brand .brand-subtitle {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: clamp(13px, 1.6vw, 20px);
+  font-weight: 900;
+  letter-spacing: 1px;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
 .site-tagline {
@@ -1032,7 +1056,13 @@ a.option-card:hover {
           src="brand/haven-icon-transparent.png"
           alt="Haven Property Solutions Logo"
         >
-        <span>HAVEN PROPERTY SOLUTIONS</span>
+       <span class="brand-name">
+  <span class="brand-haven">HAVEN</span>
+  <span class="brand-subtitle">
+    <span>PROPERTY</span>
+    <span>SOLUTIONS</span>
+  </span>
+</span>
       </a>
 
       <div class="site-tagline">
