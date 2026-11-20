@@ -96,12 +96,27 @@ padding-right: 0;
   white-space: nowrap;
 }
 @media (min-width: 601px) {
-  .site-brand .brand-subtitle > span {
-    flex: 1;
-    text-align: center;
-    letter-spacing: 3px;
+  .site-brand .brand-subtitle {
+    justify-content: space-between;
+    gap: 0;
   }
-}   
+
+  .site-brand .brand-subtitle .brand-word {
+    display: flex;
+    flex: 1;
+    justify-content: space-between;
+    white-space: nowrap;
+  }
+
+  .site-brand .brand-subtitle .brand-word:first-child {
+    margin-right: 0;
+  }
+
+  .site-brand .brand-subtitle .brand-word > span {
+    display: inline-block;
+    letter-spacing: 0;
+  }
+}
 .site-tagline {
   color: #ffffff;
   font-size: 15px;
@@ -1106,10 +1121,14 @@ a.option-card:hover {
   <span>N</span>
 </span>
 
-  <span class="brand-subtitle">
-    <span>PROPERTY</span>
-    <span>SOLUTIONS</span>
+ <span class="brand-subtitle">
+  <span class="brand-word">
+    <span>P</span><span>R</span><span>O</span><span>P</span><span>E</span><span>R</span><span>T</span><span>Y</span>
   </span>
+  <span class="brand-word">
+    <span>S</span><span>O</span><span>L</span><span>U</span><span>T</span><span>I</span><span>O</span><span>N</span><span>S</span>
+  </span>
+</span>
 
   <span class="site-tagline">
     YOUR TRUSTED PROPERTY PARTNER
