@@ -526,6 +526,98 @@ h2 {
   font-weight: 700;
   margin-top: 15px;
 }
+   /* Haven premium website footer */
+.haven-footer {
+  background: linear-gradient(135deg, #142b46, #203f60);
+  color: #ffffff;
+  margin-top: 50px;
+  border-top: 4px solid #c5a15b;
+  padding: 40px 30px 18px;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr;
+  gap: 40px;
+}
+
+.haven-footer h2 {
+  color: #e6c783;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  border: none;
+}
+
+.haven-footer h3 {
+  color: #e6c783;
+  font-size: 17px;
+  margin-bottom: 16px;
+}
+
+.haven-footer p {
+  color: #f4f1ea;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.footer-links,
+.footer-contact {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.haven-footer a {
+  color: #ffffff;
+  font-size: 14px;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.haven-footer a:hover {
+  color: #e6c783;
+  text-decoration: underline;
+}
+
+.footer-bottom {
+  max-width: 1200px;
+  margin: 35px auto 0;
+  padding-top: 18px;
+  border-top: 1px solid rgba(230, 199, 131, 0.4);
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.footer-bottom p {
+  margin: 0;
+  font-size: 12px;
+}
+
+@media (max-width: 700px) {
+  .haven-footer {
+    padding: 30px 20px 18px;
+  }
+
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+
+  .haven-footer h2 {
+    font-size: 20px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
 
 @media (max-width: 600px) {
   .contact-section {
