@@ -429,7 +429,39 @@ h2 {
   font-size: 15px;
   line-height: 1.8;
 }
+/* Highlight Haven company identity */
+.contact-section .contact-company-name {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(135deg, #142b46, #203f60);
+  border-left: 5px solid #c5a15b;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin: 20px 0;
+  box-shadow: 0 6px 16px rgba(20, 43, 70, 0.12);
+}
 
+.contact-section .contact-company-name strong {
+  color: #e6c783;
+  font-size: 12px;
+  letter-spacing: 2px;
+  font-weight: 800;
+}
+
+.contact-section .contact-company-name span {
+  color: #ffffff;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+}
+
+@media (max-width: 600px) {
+  .contact-section .contact-company-name span {
+    font-size: 19px;
+  }
+}
 .contact-section a {
   color: #203f60;
   font-weight: 800;
@@ -1759,7 +1791,10 @@ src="https://www.openstreetmap.org/export/embed.html?bbox=34.5%2C-0.5%2C35.5%2C1
 
     <h2 id="contact">Get in Touch with Us</h2>
     <p>Contact us for more information about our property management services:</p>
-    <p><strong>Company Name:</strong> Haven Property Solutions</p>
+    <p class="contact-company-name">
+  <strong>COMPANY NAME</strong>
+  <span>HAVEN PROPERTY SOLUTIONS</span>
+</p>
     <p><strong>Email:</strong> <a href="mailto:havenpropertysolutions26@gmail.com">havenpropertysolutions26@gmail.com</a></p>
 
     <form id="contact-form">
