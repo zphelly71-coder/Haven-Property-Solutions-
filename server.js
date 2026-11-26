@@ -872,7 +872,7 @@ app.get(
 
 app.get("/", (req, res) => {
   res.json({
-    message: "Haven Property Solutions API",
+    message: "Halwek Property Solutions API",
     status: "running"
   });
 });
@@ -2214,7 +2214,7 @@ app.post(
 
       const smsMessage =
         "Hello " + tenant.name +
-        ". Haven Property Solutions invites you to activate your Tenant Portal. " +
+        ". Halwek Property Solutions invites you to activate your Tenant Portal. " +
         "Use this secure link within 7 days: " + invitationUrl;
 
       let smsSent = false;
