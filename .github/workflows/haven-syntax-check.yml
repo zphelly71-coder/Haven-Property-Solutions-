@@ -1,5 +1,5 @@
 
-name: Check Haven API JavaScript Syntax
+name: Check HALWEK API JavaScript Syntax
 
 on:
   workflow_dispatch:

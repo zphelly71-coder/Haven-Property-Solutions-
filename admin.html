@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Haven Property Solutions | Admin</title>
+<title>HALWEK Property Solutions | Admin</title>
 <style>
 :root{font-family:Arial,sans-serif;color:#18332c;background:#f3f6f4}
 *{box-sizing:border-box}
@@ -29,7 +29,7 @@ button:disabled{opacity:.5}
 </head>
 <body>
 <header>
-  <h1>Haven Property Solutions</h1>
+  <h1>HALWEK Property Solutions</h1>
   <p>Property Administration</p>
 </header>
 <main>
@@ -1723,7 +1723,7 @@ $("printReinstatementHistoryAdmin").addEventListener("click", () => {
       </style>
     </head>
     <body>
-      <h1>HAVEN PROPERTY SOLUTIONS</h1>
+      <h1>HALWEK Property Solutions</h1>
       <h2>Tenant Reinstatement History</h2>
       <p>Official Super Admin Reinstatement Records</p>
       <table>
@@ -1772,7 +1772,7 @@ $("exportReinstatementHistoryAdmin").addEventListener("click", () => {
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = "Haven_Tenant_Reinstatement_History.csv";
+  link.download = "HALWEK_Tenant_Reinstatement_History.csv";
 
   document.body.appendChild(link);
   link.click();
@@ -1927,7 +1927,7 @@ async function loadProperties() {
 
     link.href = url;
     link.download =
-      "haven-enquiries-" + selectedStatus + "-" +
+      "HALWEK-enquiries-" + selectedStatus + "-" +
       new Date().toISOString().slice(0, 10) + ".csv";
 
     document.body.appendChild(link);
@@ -2046,13 +2046,13 @@ if (enquiry.email) {
     "mailto:" + enquiry.email +
     "?subject=" + encodeURIComponent(
       "Your property enquiry: " +
-      (enquiry.propertyTitle || "Haven Property Solutions")
+      (enquiry.propertyTitle || "HALWEK Property Solutions")
     ) +
     "&body=" + encodeURIComponent(
       "Hello " + (enquiry.name || "there") + ",\n\n" +
       "I am following up on your enquiry about " +
       (enquiry.propertyTitle || "a property") + ".\n\n" +
-      "Regards,\nHaven Property Solutions"
+      "Regards,\nHALWEK Property Solutions"
     );
   emailButton.className = "button";
   emailButton.textContent = "Reply by Email";
@@ -2695,7 +2695,7 @@ async function loadMonthlyReport() {
       '"' + String(value ?? "").replace(/"/g, '""') + '"';
 
     const rows = [
-      ["HAVEN PROPERTY SOLUTIONS"],
+      ["HALWEK Property Solutions"],
       ["Monthly Business Report", "Last 12 months"],
       [],
       ["Month", "Enquiries Received", "Successful Deals"],
@@ -2727,7 +2727,7 @@ async function loadMonthlyReport() {
 
     link.href = url;
     link.download =
-      "haven-monthly-report-" +
+      "HALWEK-monthly-report-" +
       new Date().toISOString().slice(0, 10) +
       ".csv";
 

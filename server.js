@@ -872,7 +872,7 @@ app.get(
 
 app.get("/", (req, res) => {
   res.json({
-    message: "Haven Property Solutions API",
+    message: "HALWEK Property Solutions API",
     status: "running"
   });
 });
@@ -2214,7 +2214,7 @@ app.post(
 
       const smsMessage =
         "Hello " + tenant.name +
-        ". Haven Property Solutions invites you to activate your Tenant Portal. " +
+        ". HALWEK Property Solutions invites you to activate your Tenant Portal. " +
         "Use this secure link within 7 days: " + invitationUrl;
 
       let smsSent = false;
@@ -7938,7 +7938,7 @@ await db.collection("reservationPayments").createIndex(
 );
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Haven API listening on port ${PORT}`);
+    console.log(`HALWEK API listening on port ${PORT}`);
   });
 }
 
