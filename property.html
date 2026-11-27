@@ -302,20 +302,18 @@ header p {
 }
 
 .property-brand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  color: #e6c783;
+  display: block;
+  width: 100%;
+  max-width: 300px;
   text-decoration: none;
+  flex-shrink: 1;
 }
 
 .property-brand img {
-  width: 64px;
-  height: 64px;
+  display: block;
+  width: 100%;
+  height: auto;
   object-fit: contain;
-  background: #ffffff;
-  padding: 5px;
-  border-radius: 10px;
 }
 
 .property-brand strong {
@@ -348,24 +346,14 @@ header p {
     padding: 14px 16px;
   }
 
-  .property-brand img {
-    width: 54px;
-    height: 54px;
-  }
-
-  .property-brand strong {
-    font-size: 14px;
-  }
-
-  .property-brand small {
-    font-size: 9px;
-  }
+  .property-brand {
+  max-width: 250px;
 }
     /* Final Haven property details styling */
 #property-content {
   padding: 30px;
+  }
 }
-
 /* Premium Haven property gallery */
 .gallery-main {
   display: block;
@@ -621,15 +609,11 @@ header p {
   </button>
 
   <a href="./" class="property-brand">
-    <img
-      src="brand/halwek-icon-transparent.png"
-      alt="Halwek Property Solutions logo"
-    >
-    <span>
-      <strong>Halwek Property Solutions</strong>
-      <small>YOUR TRUSTED PROPERTY PARTNER</small>
-    </span>
-  </a>
+  <img
+    src="brand/HALWEK-full-logo-white-background.png"
+    alt="HALWEK Property Solutions — Rent, Buy, Sell, Manage, Short Stay"
+  >
+</a>
 
   <p>Property details</p>
 
