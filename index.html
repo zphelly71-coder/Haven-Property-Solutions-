@@ -194,7 +194,7 @@ padding-right: 0;
       rgba(10, 32, 52, 0.20),
       rgba(10, 32, 52, 0.55)
     ),
-    url("brand/Halwek-coastal-hero.png") center 52% / cover no-repeat;
+    url("brand/halwek-coastal-hero.png") center 52% / cover no-repeat;
   border-bottom: 4px solid #c5a15b;
 }
 
@@ -311,7 +311,7 @@ padding-right: 0;
 }
    
 /* Expandable HALWEK advanced filters */
-.HALWEK-filter-dropdown {
+.Halwek-filter-dropdown {
   margin-top: 18px;
   border: 1px solid #dfcfad;
   border-radius: 10px;
@@ -319,7 +319,7 @@ padding-right: 0;
   overflow: hidden;
 }
 
-.HALWEK-filter-dropdown summary {
+.Halwek-filter-dropdown summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -330,11 +330,11 @@ padding-right: 0;
   list-style: none;
 }
 
-.HALWEK-filter-dropdown summary::-webkit-details-marker {
+.Halwek-filter-dropdown summary::-webkit-details-marker {
   display: none;
 }
 
-.HALWEK-filter-dropdown summary:hover {
+.Halwek-filter-dropdown summary:hover {
   background: #f4f1ea;
 }
 
@@ -344,16 +344,16 @@ padding-right: 0;
   font-weight: bold;
 }
 
-.HALWEK-filter-dropdown[open] .filter-summary-icon {
+.Halwek-filter-dropdown[open] .filter-summary-icon {
   transform: rotate(45deg);
 }
 
-.HALWEK-filter-content {
+.Halwek-filter-content {
   padding: 5px 18px 20px;
   border-top: 1px solid #eadfc9;
 }
 
-.HALWEK-filter-content label {
+.Halwek-filter-content label {
   display: block;
   margin: 16px 0 7px;
   color: #203b59;
@@ -361,8 +361,8 @@ padding-right: 0;
   font-weight: 700;
 }
 
-.HALWEK-filter-content input,
-.HALWEK-filter-content select {
+.Halwek-filter-content input,
+.Halwek-filter-content select {
   width: 100%;
   min-height: 46px;
   padding: 11px 13px;
@@ -590,7 +590,7 @@ h2 {
   margin-top: 15px;
 }
    /* HALWEK premium website footer */
-.HALWEK-footer {
+.Halwek-footer {
   background: linear-gradient(135deg, #142b46, #203f60);
   color: #ffffff;
   margin-top: 50px;
@@ -606,7 +606,7 @@ h2 {
   gap: 40px;
 }
 
-.HALWEK-footer h2 {
+.Halwek-footer h2 {
   color: #e6c783;
   font-size: 23px;
   font-weight: 900;
@@ -614,7 +614,7 @@ h2 {
   border: none;
 }
 
-.HALWEK-footer h3 {
+.Halwek-footer h3 {
   color: #e6c783;
   font-size: 17px;
   margin-bottom: 16px;
@@ -1005,7 +1005,7 @@ a.option-card:hover {
   min-width: 0;
 }
 
-.site-brand .brand-HALWEK {
+.site-brand .brand-Halwek {
   width: 100%;
   font-size: clamp(52px, 18vw, 72px);
   font-weight: 900;
@@ -1111,7 +1111,7 @@ a.option-card:hover {
     <div>
       <a href="#home" class="site-brand">
   <img
-    src="brand/Halwek-full-logo-transparent.png"
+    src="brand/HALWEK-full-logo-transparent.png"
     alt="HALWEK Property Solutions — Rent, Buy, Sell, Manage, Short Stay"
   >
 </a>
@@ -1334,12 +1334,12 @@ fetch("https://haven-property-solutions-api.onrender.com/api/health")
   let searchTerm = "";
   let propertySortOrder = "newest";
   let showingFavorites = false;
-  const HALWEK_FAVORITES_KEY = "HalwekFavoritePropertyIds";
+  const Halwek_FAVORITES_KEY = "HalwekFavoritePropertyIds";
 
-function HALWEKGetFavorites() {
+function HalwekGetFavorites() {
   try {
     const saved = JSON.parse(
-      localStorage.getItem(HALWEK_FAVORITES_KEY) || "[]"
+      localStorage.getItem(Halwek_FAVORITES_KEY) || "[]"
     );
     return Array.isArray(saved) ? saved.map(String) : [];
   } catch (error) {
@@ -1347,7 +1347,7 @@ function HALWEKGetFavorites() {
   }
 }
 
-function HALWEKPropertyKey(property) {
+function HalwekPropertyKey(property) {
   return String(
     property._id ||
     property.id ||
@@ -1356,10 +1356,10 @@ function HALWEKPropertyKey(property) {
   );
 }
 
-function HALWEKSaveFavorites(favorites) {
+function HalwekSaveFavorites(favorites) {
   try {
     localStorage.setItem(
-      HALWEK_FAVORITES_KEY,
+      Halwek_FAVORITES_KEY,
       JSON.stringify(favorites)
     );
     return true;
@@ -1383,23 +1383,23 @@ async function loadProperties() {
   ? data.properties
   : [];
 const filterLocation = (
-  document.getElementById("HALWEK-location-filter")?.value ||
+  document.getElementById("Halwek-location-filter")?.value ||
   document.getElementById("filter-location")?.value ||
   ""
 ).trim().toLowerCase();
 
 const minPriceValue =
-  document.getElementById("HALWEK-min-price")?.value ||
+  document.getElementById("Halwek-min-price")?.value ||
   document.getElementById("filter-min-price")?.value ||
   "";
 
 const maxPriceValue =
-  document.getElementById("HALWEK-max-price")?.value ||
+  document.getElementById("Halwek-max-price")?.value ||
   document.getElementById("filter-max-price")?.value ||
   "";
 
 const minBedroomsValue =
-  document.getElementById("HALWEK-bedroom-filter")?.value ||
+  document.getElementById("Halwek-bedroom-filter")?.value ||
   document.getElementById("filter-bedrooms")?.value ||
   "";
 const propertyTypeValue =
@@ -1474,9 +1474,9 @@ const propertyTypeMatches =
   bedroomsMatches &&
   propertyTypeMatches &&
   (!showingFavorites ||
-    HALWEKGetFavorites().includes(HALWEKPropertyKey(property)));
+    HalwekGetFavorites().includes(HalwekPropertyKey(property)));
 });
-    const sortControl = document.getElementById("HALWEK-sort");
+    const sortControl = document.getElementById("Halwek-sort");
 propertySortOrder = sortControl
   ? sortControl.value
   : propertySortOrder;
@@ -1531,10 +1531,10 @@ favoriteButton.style.cursor = "pointer";
 favoriteButton.style.background = "#fff";
 favoriteButton.style.border = "1px solid #c5a15b";
 
-const favoriteKey = HALWEKPropertyKey(property);
+const favoriteKey = HalwekPropertyKey(property);
 
 function updateFavoriteButton() {
-  const isFavorite = HALWEKGetFavorites().includes(favoriteKey);
+  const isFavorite = HalwekGetFavorites().includes(favoriteKey);
   favoriteButton.textContent = isFavorite
     ? "♥ Saved to Favourites"
     : "♡ Add to Favourites";
@@ -1543,14 +1543,14 @@ function updateFavoriteButton() {
 }
 
 favoriteButton.addEventListener("click", () => {
-  const favorites = HALWEKGetFavorites();
+  const favorites = HalwekGetFavorites();
   const isFavorite = favorites.includes(favoriteKey);
 
   const updatedFavorites = isFavorite
     ? favorites.filter(id => id !== favoriteKey)
     : [...favorites, favoriteKey];
 
-  if (!HALWEKSaveFavorites(updatedFavorites)) {
+  if (!HalwekSaveFavorites(updatedFavorites)) {
     alert("Unable to save favourites in this browser.");
     return;
   }
@@ -1891,7 +1891,7 @@ const favoritesCount =
   document.getElementById("favorites-count");
 
 function updateFavoritesFilterButton() {
-  const total = HALWEKGetFavorites().length;
+  const total = HalwekGetFavorites().length;
 
   favoritesFilterButton.textContent = showingFavorites
     ? "♥ Show All Properties"
@@ -1976,7 +1976,7 @@ src="https://www.openstreetmap.org/export/embed.html?bbox=34.5%2C-0.5%2C35.5%2C1
   <strong>Company:</strong>
   <span>HALWEK Property Solutions</span>
 </p>
-    <p><strong>Email:</strong> <a href="mailto:Halwekpropertysolutions26@gmail.com">HALWEKpropertysolutions26@gmail.com</a></p>
+    <p><strong>Email:</strong> <a href="mailto:halwekpropertysolutions26@gmail.com">halwekpropertysolutions26@gmail.com</a></p>
 
     <form id="contact-form">
       <label for="name">Name:</label>
@@ -2079,8 +2079,8 @@ document.getElementById("contact-form")
     <div class="footer-contact">
       <h3>Get in Touch</h3>
       <p>HALWEK Property Solutions</p>
-      <a href="mailto:Halwekpropertysolutions26@gmail.com">
-        Halwekpropertysolutions26@gmail.com
+      <a href="mailto:halwekpropertysolutions26@gmail.com">
+        halwekpropertysolutions26@gmail.com
       </a>
     </div>
 
