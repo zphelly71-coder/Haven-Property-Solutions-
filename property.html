@@ -289,7 +289,7 @@ header p {
         padding: 14px;
       }
     }
-    /* Haven premium property page header */
+    /* HALWEK premium property page header */
 .property-header {
   display: flex;
   align-items: center;
@@ -349,12 +349,12 @@ header p {
   .property-brand {
   max-width: 250px;
 }
-    /* Final Haven property details styling */
+    /* Final HALWEK property details styling */
 #property-content {
   padding: 30px;
   }
 }
-/* Premium Haven property gallery */
+/* Premium HALWEK property gallery */
 .gallery-main {
   display: block;
   width: 100%;
@@ -489,7 +489,7 @@ header p {
     font-size: 13px;
   }
 }
-  /* Haven property highlights */
+  /* HALWEK property highlights */
 .property-highlights {
   display: grid;
   grid-template-columns: repeat(
@@ -542,7 +542,7 @@ header p {
     font-size: 16px;
   }
 }
-  /* Haven amenities presentation */
+  /* HALWEK amenities presentation */
 .amenities-section {
   margin: 26px 0;
   padding: 22px;
@@ -631,7 +631,7 @@ header p {
 <script>
 const API_URL = window.location.hostname.endsWith(".onrender.com")
   ? "/api/properties"
-  : "https://haven-property-solutions-api.onrender.com/api/properties";
+  : "https://HALWEK-property-solutions-api.onrender.com/api/properties";
 const content = document.getElementById("property-content");
 
 function getPropertyId() {
@@ -1114,7 +1114,7 @@ if (isShortStay) {
 
     try {
       const response = await fetch(
-        "https://haven-property-solutions-api.onrender.com/api/reservations",
+        "https://HALWEK-property-solutions-api.onrender.com/api/reservations",
         {
           method: "POST",
           headers: {
@@ -1257,7 +1257,7 @@ enquiryForm.addEventListener("submit", async event => {
 
   try {
     const enquiryResponse = await fetch(
-      "https://haven-property-solutions-api.onrender.com/api/enquiries",
+      "https://HALWEK-property-solutions-api.onrender.com/api/enquiries",
       {
         method: "POST",
         headers: {
@@ -1306,7 +1306,7 @@ content.appendChild(enquirySection);
       "Unable to load property details. Please try again later.";
   }
 }
-// Return to the previous page, or Haven homepage if no history exists
+// Return to the previous page, or HALWEK homepage if no history exists
 const backButton = document.getElementById("backToPreviousPage");
 
 if (backButton) {
