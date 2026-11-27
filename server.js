@@ -7938,7 +7938,7 @@ await db.collection("reservationPayments").createIndex(
 );
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Haven API listening on port ${PORT}`);
+    console.log(`HALWEK API listening on port ${PORT}`);
   });
 }
 
