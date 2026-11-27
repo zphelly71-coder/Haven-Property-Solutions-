@@ -845,9 +845,9 @@ button:disabled{opacity:.5}
 
 const API = window.location.hostname.endsWith(".onrender.com")
   ? ""
-  : "https://HELWEK-property-solutions-api.onrender.com";
-const TOKEN_KEY = "HELWEK_admin_token";
-const SUPER_ADMIN_TOKEN_KEY = "HELWEK_super_admin_token";
+  : "https://HALWEK-property-solutions-api.onrender.com";
+const TOKEN_KEY = "HALWEK_admin_token";
+const SUPER_ADMIN_TOKEN_KEY = "HALWEK_super_admin_token";
 
 let editingId = "";
 
@@ -1927,7 +1927,7 @@ async function loadProperties() {
 
     link.href = url;
     link.download =
-      "HELWEK-enquiries-" + selectedStatus + "-" +
+      "HALWEK-enquiries-" + selectedStatus + "-" +
       new Date().toISOString().slice(0, 10) + ".csv";
 
     document.body.appendChild(link);
@@ -2727,7 +2727,7 @@ async function loadMonthlyReport() {
 
     link.href = url;
     link.download =
-      "HELWEK-monthly-report-" +
+      "HALWEK-monthly-report-" +
       new Date().toISOString().slice(0, 10) +
       ".csv";
 
