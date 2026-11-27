@@ -1169,7 +1169,7 @@ a.option-card:hover {
     <p id="api-status">Checking system connection...</p>
 
 <script>
-fetch("https://Halwek-property-solutions-api.onrender.com/api/health")
+fetch("https://haven-property-solutions-api.onrender.com/api/health")
   .then(response => {
     if (!response.ok) throw new Error("API unavailable");
     return response.json();
@@ -1394,7 +1394,7 @@ async function loadProperties() {
 
   try {
     const response = await fetch(
-      "https://Halwek-property-solutions-api.onrender.com/api/properties"
+      "https://haven-property-solutions-api.onrender.com/api/properties"
     );
 
     if (!response.ok) throw new Error("Could not load properties");
@@ -2035,7 +2035,7 @@ document.getElementById("contact-form")
 
     try {
       const response = await fetch(
-        "https://Halwek-property-solutions-api.onrender.com/api/contact",
+        "https://haven-property-solutions-api.onrender.com/api/contact",
         {
           method: "POST",
           headers: {
