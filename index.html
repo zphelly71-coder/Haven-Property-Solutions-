@@ -47,15 +47,17 @@
   box-sizing: border-box;
 }
 
-.site-brand img {
-  width: 180px;
-  height: 166px;
+..site-brand img {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
   object-fit: contain;
-  background: #ffffff;
-  padding: 5px;
-  border-radius: 10px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
   box-sizing: border-box;
-  flex-shrink: 0;
+  flex-shrink: 1;
 }
 
 .site-brand .brand-name {
@@ -992,12 +994,12 @@ a.option-card:hover {
 }
 
 .site-brand img {
-  width: 68px;
-  height: 90px;
-  padding: 3px;
-  border-radius: 8px;
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  padding: 0;
+  border-radius: 0;
 }
-
 .site-brand .brand-name {
   flex: 1;
   min-width: 0;
@@ -1108,33 +1110,10 @@ a.option-card:hover {
   <div class="site-brand-bar">
     <div>
       <a href="#home" class="site-brand">
-        <img
-          src="brand/halwek-icon-transparent.png"
-          alt="Halwek Property Solutions Logo"
-        >
-      <span class="brand-name">
-  <span class="brand-Halwek">
- <span>H</span>
-<span>A</span>
-<span>L</span>
-<span>W</span>
-<span>E</span>
-<span>K</span>
-</span>
-
- <span class="brand-subtitle">
-  <span class="brand-word">
-    <span>P</span><span>R</span><span>O</span><span>P</span><span>E</span><span>R</span><span>T</span><span>Y</span>
-  </span>
-  <span class="brand-word">
-    <span>S</span><span>O</span><span>L</span><span>U</span><span>T</span><span>I</span><span>O</span><span>N</span><span>S</span>
-  </span>
-</span>
-
-  <span class="site-tagline">
-    YOUR TRUSTED PROPERTY PARTNER
-  </span>
-</span>
+  <img
+    src="brand/HALWEK-full-logo-transparent.png"
+    alt="HALWEK Property Solutions — Rent, Buy, Sell, Manage, Short Stay"
+  >
 </a>
     </div>
   </div>
