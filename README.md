@@ -6,4 +6,4 @@ This is the repository for the Halwek Property Solutions website. The website sh
 Halwek Property Solutions is a property management company that provides top-notch services to property owners and tenants.
 
 ## Contact Us
-If you have any questions or would like to learn more about our services, please contact us at [info@havenpropertysolutions.com](mailto:info@havenpropertysolutions.com).
+If you have any questions or would like to learn more about our services, please contact us at [Halwekpropertysolutions26@gmail.com](mailto:Halwekpropertysolutions26@gmail.com).
