@@ -1,5 +1,5 @@
 
-# Halwek Property Solutions
+# HALWEK Property Solutions
 ## Financial Tracking System
 
 Currency: KES (Kenyan Shillings)
